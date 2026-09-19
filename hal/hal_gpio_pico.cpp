@@ -1,4 +1,5 @@
 #include "hal_gpio.h"
+#include "hal_time.h"
 
 #if defined(PICO_BOARD)
 #include "hardware/gpio.h"
