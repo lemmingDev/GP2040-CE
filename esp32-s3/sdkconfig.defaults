@@ -3,13 +3,13 @@ CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_TINYUSB=y
 CONFIG_BT_ENABLED=y
 CONFIG_BT_NIMBLE_ENABLED=y
-# Task 8 Ruling R3: there is NO BT_NIMBLE_HID_DEVICE symbol in ESP-IDF NimBLE
-# Kconfig (verified against components/bt/host/nimble/Kconfig.in on master:
-# only BT_NIMBLE_HID_SERVICE exists, and it is selected by the HID *host*
-# example — no device-side HIDS profile API ships with ESP-IDF NimBLE, so the
-# HOGP device here is a hand-rolled GATT 0x1812 table over ble_gatts_*).
-# Enabling the host-side HID service would only pull unused code; leaving it
-# at its default (n). Bonding persistence for NVS restore lives below.
+# Task 8 Ruling R3 (refined vs IDF v5.4 source 2026-09-20): there is NO
+# BT_NIMBLE_HID_DEVICE symbol in NimBLE Kconfig — only BT_NIMBLE_HID_SERVICE
+# (MyNewt host-side service). But a device-side HID API DOES ship: the esp_hid
+# component (components/esp_hid/include/esp_hidd.h, ESP_HID_CLASS_GPD gamepad)
+# with NimBLE transport per examples/bluetooth/esp_hid_device. Phase 1 to
+# evaluate esp_hidd vs the hand-rolled GATT 0x1812 table in BluetoothDriver.cpp
+# before first hardware validation. Leaving HID service at default (n).
 CONFIG_BT_NIMBLE_NVS_PERSIST=y
 CONFIG_MAIN_TASK_STACK_SIZE=8192
 CONFIG_TINYUSB_TASK_STACK_SIZE=4096
