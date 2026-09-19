@@ -4,6 +4,7 @@
 #include "usbdriver.h"
 #include "helper.h"
 #include "config.pb.h"
+#include "hal_gpio.h"
 
 bool BoardLedAddon::available() {
     const OnBoardLedOptions& options = Storage::getInstance().getAddonOptions().onBoardLedOptions;
@@ -17,8 +18,8 @@ void BoardLedAddon::setup() {
     timeSinceBlink = getMillis();
     prevState = -1;
 
-    gpio_init(BOARD_LED_PIN);
-    gpio_set_dir(BOARD_LED_PIN, GPIO_OUT);
+    hal::gpioInit(BOARD_LED_PIN);
+    hal::gpioSetOutput(BOARD_LED_PIN);
 }
 
 void BoardLedAddon::process() {
@@ -41,7 +42,7 @@ void BoardLedAddon::process() {
                     || (processedGamepad->state.rt      != 0)
                     || (processedGamepad->state.aux     != 0);
             if (prevState != state) {
-                gpio_put(BOARD_LED_PIN, state ? 1 : 0);
+                hal::gpioPut(BOARD_LED_PIN, state ? 1 : 0);
             }
             prevState = state;
             break;
@@ -49,7 +50,7 @@ void BoardLedAddon::process() {
             if (!get_usb_mounted()) { // USB not mounted
                 uint32_t millis = getMillis();
                 if ((millis - timeSinceBlink) > BLINK_INTERVAL_USB_UNMOUNTED) {
-                    gpio_put(BOARD_LED_PIN, prevState ? 1 : 0);
+                    hal::gpioPut(BOARD_LED_PIN, prevState ? 1 : 0);
                     timeSinceBlink = millis;
                     prevState = !prevState;
                 }
@@ -57,13 +58,13 @@ void BoardLedAddon::process() {
                 if (isConfigMode) { // Current mode is config
                     uint32_t millis = getMillis();
                     if ((millis - timeSinceBlink) > BLINK_INTERVAL_CONFIG_MODE) {
-                        gpio_put(BOARD_LED_PIN, prevState ? 1 : 0);
+                        hal::gpioPut(BOARD_LED_PIN, prevState ? 1 : 0);
                         timeSinceBlink = millis;
                         prevState = !prevState;
                     }
                 } else { // Regular mode and functional
                     if (prevState != 1) {
-                        gpio_put(BOARD_LED_PIN, 1);
+                        hal::gpioPut(BOARD_LED_PIN, 1);
                         prevState = 1;
                     }
                 }
@@ -76,7 +77,7 @@ void BoardLedAddon::process() {
                 state = ((PS4Driver*)DriverManager::getInstance().getDriver())->getAuthSent() == true;
             }
             if (prevState != state) {
-                gpio_put(BOARD_LED_PIN, state ? 1 : 0);
+                hal::gpioPut(BOARD_LED_PIN, state ? 1 : 0);
             }
             prevState = state;
             break;
