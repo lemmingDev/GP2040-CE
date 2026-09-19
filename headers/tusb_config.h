@@ -79,6 +79,8 @@
   #error "Incorrect RHPort configuration"
 #endif
 
+#if defined(PICO_BOARD)
+// RP2040 / Pico configuration (original Phase-0 values, preserved byte-for-byte).
 #ifndef CFG_TUSB_OS
 #define CFG_TUSB_OS               OPT_OS_PICO
 #endif
@@ -94,6 +96,39 @@
 #define CFG_TUH_XINPUT      1
 
 # define TUH_OPT_RHPORT 1
+#elif defined(ESP_PLATFORM)
+// ESP32-S3 configuration (Phase 0: USB device only via esp_tinyusb).
+// No PIO-USB on S3; host stack stays off (Task 2 usesUSB() guard governs the pump).
+#ifndef CFG_TUSB_OS
+#define CFG_TUSB_OS               OPT_OS_FREERTOS
+#endif
+
+// Enable device stack
+#define CFG_TUD_ENABLED     1
+
+// Host stack off in Phase 0.
+#define CFG_TUH_ENABLED     0
+// TBD-Task7-verify: confirm esp_tinyusb honors CFG_TUH_ENABLED=0 with no
+// CFG_TUH_RPI_PIO_USB / TUH_OPT_RHPORT defined; verify on first IDF build.
+#define CFG_TUD_HID              2
+#else
+// Fallback for any other platform: keep historical defaults.
+#ifndef CFG_TUSB_OS
+#define CFG_TUSB_OS               OPT_OS_PICO
+#endif
+
+// Enable device stack
+#define CFG_TUD_ENABLED     1
+
+// Enable host stack with pio-usb if Pico-PIO-USB library is available
+#define CFG_TUH_ENABLED     1
+#define CFG_TUH_RPI_PIO_USB 1
+
+// Enable X-Input host config
+#define CFG_TUH_XINPUT      1
+
+# define TUH_OPT_RHPORT 1
+#endif
 // CFG_TUSB_DEBUG is defined by compiler in DEBUG build
 // #define CFG_TUSB_DEBUG           0
 
@@ -123,11 +158,15 @@
 #define CFG_TUSB_DEBUG        0
 #endif
 // Enable Device stack, Default is max speed that hardware controller could support with on-chip PHY
+// (Skipped on ESP32-S3: the ESP_PLATFORM block above already sets device-only
+// CFG_TUD_ENABLED=1 / CFG_TUH_ENABLED=0; redefining here would re-enable host.)
+#if !defined(ESP_PLATFORM)
 #define CFG_TUD_ENABLED       1
 #define CFG_TUD_MAX_SPEED     BOARD_TUD_MAX_SPEED
 // Enable Host stack, Default is max speed that hardware controller could support with on-chip PHY
 #define CFG_TUH_ENABLED       1
 #define CFG_TUH_MAX_SPEED     BOARD_TUH_MAX_SPEED
+#endif
 
 //--------------------------------------------------------------------
 // DEVICE CONFIGURATION
