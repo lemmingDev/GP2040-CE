@@ -266,7 +266,9 @@ void GP2040::run() {
     GamepadState prevState;
     
     // Start the TinyUSB Device functionality
-    tud_init(TUD_OPT_RHPORT);
+    if (DriverManager::getInstance().getDriver()->usesUSB()) {
+        tud_init(TUD_OPT_RHPORT);
+    }
     
 	while (1) { // LOOP
 		this->getReinitGamepad(gamepad);
@@ -316,7 +318,9 @@ void GP2040::run() {
 		// Process USB Report Addons
 		addons.ProcessAddons(ADDON_PROCESS::CORE0_USBREPORT);
 		
-		tud_task(); // TinyUSB Task update
+    if (DriverManager::getInstance().getDriver()->usesUSB()) {
+        tud_task(); // TinyUSB Task update
+    }
 	}
 }
 

@@ -39,6 +39,7 @@ public:
     virtual const uint8_t * get_descriptor_device_qualifier_cb() = 0;
     virtual uint16_t GetJoystickMidValue() = 0;
     const usbd_class_driver_t * get_class_driver() { return &class_driver; }
+    virtual bool usesUSB() { return true; }
     virtual USBListener * get_usb_auth_listener() = 0;
 protected:
     usbd_class_driver_t class_driver;

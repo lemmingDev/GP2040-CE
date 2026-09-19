@@ -15,6 +15,7 @@
 #include "drivers/xbone/XBOneDriver.h"
 #include "drivers/xboxog/XboxOriginalDriver.h"
 #include "drivers/xinput/XInputDriver.h"
+#include "drivers/bluetooth/BluetoothDriver.h"
 
 #include "usbhostmanager.h"
 
@@ -67,6 +68,9 @@ void DriverManager::setup(InputMode mode) {
             break;
         case INPUT_MODE_XINPUT:
             driver = new XInputDriver();
+            break;
+        case INPUT_MODE_BLUETOOTH:
+            driver = new BluetoothDriver();
             break;
         default:
             return;
