@@ -18,7 +18,7 @@ public:
     const uint8_t * get_hid_descriptor_report_cb(uint8_t itf) override { return nullptr; }
     const uint8_t * get_descriptor_configuration_cb(uint8_t index) override { return nullptr; }
     const uint8_t * get_descriptor_device_qualifier_cb() override { return nullptr; }
-    uint16_t GetJoystickMidValue() override { return 0; }
+    uint16_t GetJoystickMidValue() override { return GAMEPAD_JOYSTICK_MID; }
     USBListener * get_usb_auth_listener() override { return nullptr; }
     bool usesUSB() override { return false; }
 protected:
