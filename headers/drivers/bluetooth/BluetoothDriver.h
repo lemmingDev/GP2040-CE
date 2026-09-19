@@ -24,6 +24,8 @@ public:
 protected:
     void pushReport(const BleGamepadReport & report);
     BleGamepadReport lastReport = {};
+    bool bleConnected = false;
+    BleGamepadReport lastSent = {};
 };
 
 #endif

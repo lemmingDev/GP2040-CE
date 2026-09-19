@@ -28,4 +28,17 @@ inline BleGamepadReport buildBleGamepadReport(uint16_t buttons, uint8_t lt, uint
     return r;
 }
 
+// Map raw GamepadState stick units (uint16_t 0..0xFFFF, center
+// GAMEPAD_JOYSTICK_MID = 0x7FFF) to signed HID report units (int16_t,
+// center ~0). Same numeric convention as XInputDriver::process()
+// (static_cast<int16_t>(raw) + INT16_MIN): raw 0 -> -32768,
+// raw 0x7FFF -> -1 (center; off-by-one shared with HIDDriver's 0x7F-vs-0x80),
+// raw 0xFFFF -> 32767. Computed in int32_t so every result is in int16_t
+// range before the single narrowing cast (identical results to the XInput
+// form on two's-complement targets, without relying on signed overflow).
+// No Y inversion: HOGP follows HIDDriver (ly >> 8, direct), not XInput.
+inline int16_t bleAxisFromRaw(uint16_t raw) {
+    return static_cast<int16_t>(static_cast<int32_t>(raw) + INT16_MIN);
+}
+
 #endif
