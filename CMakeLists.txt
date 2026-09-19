@@ -152,6 +152,7 @@ src/addonmanager.cpp
 src/configmanager.cpp
 src/drivers/shared/xinput_host.cpp
 src/drivers/shared/xgip_protocol.cpp
+src/drivers/bluetooth/BluetoothDriver.cpp
 src/drivers/astro/AstroDriver.cpp
 src/drivers/egret/EgretDriver.cpp
 src/drivers/hid/HIDDriver.cpp
