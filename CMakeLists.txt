@@ -235,6 +235,8 @@ src/drivers/xboxog/XboxOriginalDriver.cpp
 src/drivers/xinput/XInputAuth.cpp
 src/drivers/xinput/XInputAuthUSBListener.cpp
 src/drivers/xinput/XInputDriver.cpp
+src/drivers/switchbt/SwitchBluetoothDriver.cpp
+src/drivers/hidbt/HIDBTDriver.cpp
 src/interfaces/i2c/i2cdevicebase.cpp
 src/interfaces/i2c/pcf8575/pcf8575.cpp
 src/interfaces/i2c/ssd1306/tiny_ssd1306.cpp
@@ -353,6 +355,8 @@ headers/addons
 headers/configs
 headers/drivers
 headers/drivers/shared
+headers/drivers/switchbt
+headers/drivers/hidbt
 headers/events
 headers/interfaces
 headers/interfaces/i2c
@@ -378,6 +382,8 @@ ${CMAKE_BINARY_DIR}/headers
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
   PICO_XOSC_STARTUP_DELAY_MULTIPLIER=64
+  GP2040_BLUETOOTH_ENABLED=1
+  PICO_FLASH_BANK_STORAGE_OFFSET=0x1F6000
   BOARD_CONFIG_FILE_NAME="$<TARGET_FILE_BASE_NAME:${PROJECT_NAME}>"
   GP2040_BOARDCONFIG="${GP2040_BOARDCONFIG}"
 )
