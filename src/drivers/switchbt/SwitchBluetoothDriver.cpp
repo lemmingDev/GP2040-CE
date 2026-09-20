@@ -20,6 +20,7 @@
 #include "drivers/switchbt/BtStackUtils.h"
 
 #include <cstring>
+#include <cstdio>
 
 // ============================================================================
 // External LED Configuration
@@ -887,6 +888,28 @@ void switchbt_clear_pairing(void) {
     if (btInitialized) {
         set_scan_mode(true);
     }
+}
+
+
+bool switchbt_get_pairing_status(char* mac, size_t macSize) {
+    if (mac && macSize > 0) mac[0] = '\0';
+    const BTPairingData* data = (const BTPairingData*)(XIP_BASE + BT_PAIRING_FLASH_OFFSET);
+    if (data->magic != BT_PAIRING_MAGIC) return false;
+
+    bool all_zero = true;
+    bool all_ff = true;
+    for (int i = 0; i < 6; i++) {
+        if (data->host_mac[i] != 0x00) all_zero = false;
+        if (data->host_mac[i] != 0xFF) all_ff = false;
+    }
+    if (all_zero || all_ff) return false;
+
+    if (mac && macSize >= 18) {
+        snprintf(mac, macSize, "%02X:%02X:%02X:%02X:%02X:%02X",
+                 data->host_mac[0], data->host_mac[1], data->host_mac[2],
+                 data->host_mac[3], data->host_mac[4], data->host_mac[5]);
+    }
+    return true;
 }
 
 SwitchBTState switchbt_get_state(void) {
