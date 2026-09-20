@@ -28,6 +28,11 @@
 
 #include <iterator>
 
+#if defined(ESP_PLATFORM)
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#endif
+
 // Note: initializer order matches member declaration order in gp2040aux.h
 // (S3 builds with -Werror=reorder).
 GP2040Aux::GP2040Aux() : inputDriver(nullptr), isReady(false) {
@@ -96,5 +101,11 @@ void GP2040Aux::run() {
 		if ( inputDriver != nullptr ) {
 			inputDriver->processAux();
 		}
+#if defined(ESP_PLATFORM)
+		// FreeRTOS: a never-blocking loop starves IDLE1 and trips the task
+		// watchdog (Pico core1 spins bare-metal, no watchdog). 1 ms keeps
+		// display/LED processing responsive.
+		vTaskDelay(pdMS_TO_TICKS(1));
+#endif
 	}
 }
