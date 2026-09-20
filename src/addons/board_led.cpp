@@ -1,6 +1,10 @@
 #include "addons/board_led.h"
 #include "drivermanager.h"
+#if defined(PICO_BOARD)
+// S3: PS4 driver (and its mbedTLS dependency) is Task 6; the PS_AUTH case
+// below is guarded out until then.
 #include "drivers/ps4/PS4Driver.h"
+#endif
 #include "usbdriver.h"
 #include "helper.h"
 #include "config.pb.h"
@@ -71,11 +75,15 @@ void BoardLedAddon::process() {
             }
             break;
         case OnBoardLedMode::ON_BOARD_LED_MODE_PS_AUTH:
+#if defined(PICO_BOARD)
             processedGamepad = Storage::getInstance().GetProcessedGamepad();
             if(processedGamepad->getOptions().inputMode == INPUT_MODE_PS4 ||
                 processedGamepad->getOptions().inputMode == INPUT_MODE_PS5) {
                 state = ((PS4Driver*)DriverManager::getInstance().getDriver())->getAuthSent() == true;
             }
+#else
+            // S3: PS4 driver is Task 6 — auth indicator stays off until then.
+#endif
             if (prevState != state) {
                 hal::gpioPut(BOARD_LED_PIN, state ? 1 : 0);
             }

@@ -5,6 +5,12 @@
 #include <string>
 #include "gpaddon.h"
 
+#if defined(ESP_PLATFORM)
+// S3 has no pico/types.h (which defines `uint` as `unsigned int`); provide the
+// alias for the pwmSetFreqDuty declaration below. Pico path untouched.
+typedef unsigned int uint;
+#endif
+
 #ifndef BUZZER_ENABLED
 #define BUZZER_ENABLED 0
 #endif

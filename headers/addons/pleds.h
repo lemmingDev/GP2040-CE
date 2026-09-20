@@ -8,7 +8,11 @@
 
 #include "BoardConfig.h"
 #include <stdint.h>
+#if defined(PICO_BOARD)
+// S3: AnimationStation/NeoPico stack is Task 5 (display/NeoPixel backends);
+// only the PWM player-LED path below compiles on S3.
 #include "AnimationStation.hpp"
+#endif
 #include "storagemanager.h"
 #include "PlayerLEDs.h"
 #include "gpaddon.h"
@@ -17,8 +21,10 @@
 #include "enums.pb.h"
 
 // This needs to be moved to storage if we're going to share between modules
+#if defined(PICO_BOARD)
 extern NeoPico *neopico;
 extern AnimationStation as;
+#endif
 
 class PWMPlayerLEDs : public PlayerLEDs
 {

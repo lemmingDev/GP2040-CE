@@ -5,7 +5,19 @@
 #include <cstdio>
 #include <stdint.h>
 
+#if defined(PICO_BOARD)
 #include "pico/time.h"
+#endif
+#if defined(ESP_PLATFORM)
+// S3 port (Task 4): same monotonic-deadline time base over esp_timer
+// (microseconds since boot). Pico path above is untouched.
+#include <stdint.h>
+#include "esp_timer.h"
+typedef int64_t absolute_time_t;
+static inline absolute_time_t get_absolute_time(void) { return esp_timer_get_time(); }
+static inline absolute_time_t make_timeout_time_ms(uint32_t ms) { return esp_timer_get_time() + (absolute_time_t)ms * 1000; }
+static inline bool time_reached(absolute_time_t t) { return esp_timer_get_time() >= t; }
+#endif
 
 #define PLED_COUNT 4
 #define PLED_MAX_BRIGHTNESS 0xFF

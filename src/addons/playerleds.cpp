@@ -5,8 +5,12 @@
 
 // Pico Includes
 #include <vector>
+#if defined(PICO_BOARD)
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
+#elif defined(ESP_PLATFORM)
+#include "hal_pwm_s3.h"
+#endif
 #include "GamepadEnums.h"
 
 // GP2040 Includes
@@ -145,6 +149,7 @@ void PlayerLEDAddon::process()
 
 void PWMPlayerLEDs::setup()
 {
+#if defined(PICO_BOARD)
 	pwm_config config = pwm_get_default_config();
 	pwm_config_set_clkdiv(&config, 4.f);
 
@@ -167,6 +172,22 @@ void PWMPlayerLEDs::setup()
 
 	for (auto sliceNum : sliceNums)
 		pwm_set_enabled(sliceNum, true);
+#elif defined(ESP_PLATFORM)
+	// Same pins and same full-on initial level as Pico (PLED_MAX_LEVEL maps to
+	// 100%); TIMER_3, channel = LED index 0..3. Carrier is a fixed 500 Hz
+	// S3-side constant (~Pico's ~477 Hz clkdiv-4 default-wrap carrier);
+	// visible behavior is duty-only.
+	LEDOptions & ledOptions = Storage::getInstance().getLedOptions();
+	int32_t pledPins[] = { ledOptions.pledPin1, ledOptions.pledPin2, ledOptions.pledPin3, ledOptions.pledPin4 };
+
+	for (int i = 0; i < PLED_COUNT; i++)
+	{
+		if (pledPins[i] > -1)
+		{
+			halPwmConfig((uint8_t)pledPins[i], 500, 100, LEDC_TIMER_3, (ledc_channel_t)i);
+		}
+	}
+#endif
 }
 
 void PWMPlayerLEDs::display()
@@ -176,6 +197,11 @@ void PWMPlayerLEDs::display()
 
 	for (int i = 0; i < PLED_COUNT; i++)
 		if (pledPins[i] > -1)
+#if defined(PICO_BOARD)
 			pwm_set_gpio_level(pledPins[i], ledLevels[i]);
+#elif defined(ESP_PLATFORM)
+			// Same 0..PLED_MAX_LEVEL level, rescaled to 0..100% duty.
+			halPwmConfig((uint8_t)pledPins[i], 500, (uint8_t)(((uint32_t)ledLevels[i] * 100u + 32767u) / (uint32_t)PLED_MAX_LEVEL), LEDC_TIMER_3, (ledc_channel_t)i);
+#endif
 }
 

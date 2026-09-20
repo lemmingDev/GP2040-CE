@@ -1,12 +1,17 @@
 #ifndef _HELPER_H_
 #define _HELPER_H_
 
+#if defined(PICO_BOARD)
 #include "pico/time.h"
+#endif
 #include <string>
 
 #include "BoardConfig.h"
 #include <stdint.h>
+#if defined(PICO_BOARD)
+// S3: AnimationStation/NeoPico stack is Task 5; PlayerLEDs.h below is ported.
 #include "AnimationStation.hpp"
+#endif
 #include "PlayerLEDs.h"
 
 // GP2040-CE Board Config (64 character limit)

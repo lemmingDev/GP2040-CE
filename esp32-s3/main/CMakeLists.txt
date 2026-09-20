@@ -1,16 +1,19 @@
-# ESP32-S3 app component (Phase 1 Task 3 — esp_partition storage backend).
+# ESP32-S3 app component (Phase 1 Task 4 — LED/audio addons on LEDC + core1 task).
 #
 # SCOPE: core USB-device loop (HID + XInput) + storage/system managers +
 # AddonManager/EventManager/CRC32 (link-required, no HW deps) + S3 HAL +
 # Task-2 ConfigUtils stub (fresh defaults; real nanopb port is a later task)
-# + Task-3 FlashPROM_esp32 backend (gpconfig partition, layout preserved).
-# Deliberately OUT (Phase 2/3, Tasks 4-7):
+# + Task-3 FlashPROM_esp32 backend (gpconfig partition, layout preserved)
+# + Task-4 gp2040aux (FreeRTOS core1 task) with the LED/audio addons
+#   (board_led/buzzerspeaker/drv8833_rumble/reactiveleds/playerleds) on the
+#   generalized halPwmConfig() LEDC helper + PlayerLEDs animation base.
+# Deliberately OUT (Phase 2/3, Tasks 5-7):
 #   - host (src/usbhostmanager.cpp, xinput_host.cpp, XInputAuth*),
 #     webconfig (src/configmanager.cpp, src/configs/webconfig.cpp,
-#     src/config_utils.cpp), display (src/display/*), addons (src/addons/*),
-#     bluetooth (src/drivers/bluetooth/*), peripherals
-#     (src/peripheralmanager.cpp + lib/PicoPeripherals backends — Task 5).
-# gp2040aux.cpp (core1 companion) is excluded until the Task-4 core1 task.
+#     src/config_utils.cpp), display (src/display/*, src/addons/display.cpp,
+#     src/addons/neopicoleds.cpp), bluetooth (src/drivers/bluetooth/*),
+#     peripherals (src/peripheralmanager.cpp + lib/PicoPeripherals backends
+#     — Task 5).
 
 idf_component_register(
     SRCS
@@ -25,6 +28,13 @@ idf_component_register(
         "../../src/usbdriver.cpp"
         "../../src/storagemanager.cpp"
         "../../src/system.cpp"
+        "../../src/gp2040aux.cpp"
+        "../../src/addons/board_led.cpp"
+        "../../src/addons/buzzerspeaker.cpp"
+        "../../src/addons/drv8833_rumble.cpp"
+        "../../src/addons/reactiveleds.cpp"
+        "../../src/addons/playerleds.cpp"
+        "../../lib/PlayerLEDs/src/PlayerLEDs.cpp"
         "../../src/addonmanager.cpp"
         "../../src/eventmanager.cpp"
         "../../lib/CRC32/src/CRC32.cpp"
@@ -47,6 +57,7 @@ idf_component_register(
         "../../lib/nanopb"
         "../../lib/CRC32/src"
         "../../lib/FlashPROM/src"
+        "../../lib/PlayerLEDs/src"
     REQUIRES tinyusb esp_timer esp_adc esp_driver_ledc esp_driver_gpio esp_partition)
 
 # Feed OUR tusb_config.h (headers/tusb_config.h, ESP_PLATFORM branch) to the

@@ -2,7 +2,9 @@
 #define _BoardLed_H
 
 #include "gpaddon.h"
+#if defined(PICO_BOARD)
 #include "pico/stdlib.h"
+#endif
 #include "storagemanager.h"
 
 #ifndef BOARD_LED_ENABLED

@@ -1,4 +1,8 @@
+#if defined(PICO_BOARD)
 #include "hardware/pwm.h"
+#elif defined(ESP_PLATFORM)
+#include "hal_pwm_s3.h"
+#endif
 #include "addons/reactiveleds.h"
 #include "storagemanager.h"
 #include "usbdriver.h"
@@ -29,6 +33,7 @@ void ReactiveLEDAddon::setup() {
         ledPins[led].modeUp = ledInfo.modeUp;
 
         if (isValidPin(ledPins[led].pinNumber)) {
+#if defined(PICO_BOARD)
             gpio_init(ledPins[led].pinNumber);
             gpio_set_dir(ledPins[led].pinNumber, GPIO_OUT);
             gpio_set_function(ledPins[led].pinNumber, GPIO_FUNC_PWM);
@@ -37,6 +42,19 @@ void ReactiveLEDAddon::setup() {
             pwm_set_enabled(pwm_gpio_to_slice_num(ledPins[led].pinNumber), true);
 
             ledPins[led].lastUpdate = to_ms_since_boot(get_absolute_time());
+#elif defined(ESP_PLATFORM)
+            // S3: TIMER_2, channel = LED index (LEDC has 8 channels, so
+            // indices >= 8 are skipped — no channel left to bind). Carrier is
+            // a fixed 1 kHz S3-side constant (Pico's ~488 kHz default-wrap
+            // carrier is unreachable at 10-bit LEDC resolution); visible
+            // behavior is duty-only and every mode/threshold/timing constant
+            // below is preserved.
+            if (led < 8) {
+                halPwmConfig(ledPins[led].pinNumber, 1000, 0, LEDC_TIMER_2, (ledc_channel_t)led);
+            }
+
+            ledPins[led].lastUpdate = getMillis();
+#endif
 
             setLEDByMode(ledPins[led], false);
         }
@@ -46,7 +64,11 @@ void ReactiveLEDAddon::setup() {
 void ReactiveLEDAddon::process() {
     Gamepad * gamepad = Storage::getInstance().GetProcessedGamepad();
 
+#if defined(PICO_BOARD)
     uint32_t currUpdate = to_ms_since_boot(get_absolute_time());
+#elif defined(ESP_PLATFORM)
+    uint32_t currUpdate = getMillis();
+#endif
 
     for (uint8_t led = 0; led < REACTIVE_LED_COUNT; led++) {
         if (isValidPin(ledPins[led].pinNumber) && ledPins[led].action != GpioAction::NONE) {
@@ -108,7 +130,20 @@ void ReactiveLEDAddon::setLEDByMode(ReactiveLEDPinState &ledState, bool pressed)
             break;
     }
 
+#if defined(PICO_BOARD)
     pwm_set_gpio_level(ledState.pinNumber, ledState.value);
+#elif defined(ESP_PLATFORM)
+    // Same 0..REACTIVE_LED_MAX_BRIGHTNESS value, rescaled to the helper's
+    // 0..100% duty (LEDC 10-bit). Channel is recovered from the LED index
+    // (pins are unique per index, so the match is exact).
+    uint8_t dutyPct = (uint8_t)(((uint32_t)ledState.value * 100u + 127u) / (uint32_t)REACTIVE_LED_MAX_BRIGHTNESS);
+    for (uint8_t i = 0; i < REACTIVE_LED_COUNT && i < 8; i++) {
+        if (ledPins[i].pinNumber == ledState.pinNumber) {
+            halPwmConfig(ledState.pinNumber, 1000, dutyPct, LEDC_TIMER_2, (ledc_channel_t)i);
+            break;
+        }
+    }
+#endif
 
     ledState.prevState = pressed;
 }

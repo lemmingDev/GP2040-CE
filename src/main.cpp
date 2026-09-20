@@ -50,12 +50,8 @@ int main() {
 #endif
 	// Create GP2040 Main Core (core0), Core1 is dependent on Core0
 	gp2040Core0 = new GP2040();
-#if defined(PICO_BOARD)
+	// Task 4: the aux object runs on the FreeRTOS core1 task below (Pico: core1).
 	gp2040Core1 = new GP2040Aux();
-#elif defined(ESP_PLATFORM)
-	// Phase 1 single-core bring-up: no aux object yet (Task 4).
-	gp2040Core1 = nullptr;
-#endif
 
 	// Create GP2040 Main Core - Setup Core0
 	gp2040Core0->setup();
@@ -69,10 +65,15 @@ int main() {
 		__asm volatile ("nop\n");
 	}
 #else
-	// Phase 1 single-core bring-up: aux/display/LED task lands in Task 4.
-	// Core1 objects exist but are not started yet.
-	(void)gp2040Core1;
-	hal::sleepMs(10);
+	// Task 4: FreeRTOS aux task on core 1 (LED/audio addons; display joins in
+	// Task 5). GP2040::setup() already ran above, so no ready-spin is needed.
+	xTaskCreatePinnedToCore(
+		[](void *) {
+			gp2040Core1->setup();
+			gp2040Core1->run();
+			vTaskDelete(nullptr);
+		},
+		"gp2040aux", 8192, nullptr, 5, nullptr, 1);
 #endif
 	gp2040Core0->run();
 #if defined(ESP_PLATFORM)
