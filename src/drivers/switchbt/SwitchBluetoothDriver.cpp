@@ -16,6 +16,7 @@
 
 #include "drivers/switchbt/SwitchBluetoothDriver.h"
 #include "drivers/switchbt/SwitchBTConsts.h"
+#include "drivers/bluetooth/BluetoothFlashLayout.h"
 #include "drivers/switchbt/BtStackUtils.h"
 
 #include <cstring>
@@ -57,8 +58,8 @@ static bool deep_sleep_active = false;
 //   0x1F5000          : BT pairing data -- 1 sector
 //   0x1F6000-0x1F7FFF : BTstack flash bank (link keys) -- 2 sectors
 //   0x1F8000+         : GP2040-CE EEPROM -- 32KB
-#define BT_PAIRING_FLASH_OFFSET 0x1F5000
-#define BT_PAIRING_MAGIC 0x53574254  // "SWBT"
+#define BT_PAIRING_FLASH_OFFSET SWITCHBT_PAIRING_FLASH_OFFSET
+#define BT_PAIRING_MAGIC BT_PAIRING_MAGIC_SWITCH
 #define BT_FLASH_WRITE_DELAY_MS 500
 
 typedef struct {
