@@ -71,11 +71,12 @@ NeoPico::NeoPico(int ledPin, int numPixels, LEDFormat format)
   led_strip_rmt_config_t rmt_config = {};
   rmt_config.clk_src = RMT_CLK_SRC_DEFAULT;
   rmt_config.resolution_hz = 0; // Component default (10 MHz) = 800 kHz WS2812 timing.
-  // One RMT symbol per strip bit; allocate the whole frame so a >64-symbol
-  // strip never underflows the channel FIFO. S3 shares 192 blocks of 64
-  // symbols across 4 channels; 100 px * 32 bits = 50 blocks worst case.
-  size_t symbols = (size_t)numPixels * (isRgbw ? 32u : 24u);
-  rmt_config.mem_block_symbols = symbols < 64 ? 64 : symbols;
+  // mem_block_symbols = 0 selects the component default (64). A large
+  // explicit request (whole-frame preallocation) risks channel-creation
+  // failure on S3 (dark pixels, log-only error); the driver refills short
+  // channels from the encoder in ISR, so 64 works for any strip length.
+  // (Hardware 2026-09-20: dark with 384 symbols request — using defaults.)
+  rmt_config.mem_block_symbols = 0;
   rmt_config.flags.with_dma = false;
   esp_err_t err = led_strip_new_rmt_device(&strip_config, &rmt_config, &strip);
   if (err != ESP_OK) {
