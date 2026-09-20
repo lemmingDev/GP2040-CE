@@ -20,6 +20,7 @@ import LayoutConfig from './LayoutConfig';
 import Proto from './Proto/Index';
 import LedConfigPage from './LedConfigPage';
 import BootModeMapping from './BootModeMapping';
+import BluetoothSettings from './BluetoothSettings';
 
 export default {
 	LedConfigPage,
@@ -44,4 +45,5 @@ export default {
 	Proto,
 	HETrigger,
 	BootModeMapping,
+	BluetoothSettings,
 };
