@@ -702,6 +702,34 @@ async function reboot(bootMode) {
 		.catch(console.error);
 }
 
+async function getBluetoothSettings() {
+	try {
+		const response = await Http.get(`${baseUrl}/api/getBluetoothSettings`);
+		return response.data;
+	} catch (error) {
+		console.error(error);
+		return {
+			bluetoothEnabled: false,
+			switchBtPaired: false,
+			switchBtMac: '',
+			hidBtPaired: false,
+			hidBtMac: '',
+		};
+	}
+}
+
+async function clearSwitchBtPairing() {
+	return Http.get(`${baseUrl}/api/clearSwitchBtPairing`)
+		.then((response) => response.data)
+		.catch(console.error);
+}
+
+async function clearHidBtPairing() {
+	return Http.get(`${baseUrl}/api/clearHidBtPairing`)
+		.then((response) => response.data)
+		.catch(console.error);
+}
+
 function sanitizeRequest(request) {
 	const newRequest = { ...request };
 	delete newRequest.usedPins;
@@ -781,4 +809,7 @@ export default {
 	abortGetHeldPins,
 	getBoardDefinition,
 	reboot,
+	getBluetoothSettings,
+	clearSwitchBtPairing,
+	clearHidBtPairing,
 };
