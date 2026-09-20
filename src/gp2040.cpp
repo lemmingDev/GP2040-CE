@@ -49,6 +49,18 @@
 // USB Input Class Drivers
 #include "drivermanager.h"
 
+#ifdef GP2040_BLUETOOTH_ENABLED
+#include "drivers/switchbt/SwitchBluetoothDriver.h"
+#include "drivers/hidbt/HIDBTDriver.h"
+#else
+struct SwitchBTInput { uint16_t buttons; uint8_t dpad; uint8_t dpadMode; uint16_t lx, ly, rx, ry; };
+struct HIDBTInput { uint32_t buttons; uint8_t dpad; uint8_t dpadMode; uint16_t lx, ly, rx, ry; };
+static inline void switchbt_init(void) {}
+static inline bool switchbt_process(const SwitchBTInput*) { return false; }
+static inline void hidbt_init(void) {}
+static inline bool hidbt_process(const HIDBTInput*) { return false; }
+#endif
+
 static const uint32_t REBOOT_HOTKEY_ACTIVATION_TIME_MS = 50;
 static const uint32_t REBOOT_HOTKEY_HOLD_TIME_MS = 4000;
 
@@ -246,19 +258,32 @@ void GP2040::debounceGpioGetAll() {
 
 void GP2040::run() {
 	bool configMode = DriverManager::getInstance().isConfigMode();
+	InputMode inputMode = Storage::getInstance().getGamepadOptions().inputMode;
+	bool useSwitchBT = inputMode == INPUT_MODE_SWITCH_BT && !configMode;
+	bool useHIDBT = inputMode == INPUT_MODE_HID_BT && !configMode;
+	bool useBluetooth = useSwitchBT || useHIDBT;
+
 	GPDriver * inputDriver = DriverManager::getInstance().getDriver();
 	Gamepad * gamepad = Storage::getInstance().GetGamepad();
 	Gamepad * processedGamepad = Storage::getInstance().GetProcessedGamepad();
 	GamepadState prevState;
 
-	// Start the TinyUSB Device functionality
-	tud_init(TUD_OPT_RHPORT);
+	if (!useBluetooth) {
+		// Start the TinyUSB Device functionality
+		tud_init(TUD_OPT_RHPORT);
 
-	// Initialize our USB manager
-	USBHostManager::getInstance().start();
+		// Initialize our USB manager
+		USBHostManager::getInstance().start();
 
-	if (configMode == true ) {
-		rndis_init(WEB_CONFIG_HOSTNAME);
+		if (configMode == true) {
+			rndis_init(WEB_CONFIG_HOSTNAME);
+		}
+	}
+
+	if (useSwitchBT) {
+		switchbt_init();
+	} else if (useHIDBT) {
+		hidbt_init();
 	}
 
 	while (1) { // LOOP
@@ -273,8 +298,10 @@ void GP2040::run() {
 
 		checkRawState(prevState, gamepad->state);
 
-		// Process USB Host on Core0
-		USBHostManager::getInstance().process();
+		if (!useBluetooth) {
+			// Process USB Host on Core0
+			USBHostManager::getInstance().process();
+		}
 
 		// Config Loop (Web-Config skips Core0 add-ons)
 		if (configMode == true) {
@@ -292,7 +319,7 @@ void GP2040::run() {
 		// (Post) Process for add-ons
 		addons.ProcessAddons();
 
-		gamepad->hotkey(); 	// check for MPGS hotkeys
+		gamepad->hotkey(); // check for MPGS hotkeys
 		rebootHotkeys.process(gamepad, configMode);
 
 		checkProcessedState(processedGamepad->state, gamepad->state);
@@ -300,14 +327,36 @@ void GP2040::run() {
 		// Copy Processed Gamepad for Core1 (race condition otherwise)
 		memcpy(&processedGamepad->state, &gamepad->state, sizeof(GamepadState));
 
-		// Process Input Driver
-		bool processed = inputDriver->process(gamepad);
+		if (useSwitchBT) {
+			SwitchBTInput btInput;
+			btInput.buttons = gamepad->state.buttons;
+			btInput.dpad = gamepad->state.dpad;
+			btInput.dpadMode = gamepad->getOptions().dpadMode;
+			btInput.lx = gamepad->state.lx;
+			btInput.ly = gamepad->state.ly;
+			btInput.rx = gamepad->state.rx;
+			btInput.ry = gamepad->state.ry;
+			switchbt_process(&btInput);
+		} else if (useHIDBT) {
+			HIDBTInput btInput;
+			btInput.buttons = gamepad->state.buttons;
+			btInput.dpad = gamepad->state.dpad;
+			btInput.dpadMode = gamepad->getOptions().dpadMode;
+			btInput.lx = gamepad->state.lx;
+			btInput.ly = gamepad->state.ly;
+			btInput.rx = gamepad->state.rx;
+			btInput.ry = gamepad->state.ry;
+			hidbt_process(&btInput);
+		} else {
+			// Process Input Driver
+			bool processed = inputDriver->process(gamepad);
 
-		// TinyUSB Task update
-		tud_task();
+			// TinyUSB Task update
+			tud_task();
 
-		// Post-Process Add-ons with USB Report Processed Sent
-		addons.PostprocessAddons(processed);
+			// Post-Process Add-ons with USB Report Processed Sent
+			addons.PostprocessAddons(processed);
+		}
 
 		// Check if we have a pending save
 		checkSaveRebootState();
