@@ -26,6 +26,8 @@ export default {
 		xboxoriginal: 'Original Xbox',
 		xbone: 'Xbox One',
 		sinput: 'SInput',
+		switch-bluetooth: 'Nintendo Switch Bluetooth',
+		hid-bluetooth: 'Generic HID Bluetooth',
 	},
 	'input-mode-group': {
 		primary: 'Primary Input Modes',
