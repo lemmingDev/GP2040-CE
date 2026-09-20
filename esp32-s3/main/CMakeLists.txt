@@ -155,7 +155,7 @@ idf_component_register(
         "../../lib/ADS1256"
         "../../lib/WiiExtension"
         "../../lib/SNESpad"
-    REQUIRES tinyusb esp_timer esp_adc esp_driver_ledc esp_driver_gpio esp_partition esp_driver_i2c led_strip mbedtls arduinojson)
+    REQUIRES tinyusb esp_timer esp_adc esp_driver_ledc esp_driver_gpio esp_partition esp_driver_i2c led_strip mbedtls arduinojson usb)
 # R5c (Task 5) + Task 3c: mbedtls is include-required on S3 — the display
 # stack (src/display/ui/screens/ButtonLayoutScreen.cpp:4, UNTOUCHED) includes
 # headers/drivers/ps4/PS4Driver.h:13 -> PS4Auth.h:5 (#include "mbedtls/rsa.h"),

@@ -56,6 +56,7 @@
 #include "hal_gpio.h"
 #include "hal_time.h"
 #include "driver/gpio.h"
+#include "esp_private/usb_phy.h"
 #endif
 
 // TinyUSB
@@ -332,6 +333,23 @@ void GP2040::run() {
     
     // Start the TinyUSB Device functionality
     if (DriverManager::getInstance().getDriver()->usesUSB()) {
+#if defined(ESP_PLATFORM)
+        // S3: raw TinyUSB does not enable the USB OTG peripheral itself
+        // (no clocks, no internal PHY, no GPIO19/20 mux) — without this the
+        // device silently never enumerates and USB-Serial/JTAG keeps the pins.
+        static usb_phy_handle_t s_usb_phy = nullptr;
+        if (s_usb_phy == nullptr) {
+            usb_phy_config_t phy_config = {
+                .controller = USB_PHY_CTRL_OTG,
+                .target = USB_PHY_TARGET_INT,
+                .otg_mode = USB_OTG_MODE_DEVICE,
+                .otg_speed = USB_PHY_SPEED_UNDEFINED,
+                .ext_io_conf = nullptr,
+                .otg_io_conf = nullptr,
+            };
+            ESP_ERROR_CHECK(usb_new_phy(&phy_config, &s_usb_phy));
+        }
+#endif
         tud_init(TUD_OPT_RHPORT);
     }
     
