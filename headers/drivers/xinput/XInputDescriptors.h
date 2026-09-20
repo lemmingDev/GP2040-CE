@@ -6,7 +6,12 @@
 #pragma once
 
 #include <stdint.h>
+#if defined(PICO_BOARD)
 #include <pico/unique_id.h>
+#elif defined(ESP_PLATFORM)
+#include <cstdio>
+#include "esp_mac.h" // esp_efuse_mac_get_default (in esp_hw_support, no extra REQUIRE)
+#endif
 
 #define XINPUT_ENDPOINT_SIZE 20
 
@@ -65,12 +70,21 @@ static const uint8_t *xinput_string_descriptors[] __attribute__((unused)) =
 
 static const uint8_t * xinput_get_string_descriptor(int index) {
     if ( index == 3 ) {
+#if defined(PICO_BOARD)
         // Generate a serial number of hex bytes from the pico's unique ID
         pico_unique_board_id_t unique_id;
         pico_get_unique_board_id(&unique_id);
         for(int i = 0; i < 3; i++) {
             sprintf((char*)(&xinput_string_version[i*2+1]), "%02X", (uint8_t)unique_id.id[i+5]);
         }
+#elif defined(ESP_PLATFORM)
+        // S3: last 3 bytes of the eFuse MAC stand in for the Pico unique ID.
+        uint8_t mac[6] = {0};
+        esp_efuse_mac_get_default(mac);
+        for(int i = 0; i < 3; i++) {
+            sprintf((char*)(&xinput_string_version[i*2+1]), "%02X", mac[i+3]);
+        }
+#endif
     }
 
     return xinput_string_descriptors[index];

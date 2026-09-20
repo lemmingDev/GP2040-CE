@@ -1,18 +1,31 @@
 // GP2040 includes
 #include "gp2040.h"
+#if defined(PICO_BOARD)
 #include "helper.h"
+#endif
 #include "system.h"
 #include "enums.pb.h"
 
+#if defined(PICO_BOARD)
 #include "build_info.h"
 #include "configmanager.h" // Global Managers
 #include "peripheralmanager.h"
+#elif defined(ESP_PLATFORM)
+// S3: PeripheralManager (I2C/SPI/USB-PIO init) is not compiled in Phase 1;
+// native USB needs no PIO init and I2C lands in Task 5.
+#endif
+#include "eventmanager.h"
 #include "storagemanager.h"
 #include "addonmanager.h"
 #include "types.h"
+#if defined(PICO_BOARD)
 #include "usbhostmanager.h"
+#endif
 
 // Inputs for Core0
+#if defined(PICO_BOARD)
+// Addon set is Pico-only in Phase 1; the S3 core loop runs with no addons
+// (LED/audio in Task 4, NeoPixel/display in Task 5, host addons in Phase 2).
 #include "addons/analog.h"
 #include "addons/bootsel_button.h"
 #include "addons/focus_mode.h"
@@ -31,12 +44,19 @@
 #include "addons/rotaryencoder.h"
 #include "addons/i2c_gpio_pcf8575.h"
 #include "addons/gamepad_usb_host.h"
+#endif
 
 
 // Pico includes
+#if defined(PICO_BOARD)
 #include "pico/bootrom.h"
 #include "pico/time.h"
 #include "hardware/adc.h"
+#elif defined(ESP_PLATFORM)
+#include "hal_gpio.h"
+#include "hal_time.h"
+#include "driver/gpio.h"
+#endif
 
 // TinyUSB
 #include "tusb.h"
@@ -50,6 +70,7 @@ static const uint32_t REBOOT_HOTKEY_HOLD_TIME_MS = 4000;
 void GP2040::setup() {
 	Storage::getInstance().init();
 
+#if defined(PICO_BOARD)
 	PeripheralManager::getInstance().initI2C();
 	PeripheralManager::getInstance().initSPI();
 	PeripheralManager::getInstance().initUSB();
@@ -58,6 +79,9 @@ void GP2040::setup() {
 	if ( PeripheralManager::getInstance().isUSBEnabled(0) ) {
 		set_sys_clock_khz(120000, true); // Set Clock to 120MHz to avoid potential USB timing issues
 	}
+#elif defined(ESP_PLATFORM)
+	// S3: RMT/LEDC take explicit clocks; no sys-clock switch, no PIO-USB init.
+#endif
 
 	Gamepad * gamepad = new Gamepad();
 	Gamepad * processedGamepad = new Gamepad();
@@ -88,9 +112,14 @@ void GP2040::setup() {
     bootActions.insert({GAMEPAD_MASK_R2, gamepadOptions.inputModeR2});
 
 	// Initialize our ADC (various add-ons)
+#if defined(PICO_BOARD)
 	adc_init();
+#elif defined(ESP_PLATFORM)
+	// S3: ADC is owned per-channel by halAdcRead; no global init.
+#endif
 
 	// Setup Add-ons
+#if defined(PICO_BOARD)
 	addons.LoadUSBAddon(new KeyboardHostAddon(), CORE0_INPUT);
 	addons.LoadUSBAddon(new GamepadUSBHostAddon(), CORE0_INPUT);
 	addons.LoadAddon(new AnalogInput(), CORE0_INPUT);
@@ -111,19 +140,34 @@ void GP2040::setup() {
 	addons.LoadAddon(new ReverseInput(), CORE0_INPUT);
 	addons.LoadAddon(new TurboInput(), CORE0_INPUT); // Turbo overrides button states and should be close to the end
 	addons.LoadAddon(new InputMacro(), CORE0_INPUT);
+#elif defined(ESP_PLATFORM)
+	// S3 Phase 1: no addons in the core loop (Tasks 4/5 wire LED/audio/
+	// NeoPixel/display; USB-host addons wait for Phase 2).
+#endif
 
 	InputMode inputMode = gamepad->getOptions().inputMode;
 	const BootAction bootAction = getBootAction();
 	switch (bootAction) {
 		case BootAction::ENTER_WEBCONFIG_MODE:
+#if defined(PICO_BOARD)
 			// Move this to the Net driver initialize
 			Storage::getInstance().SetConfigMode(true);
 			DriverManager::getInstance().setup(INPUT_MODE_CONFIG);
 			ConfigManager::getInstance().setup(CONFIG_TYPE_WEB);
 			return;
+#elif defined(ESP_PLATFORM)
+			// S3: no webconfig until Phase 3 — boot as HID gamepad instead.
+			inputMode = INPUT_MODE_GENERIC;
+			break;
+#endif
 		case BootAction::ENTER_USB_MODE:
+#if defined(PICO_BOARD)
 			reset_usb_boot(0, 0);
 			return;
+#elif defined(ESP_PLATFORM)
+			// S3: use BOOT+RESET into TinyUF2/DFU (no-op here); boot gamepad.
+			break;
+#endif
 		case BootAction::SET_INPUT_MODE_SWITCH:
 			inputMode = INPUT_MODE_SWITCH;
 			break;
@@ -197,9 +241,14 @@ void GP2040::initializeStandardGpio() {
 		// (NONE=-10, RESERVED=-5, ASSIGNED_TO_ADDON=0, everything else is ours)
 		if (pinMappings[pin].action > 0)
 		{
+#if defined(PICO_BOARD)
 			gpio_init(pin);             // Initialize pin
 			gpio_set_dir(pin, GPIO_IN); // Set as INPUT
 			gpio_pull_up(pin);          // Set as PULLUP
+#elif defined(ESP_PLATFORM)
+			hal::gpioInit(pin);            // Initialize pin
+			hal::gpioSetInput(pin, true);  // Set as INPUT with PULLUP
+#endif
 			buttonGpios |= 1 << pin;    // mark this pin as mattering for GPIO debouncing
 		}
 	}
@@ -215,7 +264,11 @@ void GP2040::deinitializeStandardGpio() {
 		// (NONE=-10, RESERVED=-5, ASSIGNED_TO_ADDON=0, everything else is ours)
 		if (pinMappings[pin].action > 0)
 		{
+#if defined(PICO_BOARD)
 			gpio_deinit(pin);
+#elif defined(ESP_PLATFORM)
+			gpio_reset_pin((gpio_num_t)pin);
+#endif
 		}
 	}
 }
@@ -231,7 +284,19 @@ void GP2040::deinitializeStandardGpio() {
  * instead, if you don't want debounced data.
  */
 void GP2040::debounceGpioGetAll() {
+#if defined(PICO_BOARD)
 	Mask_t raw_gpio = ~gpio_get_all();
+#elif defined(ESP_PLATFORM)
+	// S3: no gpio_get_all() — sample each button pin per-pin (active-low,
+	// matching the Pico ~gpio_get_all() polarity: bit = 1 means pressed).
+	Mask_t raw_gpio = 0;
+	for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
+		Mask_t pin_mask = 1 << pin;
+		if ((buttonGpios & pin_mask) && !hal::gpioGet((uint8_t)pin)) {
+			raw_gpio |= pin_mask;
+		}
+	}
+#endif
 	Gamepad* gamepad = Storage::getInstance().GetGamepad();
 	// return if state isn't different than the actual
 	if (gamepad->debouncedGpio == (raw_gpio & buttonGpios)) return;
@@ -287,14 +352,22 @@ void GP2040::run() {
 
 		// Config Loop (Web-Config does not require gamepad)
 		if (configMode == true) {
-			
+#if defined(PICO_BOARD)
 			ConfigManager::getInstance().loop();
 			rebootHotkeys.process(gamepad, configMode);
 			continue;
+#elif defined(ESP_PLATFORM)
+			// S3: no webconfig until Phase 3 (configMode is never set);
+			// fall through to the gamepad path.
+#endif
 		}
 
 		// Process USB Host on Core0
+#if defined(PICO_BOARD)
 		USBHostManager::getInstance().process();
+#elif defined(ESP_PLATFORM)
+		// S3: no USB host until Phase 2.
+#endif
 
 		// Pre-Process add-ons for MPGS
 		addons.PreprocessAddons(ADDON_PROCESS::CORE0_INPUT);
@@ -438,13 +511,21 @@ GP2040::BootAction GP2040::getBootAction() {
 
 GP2040::RebootHotkeys::RebootHotkeys() :
 	active(false),
+#if defined(PICO_BOARD)
 	noButtonsPressedTimeout(nil_time),
 	webConfigHotkeyMask(GAMEPAD_MASK_S2 | GAMEPAD_MASK_B3 | GAMEPAD_MASK_B4),
 	bootselHotkeyMask(GAMEPAD_MASK_S1 | GAMEPAD_MASK_B3 | GAMEPAD_MASK_B4),
 	rebootHotkeysHoldTimeout(nil_time) {
+#elif defined(ESP_PLATFORM)
+	noButtonsPressedDeadlineMs(0),
+	webConfigHotkeyMask(GAMEPAD_MASK_S2 | GAMEPAD_MASK_B3 | GAMEPAD_MASK_B4),
+	bootselHotkeyMask(GAMEPAD_MASK_S1 | GAMEPAD_MASK_B3 | GAMEPAD_MASK_B4),
+	rebootHotkeysHoldDeadlineMs(0) {
+#endif
 }
 
 void GP2040::RebootHotkeys::process(Gamepad* gamepad, bool configMode) {
+#if defined(PICO_BOARD)
 	// We only allow the hotkey to trigger after we observed no buttons pressed for a certain period of time.
 	// We do this to avoid detecting buttons that are held during the boot process. In particular we want to avoid
 	// oscillating between webconfig and default mode when the user keeps holding the hotkey buttons.
@@ -478,6 +559,43 @@ void GP2040::RebootHotkeys::process(Gamepad* gamepad, bool configMode) {
 			rebootHotkeysHoldTimeout = nil_time;
 		}
 	}
+#elif defined(ESP_PLATFORM)
+	// S3: same state machine on hal::millis() ms deadlines (0 = unset).
+	// NOTE: Pico passes REBOOT_HOTKEY_ACTIVATION_TIME_MS (50) to
+	// make_timeout_time_us, i.e. 50 us; S3 uses the nominal 50 ms instead —
+	// still just an arm-after-idle gate, and the S3 value matches the name.
+	uint32_t now = hal::millis();
+	if (!active) {
+		if (gamepad->state.buttons == 0) {
+			if (noButtonsPressedDeadlineMs == 0) {
+				noButtonsPressedDeadlineMs = now + REBOOT_HOTKEY_ACTIVATION_TIME_MS;
+			}
+
+			if ((int32_t)(now - noButtonsPressedDeadlineMs) >= 0) {
+				active = true;
+			}
+		} else {
+			noButtonsPressedDeadlineMs = 0;
+		}
+	} else {
+		if (gamepad->state.buttons == webConfigHotkeyMask || gamepad->state.buttons == bootselHotkeyMask) {
+			if (rebootHotkeysHoldDeadlineMs == 0) {
+				rebootHotkeysHoldDeadlineMs = now + REBOOT_HOTKEY_HOLD_TIME_MS;
+			}
+
+			if ((int32_t)(now - rebootHotkeysHoldDeadlineMs) >= 0) {
+				if (gamepad->state.buttons == webConfigHotkeyMask) {
+					// If we are in webconfig mode we go to gamepad mode and vice versa
+					System::reboot(configMode ? System::BootMode::GAMEPAD : System::BootMode::WEBCONFIG);
+				} else if (gamepad->state.buttons == bootselHotkeyMask) {
+					System::reboot(System::BootMode::USB);
+				}
+			}
+		} else {
+			rebootHotkeysHoldDeadlineMs = 0;
+		}
+	}
+#endif
 }
 
 void GP2040::checkRawState(GamepadState prevState, GamepadState currState) {

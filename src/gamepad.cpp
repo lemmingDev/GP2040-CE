@@ -16,13 +16,26 @@
 #include "storagemanager.h"
 #include "system.h"
 
+#if defined(ESP_PLATFORM)
+#include "hal_time.h"
+#include "esp_timer.h"
+#endif
+
 // MUST BE DEFINED for mpgs
 uint32_t getMillis() {
+#if defined(PICO_BOARD)
 	return to_ms_since_boot(get_absolute_time());
+#elif defined(ESP_PLATFORM)
+	return hal::millis();
+#endif
 }
 
 uint64_t getMicro() {
+#if defined(PICO_BOARD)
 	return to_us_since_boot(get_absolute_time());
+#elif defined(ESP_PLATFORM)
+	return (uint64_t)esp_timer_get_time();
+#endif
 }
 
 Gamepad::Gamepad() :

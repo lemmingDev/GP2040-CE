@@ -6,12 +6,23 @@
 #include "storagemanager.h"
 
 #include "BoardConfig.h"
+#if defined(PICO_BOARD)
 #include "AnimationStorage.hpp"
+#endif
 #include "FlashPROM.h"
 #include "eventmanager.h"
+#if defined(PICO_BOARD)
 #include "peripheralmanager.h"
+#elif defined(ESP_PLATFORM)
+// S3: PeripheralManager is not compiled in Phase 1 (no I2C/SPI/USB-PIO init,
+// no host-gated saves); see Storage::save() below.
+#endif
 #include "config.pb.h"
+#if defined(PICO_BOARD)
 #include "hardware/watchdog.h"
+#elif defined(ESP_PLATFORM)
+#include "esp_system.h"
+#endif
 #include "CRC32.h"
 #include "types.h"
 
@@ -19,7 +30,11 @@
 
 void Storage::init() {
 	EEPROM.start();
+#if defined(PICO_BOARD)
 	critical_section_init(&animationOptionsCs);
+#elif defined(ESP_PLATFORM)
+	// S3: animationOptionsCs is a std::mutex; no init call needed.
+#endif
 	ConfigUtils::load(config);
 }
 
@@ -35,13 +50,20 @@ bool Storage::save()
  * @brief Save the config; if forcing a save is requested, or if USB host is not enabled, this will write to flash.
  */
 bool Storage::save(const bool force) {
+#if defined(PICO_BOARD)
 	if (!PeripheralManager::getInstance().isUSBEnabled(0) || force) {
 		return ConfigUtils::save(config);
 	} else {
 		return false;
 	}
+#elif defined(ESP_PLATFORM)
+	// S3: no USB host until Phase 2, so saves are never gated.
+	(void)force;
+	return ConfigUtils::save(config);
+#endif
 }
 
+#if defined(PICO_BOARD)
 static void updateAnimationOptionsProto(const AnimationOptions& options)
 {
 	AnimationOptions_Proto& optionsProto = Storage::getInstance().getAnimationOptions();
@@ -92,9 +114,13 @@ static void updateAnimationOptionsProto(const AnimationOptions& options)
 	optionsProto.customThemeR3Pressed		= options.customThemeR3Pressed;
 	optionsProto.buttonPressColorCooldownTimeInMs = options.buttonPressColorCooldownTimeInMs;	
 }
+#endif
+// S3: updateAnimationOptionsProto is Pico-only in Phase 1 (AnimationOptions
+// lives in the Task-4/5 LED stack); performEnqueuedSaves below is a no-op.
 
 void Storage::performEnqueuedSaves()
 {
+#if defined(PICO_BOARD)
 	if (animationOptionsSavePending.load())
 	{
 		critical_section_enter_blocking(&animationOptionsCs);
@@ -103,8 +129,13 @@ void Storage::performEnqueuedSaves()
 		animationOptionsSavePending.store(false);
 		critical_section_exit(&animationOptionsCs);
 	}
+#elif defined(ESP_PLATFORM)
+	// S3: LED animation stack lands in Tasks 4/5; nothing is ever enqueued.
+	(void)animationOptionsSavePending;
+#endif
 }
 
+#if defined(PICO_BOARD)
 void Storage::enqueueAnimationOptionsSave(const AnimationOptions& animationOptions)
 {
 	const uint32_t crc = CRC32::calculate(&animationOptions);
@@ -117,11 +148,17 @@ void Storage::enqueueAnimationOptionsSave(const AnimationOptions& animationOptio
 	}
 	critical_section_exit(&animationOptionsCs);
 }
+#endif
+// S3: enqueueAnimationOptionsSave is Pico-only in Phase 1 (see above).
 
 void Storage::ResetSettings()
 {
 	EEPROM.reset();
+#if defined(PICO_BOARD)
 	watchdog_reboot(0, SRAM_END, 2000);
+#elif defined(ESP_PLATFORM)
+	esp_restart();
+#endif
 }
 
 bool Storage::setProfile(const uint32_t profileNum)
@@ -229,6 +266,7 @@ Gamepad * Storage::GetProcessedGamepad()
 }
 
 /* Animation stuffs */
+#if defined(PICO_BOARD)
 AnimationOptions AnimationStorage::getAnimationOptions()
 {
 	AnimationOptions options;
@@ -286,5 +324,10 @@ AnimationOptions AnimationStorage::getAnimationOptions()
 
 void AnimationStorage::save()
 {
+#if defined(PICO_BOARD)
 	Storage::getInstance().enqueueAnimationOptionsSave(AnimationStation::options);
+#endif
 }
+#endif
+// S3: AnimationStorage methods are Pico-only in Phase 1 (the LED animation
+// stack, AnimationStation::options included, lands in Tasks 4/5).

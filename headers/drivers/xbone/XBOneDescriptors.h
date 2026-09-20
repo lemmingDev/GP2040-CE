@@ -6,7 +6,11 @@
 #pragma once
 
 #include <stdint.h>
+#if defined(PICO_BOARD)
 #include <pico/unique_id.h>
+#elif defined(ESP_PLATFORM)
+#include "esp_mac.h" // esp_efuse_mac_get_default (in esp_hw_support, no extra REQUIRE)
+#endif
 #include <cstring>
 
 #include "drivers/shared/xgip_protocol.h"
@@ -35,10 +39,17 @@ static const uint8_t xboxOSDescriptor[] = "MSFT100\x20\x00";
 
 static const uint8_t * xbone_get_string_descriptor(int index) {
 	if ( index == 3 ) {
+#if defined(PICO_BOARD)
 		// Generate a serial number from the pico's unique ID
 		pico_unique_board_id_t id;
 		pico_get_unique_board_id(&id);
 		memcpy(uniqueSerial, (uint8_t*)&id, PICO_UNIQUE_BOARD_ID_SIZE_BYTES);
+#elif defined(ESP_PLATFORM)
+		// S3: eFuse MAC stands in for the Pico unique ID.
+		uint8_t mac[6] = {0};
+		esp_efuse_mac_get_default(mac);
+		memcpy(uniqueSerial, mac, sizeof(mac));
+#endif
         return uniqueSerial;
 	} else if ( index == 4 ) { // security method used
 		return xboxSecurityMethod;

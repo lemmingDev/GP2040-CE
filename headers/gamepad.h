@@ -10,7 +10,11 @@
 #include "gamepad/GamepadState.h"
 #include "gamepad/GamepadAuxState.h"
 
+#if defined(PICO_BOARD)
 #include "pico/stdlib.h"
+#elif defined(ESP_PLATFORM)
+#include <stdint.h>
+#endif
 
 #include "config.pb.h"
 

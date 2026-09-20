@@ -13,7 +13,11 @@
 #include "addonmanager.h"
 #include "gpdriver.h"
 
+#if defined(PICO_BOARD)
 #include "pico/types.h"
+#elif defined(ESP_PLATFORM)
+#include <stdint.h>
+#endif
 
 class GP2040 {
 public:
@@ -35,10 +39,19 @@ private:
 
         bool active;
 
+#if defined(PICO_BOARD)
         absolute_time_t noButtonsPressedTimeout;
         uint16_t webConfigHotkeyMask;
         uint16_t bootselHotkeyMask;
         absolute_time_t rebootHotkeysHoldTimeout;
+#elif defined(ESP_PLATFORM)
+        // S3: ms deadlines on hal::millis() replacing absolute_time_t
+        // (0 = unset, mirroring nil_time). Wrap-safe via int32 subtraction.
+        uint32_t noButtonsPressedDeadlineMs;
+        uint16_t webConfigHotkeyMask;
+        uint16_t bootselHotkeyMask;
+        uint32_t rebootHotkeysHoldDeadlineMs;
+#endif
     };
     RebootHotkeys rebootHotkeys;
 

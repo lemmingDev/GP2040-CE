@@ -2,6 +2,8 @@
 #include "storagemanager.h"
 #include "enums.pb.h"
 
+#include <algorithm>
+
 void EventManager::registerEventHandler(GPEventType eventType, EventFunction handler) {
     typename std::vector<EventEntry>::iterator it = std::find_if(eventList.begin(), eventList.end(), [&eventType](const EventEntry& entry) { return entry.first == eventType; });
 

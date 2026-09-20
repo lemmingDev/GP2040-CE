@@ -4,7 +4,9 @@
 #include "gpaddon.h"
 
 #include <vector>
+#if defined(PICO_BOARD)
 #include <pico/mutex.h>
+#endif
 
 enum ADDON_PROCESS {
     CORE0_INPUT,

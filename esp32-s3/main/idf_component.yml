@@ -1,4 +1,8 @@
 ## IDF Component Manager Manifest File
 dependencies:
-  espressif/esp_tinyusb: "^1"
+  # Raw TinyUSB (NOT esp_tinyusb): GP2040 owns its descriptors, its
+  # usbd_app_driver_get_cb class-driver table, and its tud_task() pump, which
+  # the esp_tinyusb wrapper would duplicate/conflict with (it owns
+  # tud_descriptor_* from Kconfig and builds the lib with HID_COUNT=0).
+  espressif/tinyusb: "^0.21.0"
   idf: "^5.0"

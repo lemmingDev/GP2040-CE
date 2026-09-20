@@ -46,6 +46,16 @@
 #define GPIO_PIN_45 GpioAction::RESERVED
 #define GPIO_PIN_46 GpioAction::RESERVED
 
+// Unassigned pins inside the 30-entry table (Phase 1 core loop iterates
+// pins 0-29): NONE so the stock table compiles and maps nothing here.
+#define GPIO_PIN_22 GpioAction::NONE
+#define GPIO_PIN_23 GpioAction::NONE
+#define GPIO_PIN_24 GpioAction::NONE
+#define GPIO_PIN_25 GpioAction::NONE
+#define GPIO_PIN_26 GpioAction::NONE
+#define GPIO_PIN_27 GpioAction::NONE
+#define GPIO_PIN_29 GpioAction::NONE
+
 // Setting GPIO pins to assigned by add-on
 // NOTE: I2C0 moved off strapping pin GPIO 0 to GPIO 41/42; both are
 // addon-reserved here, mirroring the Pico template (where I2C0 on GPIO 0/1

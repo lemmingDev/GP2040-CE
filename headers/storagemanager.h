@@ -7,16 +7,30 @@
 #define STORAGE_H_
 
 #include <stdint.h>
+#if defined(PICO_BOARD)
 #include "NeoPico.hpp"
+#elif defined(ESP_PLATFORM)
+// S3: NeoPico (PIO WS2812) is Pico-only; the RMT backend lands in Task 5.
+// Storage never touches LEDs on S3.
+#endif
 #include "FlashPROM.h"
 
 #include "enums.h"
+#if defined(PICO_BOARD)
 #include "helper.h"
+#elif defined(ESP_PLATFORM)
+// S3: helper.h pulls Pico-SDK-only chains (pico/time.h, hardware/clocks.h
+// via AnimationStation, PlayerLEDs); nothing in the S3 core loop uses it.
+#endif
 #include "gamepad.h"
 
 #include "config.pb.h"
 #include <atomic>
+#if defined(PICO_BOARD)
 #include "pico/critical_section.h"
+#elif defined(ESP_PLATFORM)
+#include <mutex>
+#endif
 
 #define SI Storage::getInstance()
 
@@ -54,7 +68,12 @@ public:
 	// Perform saves that were enqueued from core1
 	void performEnqueuedSaves();
 
+#if defined(PICO_BOARD)
 	void enqueueAnimationOptionsSave(const AnimationOptions& animationOptions);
+#elif defined(ESP_PLATFORM)
+	// S3: LED animation stack (and its AnimationOptions type) lands in
+	// Tasks 4/5; no animation saves are enqueued in Phase 1.
+#endif
 
 	void SetConfigMode(bool); 			// Config Mode (on-boot)
 	bool GetConfigMode();
@@ -82,9 +101,16 @@ private:
 	DisplayOptions previewDisplayOptions;
 	Config config;
 	std::atomic<bool> animationOptionsSavePending;
+#if defined(PICO_BOARD)
 	critical_section_t animationOptionsCs;
+#elif defined(ESP_PLATFORM)
+	// S3: std::mutex replaces the Pico SDK spinlock; no init call needed.
+	std::mutex animationOptionsCs;
+#endif
+#if defined(PICO_BOARD)
 	uint32_t animationOptionsCrc = 0;
 	AnimationOptions animationOptionsToSave = {};
+#endif
 	GpioMappingInfo functionalPinMappings[NUM_BANK0_GPIOS];
 };
 

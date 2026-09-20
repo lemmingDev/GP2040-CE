@@ -1,5 +1,7 @@
 #include "addonmanager.h"
+#if defined(PICO_BOARD)
 #include "usbhostmanager.h"
+#endif
 
 bool AddonManager::LoadAddon(GPAddon* addon, ADDON_PROCESS processAt) {
     if (addon->available()) {
@@ -18,8 +20,12 @@ bool AddonManager::LoadAddon(GPAddon* addon, ADDON_PROCESS processAt) {
 
 bool AddonManager::LoadUSBAddon(GPAddon* addon, ADDON_PROCESS processAt) {
     bool ret = LoadAddon(addon, processAt);
+#if defined(PICO_BOARD)
     if ( ret == true )
         USBHostManager::getInstance().pushListener(addon->getListener());
+#elif defined(ESP_PLATFORM)
+    // S3: no USB host until Phase 2; the listener push is a no-op.
+#endif
     return ret;
 }
 

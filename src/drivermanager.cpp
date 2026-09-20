@@ -1,9 +1,12 @@
 #include "drivermanager.h"
 
+#if defined(PICO_BOARD)
 #include "drivers/net/NetDriver.h"
 #include "drivers/astro/AstroDriver.h"
 #include "drivers/egret/EgretDriver.h"
+#endif
 #include "drivers/hid/HIDDriver.h"
+#if defined(PICO_BOARD)
 #include "drivers/keyboard/KeyboardDriver.h"
 #include "drivers/mdmini/MDMiniDriver.h"
 #include "drivers/neogeo/NeoGeoDriver.h"
@@ -14,12 +17,16 @@
 #include "drivers/switch/SwitchDriver.h"
 #include "drivers/xbone/XBOneDriver.h"
 #include "drivers/xboxog/XboxOriginalDriver.h"
+#endif
 #include "drivers/xinput/XInputDriver.h"
+#if defined(PICO_BOARD)
 #include "drivers/bluetooth/BluetoothDriver.h"
 
 #include "usbhostmanager.h"
+#endif
 
 void DriverManager::setup(InputMode mode) {
+#if defined(PICO_BOARD)
     switch (mode) {
         case INPUT_MODE_CONFIG:
             driver = new NetDriver();
@@ -75,6 +82,21 @@ void DriverManager::setup(InputMode mode) {
         default:
             return;
     }
+#elif defined(ESP_PLATFORM)
+    // S3 Phase 1: HID + XInput only (Task 6 ports the rest; Bluetooth stays
+    // OUT per YAGNI — no NimBLE/BLE sources are compiled in this phase).
+    // Unsupported stored modes fall back to HID so the driver is never null.
+    switch (mode) {
+        case INPUT_MODE_XINPUT:
+            driver = new XInputDriver();
+            break;
+        case INPUT_MODE_GENERIC:
+        default:
+            driver = new HIDDriver();
+            mode = INPUT_MODE_GENERIC;
+            break;
+    }
+#endif
 
     // Initialize our chosen driver
     driver->initialize();

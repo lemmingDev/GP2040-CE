@@ -178,7 +178,13 @@
 
 //------------- CLASS -------------//
 #define CFG_TUD_CDC              0
+#if defined(ESP_PLATFORM)
+// S3: no RNDIS/ECM in Phase 1 (Pico webconfig transport; Phase 3 re-adds it
+// with the WiFi stack). Keeps ecm_rndis_device out of the S3 link.
+#define CFG_TUD_ECM_RNDIS        0
+#else
 #define CFG_TUD_ECM_RNDIS        1
+#endif
 #define CFG_TUD_HID              2
 
 //--------------------------------------------------------------------

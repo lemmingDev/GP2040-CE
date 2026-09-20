@@ -30,15 +30,18 @@ static GP2040 * gp2040Core0 = nullptr;
 static GP2040Aux * gp2040Core1 = nullptr;
 
 // Launch our second core with additional modules loaded in
-void core1() {
 #if defined(PICO_BOARD)
+void core1() {
 	multicore_lockout_victim_init(); // block core 1
-#endif
 
 	// Create GP2040 w/ Additional Modules for Core 1	
 	gp2040Core1->setup();
 	gp2040Core1->run();
 }
+#elif defined(ESP_PLATFORM)
+// S3: no core1 companion in Phase 1 (the FreeRTOS aux task lands in Task 4);
+// core1() is omitted so the uncompiled GP2040Aux methods are never referenced.
+#endif
 
 #if defined(ESP_PLATFORM)
 extern "C" void app_main() {
@@ -47,7 +50,12 @@ int main() {
 #endif
 	// Create GP2040 Main Core (core0), Core1 is dependent on Core0
 	gp2040Core0 = new GP2040();
+#if defined(PICO_BOARD)
 	gp2040Core1 = new GP2040Aux();
+#elif defined(ESP_PLATFORM)
+	// Phase 1 single-core bring-up: no aux object yet (Task 4).
+	gp2040Core1 = nullptr;
+#endif
 
 	// Create GP2040 Main Core - Setup Core0
 	gp2040Core0->setup();
@@ -71,5 +79,7 @@ int main() {
 	vTaskDelete(nullptr);
 #endif
 
+#if defined(PICO_BOARD)
 	return 0;
+#endif
 }

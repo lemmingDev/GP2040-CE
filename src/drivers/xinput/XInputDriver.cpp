@@ -118,7 +118,12 @@ static bool xinput_xfer_callback(uint8_t rhport, uint8_t ep_addr, xfer_result_t 
     (void)xferred_bytes;
 
     if (ep_addr == endpoint_out)
+#if defined(PICO_BOARD)
         usbd_edpt_xfer(0, endpoint_out, xinput_out_buffer, XINPUT_OUT_SIZE);
+#elif defined(ESP_PLATFORM)
+        // TinyUSB 0.21 (raw tinyusb) takes a trailing is_isr flag; task context here.
+        usbd_edpt_xfer(0, endpoint_out, xinput_out_buffer, XINPUT_OUT_SIZE, false);
+#endif
 
     return true;
 }
@@ -155,6 +160,7 @@ void XInputDriver::initialize() {
 
 void XInputDriver::initializeAux() {
     xAuthDriver = nullptr;
+#if defined(PICO_BOARD)
     // AUTH DRIVER NON-FUNCTIONAL FOR NOW
     GamepadOptions & gamepadOptions = Storage::getInstance().getGamepadOptions();
     if ( gamepadOptions.xinputAuthType == InputModeAuthType::INPUT_MODE_AUTH_TYPE_USB )  {
@@ -164,12 +170,17 @@ void XInputDriver::initializeAux() {
             xinputAuthData = xAuthDriver->getAuthData();
         }
     }
+#elif defined(ESP_PLATFORM)
+    // S3: XInput auth is USB-host passthrough (Phase 2); never available here.
+#endif
 }
 
 USBListener * XInputDriver::get_usb_auth_listener() {
+#if defined(PICO_BOARD)
     if ( xAuthDriver != nullptr && xAuthDriver->available() ) {
         return xAuthDriver->getListener();
     }
+#endif
     return nullptr;
 }
 
@@ -223,7 +234,12 @@ void XInputDriver::process(Gamepad * gamepad) {
             (endpoint_in != 0) && (!usbd_edpt_busy(0, endpoint_in)) ) // Is the IN endpoint available?
         {
             usbd_edpt_claim(0, endpoint_in);								// Take control of IN endpoint
+#if defined(PICO_BOARD)
             usbd_edpt_xfer(0, endpoint_in, (uint8_t *)&xinputReport, sizeof(XInputReport)); // Send report buffer
+#elif defined(ESP_PLATFORM)
+            // TinyUSB 0.21 (raw tinyusb) takes a trailing is_isr flag; task context here.
+            usbd_edpt_xfer(0, endpoint_in, (uint8_t *)&xinputReport, sizeof(XInputReport), false); // Send report buffer
+#endif
             usbd_edpt_release(0, endpoint_in);								// Release control of IN endpoint
             memcpy(last_report, &xinputReport, sizeof(XInputReport)); // save if we sent it
         }
@@ -234,7 +250,12 @@ void XInputDriver::process(Gamepad * gamepad) {
         (endpoint_out != 0) && (!usbd_edpt_busy(0, endpoint_out)))
     {
         usbd_edpt_claim(0, endpoint_out);									 // Take control of OUT endpoint
+#if defined(PICO_BOARD)
         usbd_edpt_xfer(0, endpoint_out, xinput_out_buffer, XINPUT_OUT_SIZE); 		 // Retrieve report buffer
+#elif defined(ESP_PLATFORM)
+        // TinyUSB 0.21 (raw tinyusb) takes a trailing is_isr flag; task context here.
+        usbd_edpt_xfer(0, endpoint_out, xinput_out_buffer, XINPUT_OUT_SIZE, false); // Retrieve report buffer
+#endif
         usbd_edpt_release(0, endpoint_out);									 // Release control of OUT endpoint
     }
 
@@ -279,9 +300,13 @@ void XInputDriver::process(Gamepad * gamepad) {
 }
 
 void XInputDriver::processAux() {
+#if defined(PICO_BOARD)
     if ( xAuthDriver != nullptr && xAuthDriver->available() ) {
         xAuthDriver->process();
     }
+#elif defined(ESP_PLATFORM)
+    // S3: XInput auth is USB-host passthrough (Phase 2); nothing to do.
+#endif
 }
 
 // tud_hid_get_report_cb
@@ -292,6 +317,7 @@ uint16_t XInputDriver::get_report(uint8_t report_id, hid_report_type_t report_ty
 
 // Only respond to vendor control xfers if we have a mounted x360 device
 bool XInputDriver::vendor_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t const *request) {
+#if defined(PICO_BOARD)
   // Do nothing if we have no auth driver
     if ( xAuthDriver == nullptr || !xAuthDriver->available() ) {
         return false;
@@ -366,6 +392,14 @@ bool XInputDriver::vendor_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_co
 
     return true;
 }
+#elif defined(ESP_PLATFORM)
+    // S3: XInput auth is USB-host passthrough (Phase 2); never respond here.
+    (void)rhport;
+    (void)stage;
+    (void)request;
+    return false;
+}
+#endif
 
 const uint16_t * XInputDriver::get_descriptor_string_cb(uint8_t index, uint16_t langid) {
     char *value;
