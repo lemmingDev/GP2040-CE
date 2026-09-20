@@ -101,11 +101,10 @@
 // Turbo LED cannot stay on 15 (that pin is R3 now); 39 is a free plain GPIO.
 #define TURBO_LED_PIN 39
 
-// Onboard addressable RGB LED: v1.0 boards use GPIO 48, v1.1 uses GPIO 38
-// (user hardware 2026-09-20: dark on 38, trying 48 first). Default animation
-// is CHASE (moving light), so any activity proves the RMT backend; darkness
-// with the wrong pin proves nothing about the backend either way.
-#define BOARD_LEDS_PIN 48
+// Onboard addressable RGB LED: dark on 48 with default RMT blocks
+// (2026-09-20), so trying the v1.1 pin 38. If both stay dark, the pin is
+// exonerated and the RMT/addon flow itself is suspect.
+#define BOARD_LEDS_PIN 38
 #define LED_BRIGHTNESS_MAXIMUM 100
 #define LED_BRIGHTNESS_STEPS 5
 #define LED_FORMAT LED_FORMAT_GRB
