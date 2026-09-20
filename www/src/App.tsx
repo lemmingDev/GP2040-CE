@@ -18,6 +18,7 @@ import LedConfigPage from './Pages/LedConfigPage';
 
 import './App.scss';
 import BootModeMappingPage from './Pages/BootModeMapping';
+import BluetoothSettingsPage from './Pages/BluetoothSettingsPage';
 
 const App = () => {
 	return (
@@ -28,6 +29,7 @@ const App = () => {
 					<Routes>
 						<Route path="/" element={<HomePage />} />
 						<Route path="/settings" element={<SettingsPage />} />
+						<Route path="/bluetooth-settings" element={<BluetoothSettingsPage />} />
 						<Route path="/pin-mapping" element={<PinMappingPage />} />
 						<Route
 							path="/boot-mode-mapping"
