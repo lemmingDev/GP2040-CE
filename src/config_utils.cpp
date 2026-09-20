@@ -84,7 +84,7 @@
     } \
 
 #ifndef DEFAULT_INPUT_MODE
-    #define DEFAULT_INPUT_MODE INPUT_MODE_XINPUT
+    #define DEFAULT_INPUT_MODE INPUT_MODE_GENERIC // TEMP hardware probe (revert): Generic HID validation
 #endif
 #ifndef DEFAULT_INPUT_MODE_B1
     #define DEFAULT_INPUT_MODE_B1 INPUT_MODE_SWITCH
@@ -946,8 +946,12 @@ void gpioMappingsMigrationCore(Config& config)
                                            GpioAction::NONE, GpioAction::NONE, GpioAction::NONE};
 
     // flag additional pins as being used by an addon not managed here
+    // NOTE (S3): actions[] has NUM_BANK0_GPIOS (30) entries while isValidPin
+    // now admits S3 pins up to 48 — bound the index or pins like I2C 41/42
+    // write 11 past the end (found on hardware 2026-09-20: inputs died after
+    // the widening). Pico pins are always < 30, so its behavior is unchanged.
     const auto markAddonPinIfUsed = [&](Pin_t gpPin) -> void {
-        if (isValidPin(gpPin))
+        if (isValidPin(gpPin) && (int32_t)gpPin < (int32_t)NUM_BANK0_GPIOS)
             actions[gpPin] = GpioAction::ASSIGNED_TO_ADDON;
     };
 
@@ -1343,7 +1347,9 @@ void gpioMappingsMigrationProfiles(Config& config)
     AlternativePinMappings* deprecatedAlts = config.profileOptions.deprecatedAlternativePinMappings;
 
     const auto assignProfilePinIfUsed = [&](uint8_t profileNum, Pin_t profilePin, GpioAction action) -> void {
-        if (isValidPin(profilePin)) {
+        // Same 30-entry bound as markAddonPinIfUsed above: legacy profile
+        // data can name any pin, and gpioMappingsSets[].pins[] is 30 long.
+        if (isValidPin(profilePin) && (int32_t)profilePin < (int32_t)NUM_BANK0_GPIOS) {
             config.profileOptions.gpioMappingsSets[profileNum].pins[profilePin].action = action;
         }
     };
