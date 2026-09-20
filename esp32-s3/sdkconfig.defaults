@@ -17,3 +17,8 @@ CONFIG_BT_NIMBLE_ENABLED=y
 # before first hardware validation. Leaving HID service at default (n).
 CONFIG_BT_NIMBLE_NVS_PERSIST=y
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+# Console on UART0 (CH343 "COM" port) so logs stream while native USB owns
+# GPIO19/20 as the gamepad (USB-Serial/JTAG goes silent under OTG).
+CONFIG_ESP_CONSOLE_UART=y
+CONFIG_ESP_CONSOLE_UART_NUM=0
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=115200
