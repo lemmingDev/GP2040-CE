@@ -16,6 +16,7 @@
 #include "btstack_run_loop.h"
 
 #include "drivers/hidbt/HIDBTDriver.h"
+#include "drivers/bluetooth/BluetoothFlashLayout.h"
 
 #include <cstring>
 
@@ -58,9 +59,8 @@ static bd_addr_t flash_save_addr;
 
 // Use a DIFFERENT flash sector than Switch BT and BTstack link keys
 // BTstack uses 0x1F6000-0x1F7FFF, Switch BT uses 0x1F5000, we use 0x1F4000
-#define HIDBT_PAIRING_FLASH_OFFSET 0x1F4000
-// Bumped magic to invalidate old pairing data that lacks the link key fields
-#define HIDBT_PAIRING_MAGIC 0x48494443  // "HIDC"
+#define HIDBT_PAIRING_FLASH_OFFSET HIDBT_PAIRING_FLASH_OFFSET
+#define HIDBT_PAIRING_MAGIC BT_PAIRING_MAGIC_HID
 #define HIDBT_FLASH_WRITE_DELAY_MS 500
 
 typedef struct {
