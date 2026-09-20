@@ -37,6 +37,11 @@
 #include "lwip/mem.h"
 #include "addons/input_macro.h"
 
+#ifdef GP2040_BLUETOOTH_ENABLED
+#include "drivers/switchbt/SwitchBluetoothDriver.h"
+#include "drivers/hidbt/HIDBTDriver.h"
+#endif
+
 #define PATH_CGI_ACTION "/cgi/action"
 
 #define LWIP_HTTPD_POST_MAX_PAYLOAD_LEN (1024 * 16)
@@ -45,7 +50,7 @@
 
 extern struct fsdata_file file__index_html[];
 
-const static char* spaPaths[] = { "/animation", "/backup", "/display-config", "/led-config", "/pin-mapping", "/settings", "/reset-settings", "/add-ons", "/macro", "/peripheral-mapping", "/boot-mode-mapping" };
+const static char* spaPaths[] = { "/animation", "/backup", "/display-config", "/led-config", "/pin-mapping", "/settings", "/reset-settings", "/add-ons", "/macro", "/peripheral-mapping", "/boot-mode-mapping", "/bluetooth-settings" };
 const static char* excludePaths[] = { "/css", "/images", "/js", "/static" };
 const static uint32_t rebootDelayMs = 500;
 static string http_post_uri;
@@ -3016,6 +3021,52 @@ std::string abortGetHeldPins()
     return {};
 }
 
+std::string getBluetoothSettings()
+{
+    const size_t capacity = JSON_OBJECT_SIZE(8);
+    DynamicJsonDocument doc(capacity);
+    char switchMac[18] = "";
+    char hidMac[18] = "";
+#ifdef GP2040_BLUETOOTH_ENABLED
+    doc["bluetoothEnabled"] = true;
+    doc["switchBtPaired"] = switchbt_get_pairing_status(switchMac, sizeof(switchMac));
+    doc["switchBtMac"] = switchMac;
+    doc["hidBtPaired"] = hidbt_get_pairing_status(hidMac, sizeof(hidMac));
+    doc["hidBtMac"] = hidMac;
+#else
+    doc["bluetoothEnabled"] = false;
+    doc["switchBtPaired"] = false;
+    doc["switchBtMac"] = "";
+    doc["hidBtPaired"] = false;
+    doc["hidBtMac"] = "";
+#endif
+    return serialize_json(doc);
+}
+
+std::string clearSwitchBtPairing()
+{
+    DynamicJsonDocument doc(JSON_OBJECT_SIZE(2));
+#ifdef GP2040_BLUETOOTH_ENABLED
+    switchbt_clear_pairing();
+    doc["success"] = true;
+#else
+    doc["success"] = false;
+#endif
+    return serialize_json(doc);
+}
+
+std::string clearHidBtPairing()
+{
+    DynamicJsonDocument doc(JSON_OBJECT_SIZE(2));
+#ifdef GP2040_BLUETOOTH_ENABLED
+    hidbt_clear_pairing();
+    doc["success"] = true;
+#else
+    doc["success"] = false;
+#endif
+    return serialize_json(doc);
+}
+
 std::string getConfig()
 {
     return ConfigUtils::toJSON(Storage::getInstance().getConfig());
@@ -3311,6 +3362,9 @@ static const std::pair<const char*, HandlerFuncPtr> handlerFuncs[] =
     { "/api/abortGetHeldPins", abortGetHeldPins },
     { "/api/getUsedPins", getUsedPins },
     { "/api/getConfig", getConfig },
+    { "/api/getBluetoothSettings", getBluetoothSettings },
+    { "/api/clearSwitchBtPairing", clearSwitchBtPairing },
+    { "/api/clearHidBtPairing", clearHidBtPairing },
     { "/api/getJoystickCenter", getJoystickCenter },
     { "/api/getJoystickCenter2", getJoystickCenter2 },
     { "/api/getBoardDefinition", getBoardDefinition },
