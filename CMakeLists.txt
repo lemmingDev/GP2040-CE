@@ -235,8 +235,6 @@ src/drivers/xboxog/XboxOriginalDriver.cpp
 src/drivers/xinput/XInputAuth.cpp
 src/drivers/xinput/XInputAuthUSBListener.cpp
 src/drivers/xinput/XInputDriver.cpp
-src/drivers/switchbt/SwitchBluetoothDriver.cpp
-src/drivers/hidbt/HIDBTDriver.cpp
 src/interfaces/i2c/i2cdevicebase.cpp
 src/interfaces/i2c/pcf8575/pcf8575.cpp
 src/interfaces/i2c/ssd1306/tiny_ssd1306.cpp
@@ -382,8 +380,6 @@ ${CMAKE_BINARY_DIR}/headers
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
   PICO_XOSC_STARTUP_DELAY_MULTIPLIER=64
-  GP2040_BLUETOOTH_ENABLED=1
-  PICO_FLASH_BANK_STORAGE_OFFSET=0x1F6000
   BOARD_CONFIG_FILE_NAME="$<TARGET_FILE_BASE_NAME:${PROJECT_NAME}>"
   GP2040_BOARDCONFIG="${GP2040_BOARDCONFIG}"
 )
@@ -392,6 +388,24 @@ target_include_directories(${PROJECT_NAME}  PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts or any other standard includes, if required
   )
+
+if(GP2040_BOARDCONFIG STREQUAL "PicoW" OR GP2040_BOARDCONFIG STREQUAL "Pico2W")
+  target_sources(${PROJECT_NAME} PRIVATE
+    src/drivers/switchbt/SwitchBluetoothDriver.cpp
+    src/drivers/hidbt/HIDBTDriver.cpp
+  )
+  target_link_libraries(${PROJECT_NAME}
+    pico_rand
+    pico_unique_id
+    pico_btstack_cyw43
+    pico_btstack_classic
+    pico_cyw43_arch_none
+  )
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
+    GP2040_BLUETOOTH_ENABLED=1
+    PICO_FLASH_BANK_STORAGE_OFFSET=0x1F6000
+  )
+endif()
 
 pico_add_extra_outputs(${PROJECT_NAME})
 
