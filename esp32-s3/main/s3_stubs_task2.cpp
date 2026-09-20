@@ -1,10 +1,12 @@
 // Task-2 link shims for the S3 core-loop build (RAM-only, no persistence).
 //
-// TEMPORARY: Task 3 replaces FlashPROM with the esp_partition backend
-// (lib/FlashPROM/src/FlashPROM_esp32.cpp) and compiles the real
-// src/config_utils.cpp (nanopb footer + CRC, byte-for-byte with Pico).
-// Task 5 owns PeripheralManager/I2C. Delete the corresponding stub section
-// when each real backend lands; do NOT copy these into the Pico build
+// Task 3 replaced the FlashPROM section below with the real esp_partition
+// backend (lib/FlashPROM/src/FlashPROM_esp32.cpp, in SRCS). What remains is
+// the ConfigUtils fresh-defaults stub: the real src/config_utils.cpp reads
+// flash via an XIP-mapped EEPROM_ADDRESS_START dereference (config_utils.cpp
+// loadConfigInner) and Pico-only get_core_num(), so it cannot compile on S3
+// untouched — a later task owns that port. Delete the corresponding stub
+// section when each real backend lands; do NOT copy these into the Pico build
 // (this file is S3-SRCS-only and is never touched by the Pico CMake).
 
 #include "config_utils.h"
@@ -19,23 +21,13 @@
 
 #if defined(ESP_PLATFORM)
 
-// ---- FlashPROM: RAM-only stub (Task 3: esp_partition backend) ----
-uint8_t FlashPROM::writeCache[EEPROM_SIZE_BYTES];
+// ---- FlashPROM: REAL backend (Task 3: lib/FlashPROM/src/FlashPROM_esp32.cpp) ----
+// (Task-2 RAM-only start/commit/reset stub removed; no stub path remains for
+// FlashPROM on S3.)
 
-void FlashPROM::start() {
-    memset(writeCache, 0, EEPROM_SIZE_BYTES);
-}
-
-void FlashPROM::commit() {
-    // RAM stub: nothing to persist until the Task-3 esp_partition backend.
-}
-
-void FlashPROM::reset() {
-    memset(writeCache, 0, EEPROM_SIZE_BYTES);
-    commit();
-}
-
-// ---- ConfigUtils: fresh-board defaults stub (Task 3: real nanopb load/save) ----
+// ---- ConfigUtils: fresh-board defaults stub (real nanopb load/save deferred ----
+// to the ConfigUtils port task: loadConfigInner XIP-dereferences
+// EEPROM_ADDRESS_START and save() asserts Pico get_core_num() == 0) ----
 static void setFreshGamepadDefaults(Config& config) {
     GamepadOptions& go = config.gamepadOptions;
     go.inputMode = INPUT_MODE_XINPUT;

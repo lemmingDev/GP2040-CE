@@ -1,9 +1,10 @@
-# ESP32-S3 app component (Phase 1 Task 2 — core-loop build green).
+# ESP32-S3 app component (Phase 1 Task 3 — esp_partition storage backend).
 #
 # SCOPE: core USB-device loop (HID + XInput) + storage/system managers +
 # AddonManager/EventManager/CRC32 (link-required, no HW deps) + S3 HAL +
-# Task-2 RAM stubs (FlashPROM/ConfigUtils; replaced by real backends in
-# Task 3). Deliberately OUT (Phase 2/3, Tasks 3-7):
+# Task-2 ConfigUtils stub (fresh defaults; real nanopb port is a later task)
+# + Task-3 FlashPROM_esp32 backend (gpconfig partition, layout preserved).
+# Deliberately OUT (Phase 2/3, Tasks 4-7):
 #   - host (src/usbhostmanager.cpp, xinput_host.cpp, XInputAuth*),
 #     webconfig (src/configmanager.cpp, src/configs/webconfig.cpp,
 #     src/config_utils.cpp), display (src/display/*), addons (src/addons/*),
@@ -33,6 +34,7 @@ idf_component_register(
         "../../hal_esp32s3/hal_pwm_s3.cpp"
         "../../esp32-s3/generated/config.pb.c"
         "../../esp32-s3/generated/enums.pb.c"
+        "../../lib/FlashPROM/src/FlashPROM_esp32.cpp"
         "s3_stubs_task2.cpp"
     INCLUDE_DIRS
         "../../headers"
@@ -45,7 +47,7 @@ idf_component_register(
         "../../lib/nanopb"
         "../../lib/CRC32/src"
         "../../lib/FlashPROM/src"
-    REQUIRES tinyusb esp_timer esp_adc esp_driver_ledc esp_driver_gpio)
+    REQUIRES tinyusb esp_timer esp_adc esp_driver_ledc esp_driver_gpio esp_partition)
 
 # Feed OUR tusb_config.h (headers/tusb_config.h, ESP_PLATFORM branch) to the
 # raw TinyUSB library build — same injection technique esp_tinyusb uses.

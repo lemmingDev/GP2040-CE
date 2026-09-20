@@ -5,6 +5,8 @@
 
 #include "FlashPROM.h"
 
+#if defined(PICO_BOARD)
+
 uint8_t FlashPROM::writeCache[EEPROM_SIZE_BYTES];
 volatile static alarm_id_t flashWriteAlarm = 0;
 volatile static spin_lock_t *flashLock = nullptr;
@@ -51,3 +53,5 @@ void FlashPROM::reset()
 	memset(writeCache, 0, EEPROM_SIZE_BYTES);
 	commit();
 }
+
+#endif // defined(PICO_BOARD)
