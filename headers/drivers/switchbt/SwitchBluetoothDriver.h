@@ -8,6 +8,7 @@
 #define SWITCH_BLUETOOTH_DRIVER_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 // D-pad mode enum (matches GP2040 config)
 #define SWBT_DPAD_MODE_DIGITAL      0
@@ -73,6 +74,7 @@ bool switchbt_is_connected(void);
 
 // Clear stored pairing (to pair with a different Switch)
 void switchbt_clear_pairing(void);
+bool switchbt_get_pairing_status(char* mac, size_t macSize);
 
 #ifdef __cplusplus
 }
