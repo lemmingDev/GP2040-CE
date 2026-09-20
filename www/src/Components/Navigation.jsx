@@ -66,6 +66,9 @@ const Navigation = () => {
 					<Nav.Link as={NavLink} to="/settings" eventKey={eventKey++}>
 						{t('Navigation:settings-label')}
 					</Nav.Link>
+					<Nav.Link as={NavLink} to="/bluetooth-settings" eventKey={eventKey++}>
+						{t('Navigation:bluetooth-settings-label')}
+					</Nav.Link>
 					<NavDropdown title={t('Navigation:config-label')}>
 						<NavDropdown.Item
 							as={NavLink}
