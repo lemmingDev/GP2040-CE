@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 // D-pad mode enum (matches GP2040 config)
 #define HIDBT_DPAD_MODE_DIGITAL      0
@@ -63,6 +64,7 @@ bool hidbt_process(const HIDBTInput* input);
 HIDBTState hidbt_get_state(void);
 bool hidbt_is_connected(void);
 void hidbt_clear_pairing(void);
+bool hidbt_get_pairing_status(char* mac, size_t macSize);
 
 #endif // HIDBT_DRIVER_H
 
