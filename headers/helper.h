@@ -59,7 +59,17 @@
 #endif
 
 static inline bool isValidPin(int32_t pin) {
+#if defined(ESP_PLATFORM)
+    // S3: routable GPIOs are 0-48 except the native-USB pair (19/20), which
+    // must never be GPIO (found on hardware 2026-09-20: pins 38/48 failed
+    // this check against the RP2040-era 30-pin window, so the onboard pixel
+    // never initialized). Non-existent pins (22-32) fail later at the GPIO
+    // driver with a log; strapping pins are the board table's business.
+    return pin >= 0 && pin <= 48 && pin != 19 && pin != 20;
+#else
     int32_t numBank0GPIOS = NUM_BANK0_GPIOS;
-    return pin >= 0 && pin < numBank0GPIOS; }
+    return pin >= 0 && pin < numBank0GPIOS;
+#endif
+}
 
 #endif

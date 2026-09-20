@@ -41,8 +41,6 @@ public:
   void Show();
   void Clear();
   void Off();
-  // DIAG-PIXEL (temporary): no log channel while OTG owns USB.
-  bool IsLive() const { return strip != nullptr; }
   LEDFormat GetFormat();
   void SetFrame(uint32_t newFrame[100]);
 private:
