@@ -23,4 +23,5 @@ export default {
 	'reboot-modal-success': 'Done rebooting, this browser tab can now be closed.',
 	'resetSettings-label': 'Reset Settings',
 	'settings-label': 'Settings',
+	'bluetooth-settings-label': 'Bluetooth Settings',
 };
