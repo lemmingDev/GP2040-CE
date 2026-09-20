@@ -327,14 +327,14 @@ void AnimationStorage::save()
 #if defined(PICO_BOARD)
 	Storage::getInstance().enqueueAnimationOptionsSave(AnimationStation::options);
 #elif defined(ESP_PLATFORM)
-	// S3: persistence is a RAM stub in Phase 1 (ConfigUtils::save no-ops,
-	// performEnqueuedSaves above is a no-op) — nothing to enqueue.
+	// S3 (unreachable while the outer guard stays Pico-only): animation saves
+	// are never enqueued in Phase 1; ConfigUtils persistence is real (Task-3c).
 #endif
 }
 #elif defined(ESP_PLATFORM)
 // S3: same proto-to-struct mapping as Pico (clamps included), read from the
-// RAM config; save() is a no-op while persistence stays stubbed (Task 3c
-// owns the ConfigUtils port). Pico branch above is untouched.
+// persisted config; animation saves are never enqueued in Phase 1 —
+// ConfigUtils persistence is real (Task-3c). Pico branch above is untouched.
 AnimationOptions AnimationStorage::getAnimationOptions()
 {
 	AnimationOptions options = {};
@@ -391,8 +391,8 @@ AnimationOptions AnimationStorage::getAnimationOptions()
 
 void AnimationStorage::save()
 {
-	// S3: persistence is a RAM stub in Phase 1 (ConfigUtils::save no-ops,
-	// performEnqueuedSaves above is a no-op) — nothing to enqueue.
+	// S3: animation saves are never enqueued in Phase 1;
+	// ConfigUtils persistence is real (Task-3c).
 	// (void) marks the AnimationStorage.hpp static used in this TU.
 	(void)AnimationStore;
 }
