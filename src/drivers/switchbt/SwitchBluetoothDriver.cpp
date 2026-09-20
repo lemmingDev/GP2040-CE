@@ -58,7 +58,6 @@ static bool deep_sleep_active = false;
 //   0x1F5000          : BT pairing data -- 1 sector
 //   0x1F6000-0x1F7FFF : BTstack flash bank (link keys) -- 2 sectors
 //   0x1F8000+         : GP2040-CE EEPROM -- 32KB
-#define BT_PAIRING_FLASH_OFFSET SWITCHBT_PAIRING_FLASH_OFFSET
 #define BT_PAIRING_MAGIC BT_PAIRING_MAGIC_SWITCH
 #define BT_FLASH_WRITE_DELAY_MS 500
 
