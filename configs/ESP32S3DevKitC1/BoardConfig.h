@@ -101,10 +101,11 @@
 // Turbo LED cannot stay on 15 (that pin is R3 now); 39 is a free plain GPIO.
 #define TURBO_LED_PIN 39
 
-// Onboard addressable RGB LED: dark on 48 with default RMT blocks
-// (2026-09-20), so trying the v1.1 pin 38. If both stay dark, the pin is
-// exonerated and the RMT/addon flow itself is suspect.
-#define BOARD_LEDS_PIN 38
+// Onboard RGB pixel defaulted OFF (-1 = unassigned) until the pixel story
+// resumes. Proven on hardware: the die is on GPIO 38 (v1.1 board), RMT
+// backend healthy (chase observed). Re-enable by setting this to 38.
+// (BoardLedAddon + NeoPixel both treat -1 as absent; hal rejects >48.)
+#define BOARD_LEDS_PIN -1
 #define LED_BRIGHTNESS_MAXIMUM 100
 #define LED_BRIGHTNESS_STEPS 5
 #define LED_FORMAT LED_FORMAT_GRB
