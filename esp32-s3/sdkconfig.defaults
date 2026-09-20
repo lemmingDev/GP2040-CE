@@ -1,5 +1,10 @@
 CONFIG_IDF_TARGET="esp32s3"
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+# Use the project partitions.csv (gpconfig partition for persistence).
+# Without this, IDF silently builds the default single-app table and the
+# gpconfig partition never exists on flash (found on hardware 2026-09-20:
+# save()/load() no-op silently with the default table).
+CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_BT_ENABLED=y
 CONFIG_BT_NIMBLE_ENABLED=y
