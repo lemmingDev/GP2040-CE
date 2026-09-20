@@ -77,6 +77,11 @@ void DriverManager::setup(InputMode mode) {
         case INPUT_MODE_SWITCH_PRO:
             driver = new SwitchProDriver();
             break;
+        case INPUT_MODE_SWITCH_BT:
+        case INPUT_MODE_HID_BT:
+            // Bluetooth modes do not use a USB output driver.
+            inputMode = mode;
+            return;
         case INPUT_MODE_SINPUT:
             driver = new SInputDriver();
             break;
