@@ -103,9 +103,10 @@ void GP2040Aux::run() {
 		}
 #if defined(ESP_PLATFORM)
 		// FreeRTOS: a never-blocking loop starves IDLE1 and trips the task
-		// watchdog (Pico core1 spins bare-metal, no watchdog). 1 ms keeps
-		// display/LED processing responsive.
-		vTaskDelay(pdMS_TO_TICKS(1));
+		// watchdog (Pico core1 spins bare-metal, no watchdog). Delay exactly
+		// one RTOS tick — NOT pdMS_TO_TICKS(1): at the default 100 Hz tick
+		// rate that truncates to 0 ticks (a mere yield, still starves IDLE).
+		vTaskDelay(1);
 #endif
 	}
 }
