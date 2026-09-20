@@ -1,5 +1,13 @@
 #include "drivers/xboxog/xid/xid.h"
 
+#if defined(ESP_PLATFORM)
+// S3 has no Pico SDK MIN macro (Pico: pico/stdlib.h transitively):
+// provide the TU-local equivalent. Pico path untouched.
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+#endif
+
 bool duke_control_xfer(uint8_t rhport, uint8_t stage, tusb_control_request_t const *request, xid_interface_t *p_xid);
 bool steelbattalion_control_xfer(uint8_t rhport, uint8_t stage, tusb_control_request_t const *request, xid_interface_t *p_xid);
 bool xremote_control_xfer(uint8_t rhport, uint8_t stage, tusb_control_request_t const *request, xid_interface_t *p_xid);
@@ -128,7 +136,12 @@ bool xid_get_report(uint8_t index, void *report, uint16_t len)
     //Most games send to control pipe, but some send to out pipe. THPSX2 atleast
     if (tud_ready() && !usbd_edpt_busy(TUD_OPT_RHPORT, _xid_itf[index].ep_out))
     {
+#if defined(PICO_BOARD)
         usbd_edpt_xfer(TUD_OPT_RHPORT, _xid_itf[index].ep_out, _xid_itf[index].ep_out_buff, len);
+#elif defined(ESP_PLATFORM)
+        // TinyUSB 0.21 (raw tinyusb) takes a trailing is_isr flag; task context here.
+        usbd_edpt_xfer(TUD_OPT_RHPORT, _xid_itf[index].ep_out, _xid_itf[index].ep_out_buff, len, false);
+#endif
     }
     return true;
 }
@@ -153,7 +166,12 @@ bool xid_send_report(uint8_t index, void *report, uint16_t len)
     memcpy(_xid_itf[index].in, report, len);
 
     //Send it to the host
+#if defined(PICO_BOARD)
     return usbd_edpt_xfer(TUD_OPT_RHPORT, _xid_itf[index].ep_in, _xid_itf[index].in, len);
+#elif defined(ESP_PLATFORM)
+    // TinyUSB 0.21 (raw tinyusb) takes a trailing is_isr flag; task context here.
+    return usbd_edpt_xfer(TUD_OPT_RHPORT, _xid_itf[index].ep_in, _xid_itf[index].in, len, false);
+#endif
 }
 
 static bool xid_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t result, uint32_t xferred_bytes)

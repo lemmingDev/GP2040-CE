@@ -7,7 +7,13 @@
 #include "drivers/ps3/PS3Descriptors.h"
 #include "drivers/shared/driverhelper.h"
 #include "storagemanager.h"
+#if defined(PICO_BOARD)
 #include "pico/rand.h"
+#elif defined(ESP_PLATFORM)
+#include "esp_random.h"
+// S3 has no Pico SDK RNG: map the SDK call to the IDF hardware RNG.
+#define get_rand_32() (esp_random())
+#endif
 
 void PS3Driver::initialize() {
     ps3Report = {

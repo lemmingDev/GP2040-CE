@@ -16,6 +16,8 @@
 #include "FlashPROM.h"
 #include "types.h"
 #include "drivers/xbone/XBOneDriver.h"
+#include "drivers/xbone/XBOneAuth.h"
+#include "drivers/ps4/PS4Auth.h"
 
 #include <cstring>
 #include <string>
@@ -114,7 +116,45 @@ bool ConfigUtils::fromLegacyStorage(Config& config) {
 // porting), so this TU provides the one referenced method. Returning false
 // is behaviorally exact: the XBOne case is OUT of the S3 drivermanager, the
 // driver is never instantiated, and authsent defaults to false upstream.
-// DELETE this section when Task 6 lands XBOneDriver.cpp in SRCS.
-bool XBOneDriver::getAuthSent() { return false; }
+// ---- XBOneDriver::getAuthSent link stub: REMOVED (Task 6) ----
+// XBOneDriver.cpp is now in the S3 SRCS and provides the real getAuthSent()
+// (returns false while xboxOneAuthData is null, exactly as before).
+
+// ---- XBOneAuth device-side link stubs (Task 6: XBOne device parity) ----
+// XBOneDriver.cpp (device-side, in S3 SRCS) news XBOneAuth and calls
+// available()/initialize()/process(), whose definitions live in
+// src/drivers/xbone/XBOneAuth.cpp — a USB-HOST-side TU (host/usbh.h,
+// usbhostmanager.h, hid_host) that is parked with USB host/auth (Phase 2)
+// and is NOT in the S3 SRCS. These stubs satisfy the link.
+// Behaviorally exact for every S3-reachable config: Pico's
+// XBOneAuth::available() returns PeripheralManager::isUSBEnabled(0), and USB
+// host never starts on S3 (gp2040aux host-start is PICO_BOARD-gated), so the
+// Pico-equivalent state is also no-auth: initializeAux() leaves
+// xboxOneAuthData null, process() early-returns, getAuthSent() is false, and
+// processAux()'s available() gate keeps the stub process() unreachable.
+// DELETE this section when the real XBOneAuth backend lands (USB-host
+// bring-up, Phase 2).
+bool XBOneAuth::available() { return false; }
+void XBOneAuth::initialize() {}
+void XBOneAuth::process() {}
+
+// ---- PS4Auth device-side link stubs (Task 6: PS4 device parity) ----
+// PS4Driver.cpp (device-side, in S3 SRCS) calls PS4Auth::initialize(),
+// available(), process(), and resetAuth(), whose definitions live in
+// src/drivers/ps4/PS4Auth.cpp — a USB-HOST-side TU (host/usbh.h,
+// usbhostmanager.h, hid_host) that is parked with USB host/auth (Phase 2)
+// and is NOT in the S3 SRCS. These stubs satisfy the link.
+// Behaviorally exact for every S3-reachable config: the S3 ConfigUtils stub
+// above forces ps4AuthType/ps5AuthType = INPUT_MODE_AUTH_TYPE_NONE, for
+// which Pico's PS4Auth::available() also returns false — so initializeAux()
+// never arms ps4AuthData and get_report/processAux take the same no-auth
+// path as Pico-with-NONE. KEYS/USB auth types are unreachable until the
+// config bring-up (Task 3c) + host-auth (Phase 2) tasks land.
+// DELETE this section when the real PS4Auth backend lands (config bring-up
+// MUST revisit: non-NONE auth types would silently no-auth otherwise).
+bool PS4Auth::available() { return false; }
+void PS4Auth::initialize() {}
+void PS4Auth::process() {}
+void PS4Auth::resetAuth() {}
 
 #endif // defined(ESP_PLATFORM)

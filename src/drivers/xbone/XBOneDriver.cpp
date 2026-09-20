@@ -5,6 +5,10 @@
 #include "peripheralmanager.h"
 #include "storagemanager.h"
 
+#if defined(ESP_PLATFORM)
+#include "hal_time.h"
+#endif
+
 #define XBONE_KEEPALIVE_TIMER 15000
 
 #define USB_SETUP_DEVICE_TO_HOST 0x80
@@ -148,7 +152,11 @@ const OS_COMPATIBLE_ID_DESCRIPTOR_SINGLE DevCompatIDsOne = {
 
 static void xbone_reset(uint8_t rhport) {
     (void)rhport;
+#if defined(PICO_BOARD)
     timer_wait_for_announce = to_ms_since_boot(get_absolute_time());
+#elif defined(ESP_PLATFORM)
+    timer_wait_for_announce = hal::millis();
+#endif
     xbox_one_powered_on = false;
     report_led_mode = 0; // 0 = OFF
     while(!report_queue.empty())
@@ -193,7 +201,12 @@ static uint16_t xbone_open(uint8_t rhport, tusb_desc_interface_t const *itf_desc
 
             // Prepare for output endpoint
             if (p_xbone->ep_out) {
+#if defined(PICO_BOARD)
                 if (!usbd_edpt_xfer(rhport, p_xbone->ep_out, p_xbone->epout_buf, sizeof(p_xbone->epout_buf))) {
+#elif defined(ESP_PLATFORM)
+                // TinyUSB 0.21 (raw tinyusb) takes a trailing is_isr flag; task context here.
+                if (!usbd_edpt_xfer(rhport, p_xbone->ep_out, p_xbone->epout_buf, sizeof(p_xbone->epout_buf), false)) {
+#endif
                     TU_LOG_FAILED();
                     TU_BREAKPOINT();
                 }
@@ -298,8 +311,14 @@ bool xbone_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t result,
             }
         }
 
+#if defined(PICO_BOARD)
         TU_ASSERT(usbd_edpt_xfer(rhport, p_xbone->ep_out, p_xbone->epout_buf,
                                  sizeof(p_xbone->epout_buf)));
+#elif defined(ESP_PLATFORM)
+        // TinyUSB 0.21 (raw tinyusb) takes a trailing is_isr flag; task context here.
+        TU_ASSERT(usbd_edpt_xfer(rhport, p_xbone->ep_out, p_xbone->epout_buf,
+                                 sizeof(p_xbone->epout_buf), false));
+#endif
     } else if (ep_addr == p_xbone->ep_in) {
         // Nothing needed
     }
@@ -344,7 +363,11 @@ void XBOneDriver::initialize() {
         .sof = NULL
     };
 
+#if defined(PICO_BOARD)
     keep_alive_timer = to_ms_since_boot(get_absolute_time());
+#elif defined(ESP_PLATFORM)
+    keep_alive_timer = hal::millis();
+#endif
     keep_alive_sequence = 1; // sequence starts at 1?
     virtual_keycode_sequence = 0;
     xb1_guide_pressed = false;
@@ -404,7 +427,11 @@ void XBOneDriver::process(Gamepad * gamepad) {
         return;
     }
 
+#if defined(PICO_BOARD)
     uint32_t now = to_ms_since_boot(get_absolute_time());
+#elif defined(ESP_PLATFORM)
+    uint32_t now = hal::millis();
+#endif
     // Send Keep-Alive every 15 seconds (keep_alive_timer updates if send is successful)
     if ( (now - keep_alive_timer) > XBONE_KEEPALIVE_TIMER) {
         memset(&xboneReport.Header, 0, sizeof(GipHeader_t));
@@ -415,7 +442,11 @@ void XBOneDriver::process(Gamepad * gamepad) {
         xboneReportSize = sizeof(GipHeader_t) + sizeof(keepAlive);
         // If successful, update our keep alive timer/sequence
         if ( send_xbone_usb((uint8_t*)&xboneReport, xboneReportSize) == true ) {
+#if defined(PICO_BOARD)
             keep_alive_timer = to_ms_since_boot(get_absolute_time());
+#elif defined(ESP_PLATFORM)
+            keep_alive_timer = hal::millis();
+#endif
             keep_alive_sequence++; // will rollover
             if ( keep_alive_sequence == 0 )
                 keep_alive_sequence = 1;
@@ -541,7 +572,12 @@ bool XBOneDriver::send_xbone_usb(uint8_t const *report, uint16_t report_size) {
         (p_xbone->ep_in != 0) && (!usbd_edpt_busy(TUD_OPT_RHPORT, p_xbone->ep_in))) // Is the IN endpoint available?
     {
         usbd_edpt_claim(0, p_xbone->ep_in);										// Take control of IN endpoint
+#if defined(PICO_BOARD)
         usbd_edpt_xfer(0, p_xbone->ep_in, (uint8_t *)report, report_size); 	// Send report buffer
+#elif defined(ESP_PLATFORM)
+        // TinyUSB 0.21 (raw tinyusb) takes a trailing is_isr flag; task context here.
+        usbd_edpt_xfer(0, p_xbone->ep_in, (uint8_t *)report, report_size, false); 	// Send report buffer
+#endif
         usbd_edpt_release(0, p_xbone->ep_in);										// Release control of IN endpoint
 
         // we successfully sent the report
@@ -603,11 +639,19 @@ const uint8_t * XBOneDriver::get_descriptor_device_qualifier_cb() {
 
 void XBOneDriver::set_ack_wait() {
     waiting_ack = true;
+#if defined(PICO_BOARD)
     waiting_ack_timeout = to_ms_since_boot(get_absolute_time()); // 2 second time-out
+#elif defined(ESP_PLATFORM)
+    waiting_ack_timeout = hal::millis(); // 2 second time-out
+#endif
 }
 
 void XBOneDriver::update() {
+#if defined(PICO_BOARD)
     uint32_t now = to_ms_since_boot(get_absolute_time());
+#elif defined(ESP_PLATFORM)
+    uint32_t now = hal::millis();
+#endif
 
     // Process our report queue
     process_report_queue(now);
@@ -681,7 +725,11 @@ void XBOneDriver::process_report_queue(uint32_t now) {
             lastReportQueue = now;
         } else {
             // THIS IS REQUIRED FOR TIMING ON PC / CONSOLE
+#if defined(PICO_BOARD)
             sleep_ms(REPORT_QUEUE_INTERVAL); // sleep while we wait, never happens during input only auth
+#elif defined(ESP_PLATFORM)
+            hal::sleepMs(REPORT_QUEUE_INTERVAL); // sleep while we wait, never happens during input only auth
+#endif
         }
     }
 }

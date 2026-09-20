@@ -13,6 +13,15 @@
 
 #include "enums.pb.h"
 
+#if defined(ESP_PLATFORM)
+#include "hal_time.h"
+// S3 has no Pico SDK MIN/MAX macros (Pico: pico/stdlib.h transitively):
+// provide the TU-local equivalent. Pico path untouched.
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
+#endif
+
 // force a report to be sent every X ms
 #define PS4_KEEPALIVE_TIMER 5
 
@@ -139,7 +148,11 @@ void PS4Driver::initialize() {
 
     last_report_counter = 0; // PS4 Reports
     last_axis_counter = 0;
+#if defined(PICO_BOARD)
     last_report_timer = to_ms_since_boot(get_absolute_time());
+#elif defined(ESP_PLATFORM)
+    last_report_timer = hal::millis();
+#endif
     cur_nonce_id = 1; // PS4 Auth
     cur_nonce_chunk = 0;
 }
@@ -272,7 +285,11 @@ void PS4Driver::process(Gamepad * gamepad) {
     if (tud_suspended())
         tud_remote_wakeup();
 
+#if defined(PICO_BOARD)
     uint32_t now = to_ms_since_boot(get_absolute_time());
+#elif defined(ESP_PLATFORM)
+    uint32_t now = hal::millis();
+#endif
     void * report = &ps4Report;
     uint16_t report_size = sizeof(ps4Report);
     if (memcmp(last_report, report, report_size) != 0)

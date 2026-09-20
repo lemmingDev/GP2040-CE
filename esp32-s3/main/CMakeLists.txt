@@ -32,6 +32,32 @@ idf_component_register(
         "../../src/drivers/hid/HIDDriver.cpp"
         "../../src/drivers/xinput/XInputDriver.cpp"
         "../../src/drivers/shared/xgip_protocol.cpp"
+        "../../src/drivers/switch/SwitchDriver.cpp"
+        "../../src/drivers/ps3/PS3Driver.cpp"
+        "../../src/drivers/keyboard/KeyboardDriver.cpp"
+        # PS4 device driver only (PS4Driver.cpp). PS4Auth.cpp and
+        # PS4AuthUSBListener.cpp are USB-HOST-side (host/usbh.h,
+        # usbhostmanager.h) — parked with USB host/auth (Phase 2).
+        "../../src/drivers/ps4/PS4Driver.cpp"
+        # XBOne device driver only (XBOneDriver.cpp). XBOneAuth.cpp and
+        # XBOneAuthUSBListener.cpp are USB-HOST-side (host/usbh.h,
+        # usbhostmanager.h) — parked with USB host/auth (Phase 2).
+        "../../src/drivers/xbone/XBOneDriver.cpp"
+        # Mini-console device drivers (all Pico-dep-free: driverhelper only).
+        "../../src/drivers/mdmini/MDMiniDriver.cpp"
+        "../../src/drivers/neogeo/NeoGeoDriver.cpp"
+        "../../src/drivers/pcengine/PCEngineDriver.cpp"
+        "../../src/drivers/egret/EgretDriver.cpp"
+        "../../src/drivers/astro/AstroDriver.cpp"
+        "../../src/drivers/psclassic/PSClassicDriver.cpp"
+        # XboxOriginal attempt (Task 6 bail-out rule: keep only if it compiles
+        # without xid third-party quirks — else revert + document exclusion).
+        "../../src/drivers/xboxog/XboxOriginalDriver.cpp"
+        "../../src/drivers/xboxog/xid/xid.c"
+        "../../src/drivers/xboxog/xid/xid_driver.c"
+        "../../src/drivers/xboxog/xid/xid_gamepad.c"
+        "../../src/drivers/xboxog/xid/xid_remote.c"
+        "../../src/drivers/xboxog/xid/xid_steelbattalion.c"
         "../../src/usbdriver.cpp"
         "../../src/storagemanager.cpp"
         "../../src/system.cpp"
