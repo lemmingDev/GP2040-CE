@@ -8,8 +8,10 @@
 
 #include "BoardConfig.h"
 #include <stdint.h>
-#if defined(PICO_BOARD)
-// S3: AnimationStation/NeoPico stack is Task 5; PlayerLEDs.h below is ported.
+#if defined(PICO_BOARD) || defined(ESP_PLATFORM)
+// S3: AnimationStation/NeoPico types (RGB, LEDFormat) come from the
+// Task-5 RMT backend (hal_ws2812_s3.h, identical enum values); the header
+// is S3-safe (Pico SDK includes are shim-backed, proven by neopicoleds.cpp).
 #include "AnimationStation.hpp"
 #endif
 #include "PlayerLEDs.h"

@@ -46,7 +46,12 @@
 #include <cstring>
 #include <memory>
 
+#if defined(ESP_PLATFORM)
+#include "freertos/task.h"
+#include "esp_partition.h"
+#else
 #include "pico/platform.h"
+#endif
 
 // -----------------------------------------------------
 // Default values
@@ -405,7 +410,14 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
 
     // displayOptions
     INIT_UNSET_PROPERTY(config.displayOptions, enabled, !!HAS_I2C_DISPLAY);
+#if defined(ESP_PLATFORM)
+    // S3 has no i2c0/i2c1/spi0 instances: single I2C/SPI path, block index 0
+    // (the value the Pico comparison below also yields: no S3 board header
+    // overrides any *_BLOCK macro, so all resolve to the i2c0/spi0 default).
+    INIT_UNSET_PROPERTY(config.displayOptions, deprecatedI2cBlock, 0);
+#else
     INIT_UNSET_PROPERTY(config.displayOptions, deprecatedI2cBlock, (DISPLAY_I2C_BLOCK == i2c0) ? 0 : 1);
+#endif
     INIT_UNSET_PROPERTY(config.displayOptions, deprecatedI2cSDAPin, -1);
     INIT_UNSET_PROPERTY(config.displayOptions, deprecatedI2cSCLPin, -1);
     INIT_UNSET_PROPERTY(config.displayOptions, deprecatedI2cAddress, DISPLAY_I2C_ADDR);
@@ -628,7 +640,11 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
 
     // addonOptions.analogADS1219Options
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1219Options, enabled, !!I2C_ANALOG1219_ENABLED);
+#if defined(ESP_PLATFORM)
+    INIT_UNSET_PROPERTY(config.addonOptions.analogADS1219Options, deprecatedI2cBlock, 0)
+#else
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1219Options, deprecatedI2cBlock, (I2C_ANALOG1219_BLOCK == i2c0) ? 0 : 1)
+#endif
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1219Options, deprecatedI2cSDAPin, -1);
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1219Options, deprecatedI2cSCLPin, -1);
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1219Options, deprecatedI2cAddress, I2C_ANALOG1219_ADDRESS);
@@ -636,7 +652,11 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
 
     // addonOptions.analogADS1256Options
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1256Options, enabled, !!SPI_ANALOG1256_ENABLED);
+#if defined(ESP_PLATFORM)
+    INIT_UNSET_PROPERTY(config.addonOptions.analogADS1256Options, spiBlock, 0)
+#else
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1256Options, spiBlock, (SPI_ANALOG1256_BLOCK == spi0) ? 0 : 1)
+#endif
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1256Options, csPin, SPI_ANALOG1256_CS_PIN);
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1256Options, drdyPin, SPI_ANALOG1256_DRDY_PIN);
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1256Options, avdd, ADS1256_MAX_3V);
@@ -704,7 +724,11 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
 
     // addonOptions.wiiOptions
     INIT_UNSET_PROPERTY(config.addonOptions.wiiOptions, enabled, WII_EXTENSION_ENABLED);
+#if defined(ESP_PLATFORM)
+    INIT_UNSET_PROPERTY(config.addonOptions.wiiOptions, deprecatedI2cBlock, 0);
+#else
     INIT_UNSET_PROPERTY(config.addonOptions.wiiOptions, deprecatedI2cBlock, (WII_EXTENSION_I2C_BLOCK == i2c0) ? 0 : 1);
+#endif
     INIT_UNSET_PROPERTY(config.addonOptions.wiiOptions, deprecatedI2cSDAPin, -1);
     INIT_UNSET_PROPERTY(config.addonOptions.wiiOptions, deprecatedI2cSCLPin, -1);
     INIT_UNSET_PROPERTY(config.addonOptions.wiiOptions, deprecatedI2cSpeed, WII_EXTENSION_I2C_SPEED);
@@ -717,7 +741,11 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
 
     // addonOptions.pcf8575Options
     INIT_UNSET_PROPERTY(config.addonOptions.pcf8575Options, enabled, I2C_PCF8575_ENABLED);
+#if defined(ESP_PLATFORM)
+    INIT_UNSET_PROPERTY(config.addonOptions.pcf8575Options, deprecatedI2cBlock, 0);
+#else
     INIT_UNSET_PROPERTY(config.addonOptions.pcf8575Options, deprecatedI2cBlock, (I2C_PCF8575_BLOCK == i2c0) ? 0 : 1);
+#endif
 
     GpioAction pcf8575Actions[PCF8575_PIN_COUNT] = {
         PCF8575_PIN00_ACTION,PCF8575_PIN01_ACTION,PCF8575_PIN02_ACTION,PCF8575_PIN03_ACTION,
@@ -1559,7 +1587,24 @@ static bool loadConfigInner(Config& config)
 {
     config = Config Config_init_zero;
 
+#if defined(ESP_PLATFORM)
+    // S3: no XIP-mapped alias for the gpconfig partition — stage the full
+    // image on the heap (main-task stack is 8 KiB) and run the IDENTICAL
+    // magic/size/CRC/decode checks below on the staged bytes.
+    std::unique_ptr<uint8_t[]> stagedImage(new (std::nothrow) uint8_t[EEPROM_SIZE_BYTES]);
+    if (!stagedImage)
+    {
+        return false;
+    }
+    const esp_partition_t* configPart = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, (esp_partition_subtype_t)0x06, "gpconfig");
+    if (configPart == nullptr || esp_partition_read(configPart, 0, stagedImage.get(), EEPROM_SIZE_BYTES) != ESP_OK)
+    {
+        return false;
+    }
+    const uint8_t* flashEnd = stagedImage.get() + EEPROM_SIZE_BYTES;
+#else
     const uint8_t* flashEnd = reinterpret_cast<const uint8_t*>(EEPROM_ADDRESS_START) + EEPROM_SIZE_BYTES;
+#endif
     const ConfigFooter& footer = *reinterpret_cast<const ConfigFooter*>(flashEnd - sizeof(ConfigFooter));
 
     // Check for presence of magic value
@@ -1696,8 +1741,13 @@ static void setHasFlags(const pb_msgdesc_t* fields, void* s)
 bool ConfigUtils::save(Config& config)
 {
     // We only allow saves from core0. Saves from core1 have to be marshalled to core0.
+#if defined(ESP_PLATFORM)
+    assert(xPortGetCoreID() == 0);
+    if (xPortGetCoreID() != 0)
+#else
     assert(get_core_num() == 0);
     if (get_core_num() != 0)
+#endif
     {
         return false;
     }

@@ -63,6 +63,14 @@ typedef enum {
 #define NUM_SPIS 2
 #endif
 
+// S3 compat (Task 3c): lib/ADS1256/ADS1256.h, parsed on S3 for the
+// config_utils.cpp analog defaults, declares a spi_order_t member. Same
+// values as the Pico SDK (hardware/spi.h).
+typedef enum {
+    SPI_MSB_FIRST = 0,
+    SPI_LSB_FIRST = 1,
+} spi_order_t;
+
 class PeripheralSPI {
 public:
     PeripheralSPI() {}

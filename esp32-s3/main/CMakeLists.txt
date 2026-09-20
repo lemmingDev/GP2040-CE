@@ -1,8 +1,13 @@
-# ESP32-S3 app component (Phase 1 Task 5 — NeoPixel RMT + display I2C backend).
+# ESP32-S3 app component (Phase 1 Task 3c — Config subsystem bring-up).
 #
 # SCOPE: core USB-device loop (HID + XInput) + storage/system managers +
 # AddonManager/EventManager/CRC32 (link-required, no HW deps) + S3 HAL +
-# Task-2 ConfigUtils stub (fresh defaults; real nanopb port is a later task)
+# Task-3c real ConfigUtils (src/config_utils.cpp + src/config_legacy.cpp:
+# guarded XIP-deref/core-id ports, ArduinoJson vendored under
+# esp32-s3/components, version.h generated once into esp32-s3/generated;
+# the Task-2 save()->true shim is dead and removed from s3_stubs_task2.cpp,
+# which now holds only the USB-host-side XBOneAuth/PS4Auth link stubs that
+# force auth NONE until Phase 2)
 # + Task-3 FlashPROM_esp32 backend (gpconfig partition, layout preserved)
 # + Task-4 gp2040aux (FreeRTOS core1 task) with the LED/audio addons
 #   (board_led/buzzerspeaker/drv8833_rumble/reactiveleds/playerleds) on the
@@ -13,13 +18,13 @@
 #   excluded — GPGFX only instantiates TinySSD1306) + PeripheralManager
 #   (initI2C for the OLED probe; SPI/USB are header stubs, Phase 2)
 #   + layoutmanager (button-layout/getLayoutA/B for the display screens).
-#   XBOneDriver.cpp is deliberately NOT in SRCS (Task 6 owns that driver —
-#   it needs to_ms_since_boot/usbd_edpt_xfer porting): ButtonLayoutScreen's
-#   getAuthSent() cast is link-satisfied by the s3_stubs_task2.cpp stub.
-# Deliberately OUT (Phase 2/3, Task 6+):
+#   XBOneDriver.cpp IS in SRCS since Task 6 (device parity); only the
+#   USB-HOST-side XBOneAuth.cpp/PS4Auth.cpp stay OUT (Phase 2), link-covered
+#   by the s3_stubs_task2.cpp available()->false stubs.
+# Deliberately OUT (Phase 2/3):
 #   - host (src/usbhostmanager.cpp, xinput_host.cpp, XInputAuth*),
-#     webconfig (src/configmanager.cpp, src/configs/webconfig.cpp,
-#     src/config_utils.cpp), bluetooth (src/drivers/bluetooth/*),
+#     webconfig (src/configmanager.cpp, src/configs/webconfig.cpp),
+#     bluetooth (src/drivers/bluetooth/*),
 #     SPI/USB peripheral backends (headers are S3 stubs for link shape).
 
 idf_component_register(
@@ -61,6 +66,8 @@ idf_component_register(
         "../../src/usbdriver.cpp"
         "../../src/storagemanager.cpp"
         "../../src/system.cpp"
+        "../../src/config_utils.cpp"
+        "../../src/config_legacy.cpp"
         "../../src/gp2040aux.cpp"
         "../../src/addons/board_led.cpp"
         "../../src/addons/buzzerspeaker.cpp"
@@ -110,16 +117,23 @@ idf_component_register(
         "../../hal_esp32s3/hal_pwm_s3.cpp"
         "../../esp32-s3/generated/config.pb.c"
         "../../esp32-s3/generated/enums.pb.c"
+        "../../lib/nanopb/pb_encode.c"
+        "../../lib/nanopb/pb_decode.c"
+        "../../lib/nanopb/pb_common.c"
         "../../lib/FlashPROM/src/FlashPROM_esp32.cpp"
         "s3_stubs_task2.cpp"
     INCLUDE_DIRS
         "../../headers"
         "../../headers/addons"
+        "../../headers/configs"
         "../../headers/gamepad"
         "../../headers/events"
         "../../headers/interfaces"
         "../../headers/interfaces/i2c"
+        "../../headers/interfaces/i2c/ads1219"
+        "../../headers/interfaces/i2c/pcf8575"
         "../../headers/interfaces/i2c/ssd1306"
+        "../../headers/interfaces/i2c/wiiextension"
         "../../headers/display"
         "../../headers/display/fonts"
         "../../headers/display/ui"
@@ -137,12 +151,17 @@ idf_component_register(
         "../../lib/AnimationStation/src"
         "../../lib/OneBitDisplay"
         "../../lib/PicoPeripherals"
-    REQUIRES tinyusb esp_timer esp_adc esp_driver_ledc esp_driver_gpio esp_partition esp_driver_i2c led_strip mbedtls)
-# R5c (Task 5): mbedtls is include-required, not linked, on S3 — the display
+        "../../lib/ADS1219"
+        "../../lib/ADS1256"
+        "../../lib/WiiExtension"
+        "../../lib/SNESpad"
+    REQUIRES tinyusb esp_timer esp_adc esp_driver_ledc esp_driver_gpio esp_partition esp_driver_i2c led_strip mbedtls arduinojson)
+# R5c (Task 5) + Task 3c: mbedtls is include-required on S3 — the display
 # stack (src/display/ui/screens/ButtonLayoutScreen.cpp:4, UNTOUCHED) includes
-# headers/drivers/ps4/PS4Driver.h:13 -> PS4Auth.h:5 (#include "mbedtls/rsa.h").
-# No S3 TU links mbedtls symbols (PS4Driver.cpp/PS4Auth.cpp are not in SRCS);
-# Task 6 needs this REQUIRES for real when the PS4 driver lands.
+# headers/drivers/ps4/PS4Driver.h:13 -> PS4Auth.h:5 (#include "mbedtls/rsa.h"),
+# and since Task 3c src/config_legacy.cpp:10 really includes "mbedtls/rsa.h"
+# (legacy PS4 key structs). PS4Auth.cpp itself stays OUT (USB-host, Phase 2),
+# so no S3 TU links mbedtls crypto symbols beyond what config_legacy needs.
 
 # Display-stack debt (Task 5): the UNTOUCHED display headers delete through
 # base pointers without virtual dtors (GPScreen.h:24 clearElements,

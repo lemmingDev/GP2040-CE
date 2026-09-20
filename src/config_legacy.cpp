@@ -1,3 +1,8 @@
+#if defined(ESP_PLATFORM)
+// S3: NUM_BANK0_GPIOS (used by helper.h below) comes from types.h on S3
+// (Pico gets it from the board header); must precede helper.h.
+#include "types.h"
+#endif
 #include "config_utils.h"
 
 #include "FlashPROM.h"
@@ -8,6 +13,29 @@
 #include "GamepadState.h"
 
 #include "mbedtls/rsa.h"
+
+#if defined(ESP_PLATFORM)
+#include "esp_partition.h"
+
+// S3: no XIP-mapped alias for the config flash — stage each legacy slice
+// through a partition read into a same-layout local copy (identical bytes,
+// identical checksum behavior below). Unreadable ranges keep the
+// erased-flash (0xFF) pattern so the checksum gate fails closed.
+template <typename T>
+static void readLegacyBlock(size_t offset, T* out)
+{
+    memset(out, 0xFF, sizeof(T));
+    const esp_partition_t* part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, (esp_partition_subtype_t)0x06, "gpconfig");
+    if (part == nullptr || offset + sizeof(T) > part->size)
+    {
+        return;
+    }
+    if (esp_partition_read(part, offset, out, sizeof(T)) != ESP_OK)
+    {
+        memset(out, 0xFF, sizeof(T));
+    }
+}
+#endif
 
 const size_t GAMEPAD_STORAGE_INDEX      =    0; // 1024 bytes for gamepad options
 const size_t BOARD_STORAGE_INDEX        = 1024; //  512 bytes for hardware options
@@ -672,7 +700,13 @@ bool ConfigUtils::fromLegacyStorage(Config& config)
 
     const auto bytePinToIntPin = [](uint8_t pin) -> int32_t { return pin == 0xFF ? -1 : pin; };
 
+#if defined(ESP_PLATFORM)
+    ConfigLegacy::GamepadOptions stagedGamepadOptions;
+    readLegacyBlock(GAMEPAD_STORAGE_INDEX, &stagedGamepadOptions);
+    const ConfigLegacy::GamepadOptions& legacyGamepadOptions = stagedGamepadOptions;
+#else
     const ConfigLegacy::GamepadOptions& legacyGamepadOptions = *reinterpret_cast<ConfigLegacy::GamepadOptions*>(EEPROM_ADDRESS_START + GAMEPAD_STORAGE_INDEX);
+#endif
     if (legacyGamepadOptions.checksum == computeChecksum(reinterpret_cast<const char*>(&legacyGamepadOptions), sizeof(ConfigLegacy::GamepadOptions), offsetof(ConfigLegacy::GamepadOptions, checksum)))
     {
         legacyConfigFound = true;
@@ -774,7 +808,13 @@ bool ConfigUtils::fromLegacyStorage(Config& config)
         }
     }
 
+#if defined(ESP_PLATFORM)
+    ConfigLegacy::BoardOptions stagedBoardOptions;
+    readLegacyBlock(BOARD_STORAGE_INDEX, &stagedBoardOptions);
+    const ConfigLegacy::BoardOptions& legacyBoardOptions = stagedBoardOptions;
+#else
     const ConfigLegacy::BoardOptions& legacyBoardOptions = *reinterpret_cast<ConfigLegacy::BoardOptions*>(EEPROM_ADDRESS_START + BOARD_STORAGE_INDEX);
+#endif
     if (legacyBoardOptions.checksum == computeChecksum(reinterpret_cast<const char*>(&legacyBoardOptions), sizeof(ConfigLegacy::BoardOptions), offsetof(ConfigLegacy::BoardOptions, checksum)))
     {
         legacyConfigFound = true;
@@ -853,7 +893,13 @@ bool ConfigUtils::fromLegacyStorage(Config& config)
         SET_PROPERTY(displayOptions, displaySaverTimeout, legacyBoardOptions.displaySaverTimeout);
     }
 
+#if defined(ESP_PLATFORM)
+    ConfigLegacy::LEDOptions stagedLEDOptions;
+    readLegacyBlock(LED_STORAGE_INDEX, &stagedLEDOptions);
+    const ConfigLegacy::LEDOptions& legacyLEDOptions = stagedLEDOptions;
+#else
     const ConfigLegacy::LEDOptions& legacyLEDOptions = *reinterpret_cast<ConfigLegacy::LEDOptions*>(EEPROM_ADDRESS_START + LED_STORAGE_INDEX);
+#endif
     if (legacyLEDOptions.checksum == computeChecksum(reinterpret_cast<const char*>(&legacyLEDOptions), sizeof(ConfigLegacy::LEDOptions), offsetof(ConfigLegacy::LEDOptions, checksum)) &&
         legacyLEDOptions.useUserDefinedLEDs)
     {
@@ -902,7 +948,13 @@ bool ConfigUtils::fromLegacyStorage(Config& config)
         SET_PROPERTY(ledOptions, pledColor, legacyLEDOptions.pledColor.value(LED_FORMAT_RGB));
     }
 
+#if defined(ESP_PLATFORM)
+    ConfigLegacy::AnimationOptions stagedAnimationOptions;
+    readLegacyBlock(ANIMATION_STORAGE_INDEX, &stagedAnimationOptions);
+    const ConfigLegacy::AnimationOptions& legacyAnimationOptions = stagedAnimationOptions;
+#else
     const ConfigLegacy::AnimationOptions& legacyAnimationOptions = *reinterpret_cast<ConfigLegacy::AnimationOptions*>(EEPROM_ADDRESS_START + ANIMATION_STORAGE_INDEX);
+#endif
     if (legacyAnimationOptions.checksum == computeChecksum(reinterpret_cast<const char*>(&legacyAnimationOptions), sizeof(ConfigLegacy::AnimationOptions), offsetof(ConfigLegacy::AnimationOptions, checksum)))
     {
         legacyConfigFound = true;
@@ -955,7 +1007,13 @@ bool ConfigUtils::fromLegacyStorage(Config& config)
         SET_PROPERTY(animationOptions, customThemeA2Pressed, legacyAnimationOptions.customThemeA2Pressed);
     }
 
+#if defined(ESP_PLATFORM)
+    ConfigLegacy::AddonOptions stagedAddonOptions;
+    readLegacyBlock(ADDON_STORAGE_INDEX, &stagedAddonOptions);
+    const ConfigLegacy::AddonOptions& legacyAddonOptions = stagedAddonOptions;
+#else
     const ConfigLegacy::AddonOptions& legacyAddonOptions = *reinterpret_cast<ConfigLegacy::AddonOptions*>(EEPROM_ADDRESS_START + ADDON_STORAGE_INDEX);
+#endif
     if (legacyAddonOptions.checksum == computeChecksum(reinterpret_cast<const char*>(&legacyAddonOptions), sizeof(ConfigLegacy::AddonOptions), offsetof(ConfigLegacy::AddonOptions, checksum)))
     {
         legacyConfigFound = true;
@@ -1087,7 +1145,13 @@ bool ConfigUtils::fromLegacyStorage(Config& config)
         SET_PROPERTY(ps4Options, enabled, legacyAddonOptions.PS4ModeAddonEnabled);
     }
 
+#if defined(ESP_PLATFORM)
+    ConfigLegacy::PS4Options stagedPS4Options;
+    readLegacyBlock(PS4_STORAGE_INDEX, &stagedPS4Options);
+    const ConfigLegacy::PS4Options& legacyPS4Options = stagedPS4Options;
+#else
     const ConfigLegacy::PS4Options& legacyPS4Options = *reinterpret_cast<ConfigLegacy::PS4Options*>(EEPROM_ADDRESS_START + PS4_STORAGE_INDEX);
+#endif
     if (legacyPS4Options.checksum == NOCHECKSUM_MAGIC)
     {
         legacyConfigFound = true;
@@ -1109,7 +1173,13 @@ bool ConfigUtils::fromLegacyStorage(Config& config)
         SET_PROPERTY_BYTES(ps4Options, rsaRN, legacyPS4Options.rsa_rn);
     }
 
+#if defined(ESP_PLATFORM)
+    ConfigLegacy::SplashImage stagedSplashImage;
+    readLegacyBlock(SPLASH_IMAGE_STORAGE_INDEX, &stagedSplashImage);
+    const ConfigLegacy::SplashImage& legacySplashImage = stagedSplashImage;
+#else
     const ConfigLegacy::SplashImage& legacySplashImage = *reinterpret_cast<ConfigLegacy::SplashImage*>(EEPROM_ADDRESS_START + SPLASH_IMAGE_STORAGE_INDEX);
+#endif
     if (legacySplashImage.checksum == computeChecksum(reinterpret_cast<const char*>(&legacySplashImage), sizeof(ConfigLegacy::SplashImage), offsetof(ConfigLegacy::SplashImage, checksum)))
     {
         legacyConfigFound = true;
