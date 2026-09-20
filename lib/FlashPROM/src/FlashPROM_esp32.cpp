@@ -39,7 +39,11 @@ void FlashPROM::commit() {
         args.name = "gpconfig_commit";
         ESP_ERROR_CHECK(esp_timer_create(&args, &t));
     }
-    ESP_ERROR_CHECK(esp_timer_stop(t));
+    // esp_timer_stop on a never-started timer returns ESP_ERR_INVALID_STATE
+    // (first-ever commit); only stop a pending coalescing window.
+    if (esp_timer_is_active(t)) {
+        ESP_ERROR_CHECK(esp_timer_stop(t));
+    }
     ESP_ERROR_CHECK(esp_timer_start_once(t, (uint64_t)EEPROM_WRITE_WAIT * 1000ULL));
 }
 
