@@ -8,7 +8,12 @@
 #include <vector>
 #include "hardware/clocks.h"
 
+#if defined(PICO_BOARD)
 #include "NeoPico.hpp"
+#elif defined(ESP_PLATFORM)
+// S3 RMT backend, identical method set (hal_esp32s3/hal_ws2812_s3.h).
+#include "hal_ws2812_s3.h"
+#endif
 #include "Animation.hpp"
 #include "Effects/Chase.hpp"
 #include "Effects/CustomTheme.hpp"

@@ -1,6 +1,8 @@
 #include <cstdio>
 #include "peripheral_i2c.h"
 
+#if defined(PICO_BOARD)
+
 PeripheralI2C::PeripheralI2C() {
 #ifdef PICO_DEFAULT_I2C_INSTANCE
 
@@ -117,3 +119,5 @@ std::map<uint8_t,bool> PeripheralI2C::scan() {
 
     return result;
 }
+
+#endif // defined(PICO_BOARD)

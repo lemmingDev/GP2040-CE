@@ -2,11 +2,8 @@
 #define _PERIPHERAL_SPI_H_
 
 #include <map>
-#include <hardware/dma.h>
-#include <hardware/gpio.h>
-#include <hardware/spi.h>
-#include <hardware/sync.h>
-#include <hardware/platform_defs.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define DMA_BUFFER_SIZE 2048 // Each direction gets a 2k buffer
 
@@ -56,6 +53,64 @@ typedef enum {
 #ifndef SPI1_PIN_TX
 #define SPI1_PIN_TX -1
 #endif
+
+#if defined(ESP_PLATFORM)
+// S3 SPI stub (Task 5): no SPI peripheral backend in Phase 1 (the S3 path
+// uses I2C displays only; USB host is Phase 2). Same class name and the
+// method set peripheralmanager.cpp uses; everything no-ops so the manager
+// compiles untouched. Pico types (spi_order_t) become plain ints.
+#ifndef NUM_SPIS
+#define NUM_SPIS 2
+#endif
+
+class PeripheralSPI {
+public:
+    PeripheralSPI() {}
+
+    ~PeripheralSPI() {}
+
+    bool configured = false;
+    bool initialized = true;
+
+    void* getController() { return nullptr; }
+
+    // Set the configuration for this SPI peripheral instance
+    void setConfig(uint8_t block, uint8_t tx, uint8_t rx, uint8_t sck, uint8_t cs) {}
+
+    // Disable SPI instance and all associated system resources (such as DMA channels) associated with that instance
+    void deactivate() {}
+
+    // Conditionally transfers and/or receives data of the provided length
+    void transfer(const uint8_t *tx, uint8_t *rx, size_t count) {}
+
+    // Reads a byte of data from the SPI bus while sending the transfer value provided
+    uint8_t transfer(uint8_t tx) { (void)tx; return 0; }
+
+    // Reads two bytes of data from the SPI bus while sending the transfer value provided
+    uint16_t transfer16(uint16_t tx) { (void)tx; return 0; }
+
+    // Activate CS pin for this SPI peripheral instance
+    void select(int8_t cs = -1) { (void)cs; }
+
+    // Deactivate currently active CS pin for this SPI peripheral instance
+    void deselect() {}
+
+    // Begin a SPI transaction
+    void beginTransaction(uint32_t speedMHz, int bitOrder, SPIMode spiMode) {
+        (void)speedMHz; (void)bitOrder; (void)spiMode;
+    }
+
+    // End a SPI transaction
+    void endTransaction() {}
+};
+
+#else // Pico SDK original
+
+#include <hardware/dma.h>
+#include <hardware/gpio.h>
+#include <hardware/spi.h>
+#include <hardware/sync.h>
+#include <hardware/platform_defs.h>
 
 class PeripheralSPI {
 public:
@@ -158,5 +213,7 @@ private:
         return SPI_CPHA_0;
     }
 };
+
+#endif // Pico SDK original vs S3 stub
 
 #endif

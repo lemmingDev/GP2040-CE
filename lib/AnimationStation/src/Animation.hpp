@@ -7,7 +7,12 @@
 #include <stdlib.h>
 #include "pico/stdlib.h"
 #include <vector>
+#if defined(PICO_BOARD)
 #include "NeoPico.hpp"
+#elif defined(ESP_PLATFORM)
+// S3 RMT backend, identical method set (hal_esp32s3/hal_ws2812_s3.h).
+#include "hal_ws2812_s3.h"
+#endif
 #include <map>
 
 struct RGB {

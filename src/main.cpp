@@ -14,7 +14,6 @@
 // GP2040 includes
 #include "gp2040.h"
 #include "gp2040aux.h"
-#include "hal_time.h"
 
 #include <cstdlib>
 

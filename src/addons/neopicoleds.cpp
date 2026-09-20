@@ -5,7 +5,12 @@
 
 #include "AnimationStation.hpp"
 #include "AnimationStorage.hpp"
+#if defined(PICO_BOARD)
 #include "NeoPico.hpp"
+#elif defined(ESP_PLATFORM)
+// S3 RMT backend, identical method set (hal_esp32s3/hal_ws2812_s3.h).
+#include "hal_ws2812_s3.h"
+#endif
 #include "Pixel.hpp"
 #include "PlayerLEDs.h"
 #include "gp2040.h"

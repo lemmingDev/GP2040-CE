@@ -121,8 +121,15 @@
 #define USB_PERIPHERAL_ENABLED 0
 
 #define HAS_I2C_DISPLAY 1
+// peripheral_i2c.h (via GPGFX_types.h) may already carry brackets-defaults
+// (0/-1/-1) when gamepad.h pulls the display chain before this file; undef
+// first so the board values win without -Wmacro-redefined noise. S3 board
+// file only — no Pico TU includes it.
+#undef I2C0_ENABLED
 #define I2C0_ENABLED 1
+#undef I2C0_PIN_SDA
 #define I2C0_PIN_SDA 41
+#undef I2C0_PIN_SCL
 #define I2C0_PIN_SCL 42
 #define BUTTON_LAYOUT BUTTON_LAYOUT_STICKLESS
 #define BUTTON_LAYOUT_RIGHT BUTTON_LAYOUT_STICKLESSB

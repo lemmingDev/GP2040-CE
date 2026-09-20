@@ -10,16 +10,21 @@
 
 #include "addons/board_led.h"  // Add-Ons
 #include "addons/buzzerspeaker.h"
-#if defined(PICO_BOARD)
-// S3: Display + NeoPixel loads join in Task 5 (RMT/I2C backends).
+#if defined(PICO_BOARD) || defined(ESP_PLATFORM)
+// S3: Display + NeoPixel join in Task 5 (I2C/RMT backends).
 #include "addons/display.h"
 #endif
 #include "addons/pleds.h"
-#if defined(PICO_BOARD)
+#if defined(PICO_BOARD) || defined(ESP_PLATFORM)
 #include "addons/neopicoleds.h"
 #endif
 #include "addons/reactiveleds.h"
 #include "addons/drv8833_rumble.h"
+#if defined(ESP_PLATFORM)
+// S3: peripheralmanager.cpp is an S3 source (I2C backend); the Pico build
+// reaches it transitively.
+#include "peripheralmanager.h"
+#endif
 
 #include <iterator>
 
@@ -38,10 +43,11 @@ void GP2040Aux::setup() {
 	PeripheralManager::getInstance().initI2C();
 	PeripheralManager::getInstance().initSPI();
 	PeripheralManager::getInstance().initUSB();
-#else
-	// S3: I2C/SPI peripheral backends land in Task 5 and USB host is Phase 2,
-	// so no peripheral init runs on the aux core yet. (peripheralmanager.cpp
-	// is not in the S3 SRCS, which is also why these calls are guarded out.)
+#elif defined(ESP_PLATFORM)
+	// S3: I2C only (Task 5 display backend). SPI has no S3 backend in
+	// Phase 1 and USB host is Phase 2, so those stay Pico-only.
+	// (peripheralmanager.cpp is in the S3 SRCS for exactly this call.)
+	PeripheralManager::getInstance().initI2C();
 #endif
 
 	// Initialize our input driver's auxilliary functions
@@ -61,7 +67,7 @@ void GP2040Aux::setup() {
 	}
 
 	// Setup Add-ons
-#if defined(PICO_BOARD)
+#if defined(PICO_BOARD) || defined(ESP_PLATFORM)
 	addons.LoadAddon(new DisplayAddon(), CORE1_LOOP);
 	addons.LoadAddon(new NeoPicoLEDAddon(), CORE1_LOOP);
 #endif

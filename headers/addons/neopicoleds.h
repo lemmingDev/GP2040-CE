@@ -20,7 +20,12 @@
 // MPGS
 #include "BoardConfig.h"
 #include "AnimationStation.hpp"
+#if defined(PICO_BOARD)
 #include "NeoPico.hpp"
+#elif defined(ESP_PLATFORM)
+// S3 RMT backend, identical method set (hal_esp32s3/hal_ws2812_s3.h).
+#include "hal_ws2812_s3.h"
+#endif
 
 #ifndef BOARD_LEDS_PIN
 #define BOARD_LEDS_PIN -1

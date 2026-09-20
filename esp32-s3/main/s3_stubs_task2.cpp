@@ -15,6 +15,7 @@
 #include "BoardConfig.h"
 #include "FlashPROM.h"
 #include "types.h"
+#include "drivers/xbone/XBOneDriver.h"
 
 #include <cstring>
 #include <string>
@@ -105,5 +106,15 @@ bool ConfigUtils::fromLegacyStorage(Config& config) {
     (void)config;
     return false;
 }
+
+// ---- XBOneDriver::getAuthSent link stub (Task 5: display bring-up) ----
+// ButtonLayoutScreen::generateHeader() casts getDriver() to XBOneDriver* and
+// calls getAuthSent() for the status header. XBOneDriver.cpp is NOT in the
+// S3 SRCS (Task 6 owns that driver — it needs to_ms_since_boot/usbd_edpt_xfer
+// porting), so this TU provides the one referenced method. Returning false
+// is behaviorally exact: the XBOne case is OUT of the S3 drivermanager, the
+// driver is never instantiated, and authsent defaults to false upstream.
+// DELETE this section when Task 6 lands XBOneDriver.cpp in SRCS.
+bool XBOneDriver::getAuthSent() { return false; }
 
 #endif // defined(ESP_PLATFORM)

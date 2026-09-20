@@ -1,9 +1,7 @@
 #ifndef _PERIPHERAL_USB_H_
 #define _PERIPHERAL_USB_H_
 
-#include <hardware/gpio.h>
-#include <hardware/platform_defs.h>
-#include "pio_usb.h"
+#include <stdint.h>
 
 #ifndef USB_PERIPHERAL_ENABLED
 #define USB_PERIPHERAL_ENABLED 0
@@ -22,6 +20,30 @@
 #endif
 
 #define NUM_USBS 1
+
+#if defined(ESP_PLATFORM)
+// S3 USB stub (Task 5): PIO-USB host has no S3 backend (USB host is Phase 2).
+// Same class name and the method set peripheralmanager.cpp uses; no-ops so
+// the manager compiles untouched.
+class PeripheralUSB {
+public:
+    PeripheralUSB() {}
+    ~PeripheralUSB() {}
+
+    bool configured = false;
+
+    void* getController() { return nullptr; }
+
+    void setConfig(uint8_t block, int8_t dp, int8_t enable5v, uint8_t order) {
+        (void)block; (void)dp; (void)enable5v; (void)order;
+    }
+};
+
+#else // Pico SDK original
+
+#include <hardware/gpio.h>
+#include <hardware/platform_defs.h>
+#include "pio_usb.h"
 
 class PeripheralUSB {
 public:
@@ -45,5 +67,7 @@ private:
 
     void setup();
 };
+
+#endif // Pico SDK original vs S3 stub
 
 #endif
