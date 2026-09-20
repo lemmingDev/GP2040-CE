@@ -233,6 +233,18 @@ void NeoPicoLEDAddon::process()
     if (!isValidPin(ledOptions.dataPin) || !time_reached(this->nextRunTime))
         return;
 
+#if defined(ESP_PLATFORM)
+    // DIAG-PIXEL (temporary, revert after hardware triage): no log channel
+    // exists while OTG owns USB, so backend state is surfaced on buttons.
+    // B1 held = RMT strip init failed; B2 held = zero pixels configured.
+    // (dataPin itself is valid here — checked in the gate above.)
+    Gamepad * diagPad = Storage::getInstance().GetProcessedGamepad();
+    if (!neopico->IsLive())
+        diagPad->state.buttons |= GAMEPAD_MASK_B1;
+    else if (ledCount == 0)
+        diagPad->state.buttons |= GAMEPAD_MASK_B2;
+#endif
+
     // Get turbo options (turbo RGB led)
     const TurboOptions& turboOptions = Storage::getInstance().getAddonOptions().turboOptions;
 
