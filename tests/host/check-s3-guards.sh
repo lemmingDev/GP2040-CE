@@ -106,6 +106,18 @@ else
     failmsg "FlashPROM timer-stop guard present"
 fi
 
+# 7. PS3 report length: the HID descriptor declares 49 input bytes for
+#    Report ID 1 but sizeof(PS3Report) is 51; sending 51 wedges the S3 IN
+#    endpoint (no completions) and the host drops the excess. Interrupt
+#    sends must use PS3_INPUT_REPORT_LEN.
+if grep -q "define PS3_INPUT_REPORT_LEN" headers/drivers/ps3/PS3Descriptors.h && \
+   grep -q "tud_hid_report(0, report, PS3_INPUT_REPORT_LEN)" src/drivers/ps3/PS3Driver.cpp && \
+   ! grep -q "tud_hid_report(0, report, report_size)" src/drivers/ps3/PS3Driver.cpp; then
+    pass "PS3 interrupt send uses descriptor length (49)"
+else
+    failmsg "PS3 interrupt send uses descriptor length (49)"
+fi
+
 if [ "$fail" -ne 0 ]; then
     echo "s3-guards: FAILURES present (see docs/s3-port-constraints.md)"
     exit 1

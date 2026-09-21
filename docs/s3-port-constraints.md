@@ -70,3 +70,38 @@ read the matching section here before touching the code.
 - **Rule:** the stop stays `esp_timer_is_active()`-guarded in
   `lib/FlashPROM/src/FlashPROM_esp32.cpp`.
 - **Verify:** guard check 6; hardware: first boot with fresh flash saves cleanly.
+
+## 7. PS3 interrupt reports must be exactly the descriptor length (49)
+
+- **Symptom:** PS3 mode enumerates (VID_054C, "working properly") but no
+  input ever registers. `tud_hid_ready()` reads false on ~99% of loop
+  iterations and IN transfers never complete — even with the host actively
+  polling (joy.cpl panel open).
+- **Root cause:** `PS3Report` measures 51 bytes (`sizeof`) but the HID
+  descriptor declares 49 input bytes for Report ID 1; the struct's trailing
+  `reserved4` overflows it. Sending 51 wedges the S3 IN endpoint
+  (completions stop arriving); sending fewer (32 tried) flows at USB level
+  but the host drops short reports — dead either way.
+- **Rule:** the interrupt send uses `PS3_INPUT_REPORT_LEN` (49,
+  `headers/drivers/ps3/PS3Descriptors.h`), never `sizeof(PS3Report)`.
+  Change-detection (`memcmp` vs `last_report`) still uses the full struct.
+- **Verify:** guard check 7; hardware: B1/directions register in joy.cpl
+  and in WebHID (joypad.ai) in PS3 mode (commit `8b08e171`).
+- **Evidence trail (Sept 2026):** boundary counters proved gamepad state
+  reached the driver with correct bytes (`0x40` = South); a PS4 control
+  test passed (shared HID path healthy, bug is PS3-specific); 32-byte
+  sends completed without registering; 49-byte sends fixed inputs.
+
+## Open items (observed, not guard-enforced)
+
+- **PS3 Feature 0x01 response over-read (upstream bug, not ours).**
+  `PS3Driver::get_report`, `PS3_FEATURE_01` case: copies a 48-byte host
+  request from the 8-byte `output_ps3_alt_0x01` table (31 bytes past the
+  end), and the GAMEPAD/alt branches look inverted against the table
+  comments ("for non DS3 controllers"). Present upstream, tolerated by the
+  host on S3. Flag for an upstream report; deliberately not fixed here.
+- **Boot-select mode persistence retest.** A B3-hold boot entered PS3 for
+  the session but a later reset came up in stored Pokken; XInput↔Pokken
+  switches persisted earlier, so saving itself works. Needs a dedicated
+  save → reset → recheck pass to rule out a merge regression in the
+  boot-action save path.
