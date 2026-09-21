@@ -118,6 +118,15 @@ else
     failmsg "PS3 interrupt send uses descriptor length (49)"
 fi
 
+# 8. 1000 Hz loop: the gamepad loop yields one RTOS tick per iteration, so
+#    the tick rate IS the report rate. Anything below 1000 wastes the 1 ms
+#    USB poll interval with up to 10 ms of input latency.
+if grep -q "^CONFIG_FREERTOS_HZ=1000" esp32-s3/sdkconfig.defaults; then
+    pass "FreeRTOS tick pinned to 1000 Hz"
+else
+    failmsg "FreeRTOS tick pinned to 1000 Hz"
+fi
+
 if [ "$fail" -ne 0 ]; then
     echo "s3-guards: FAILURES present (see docs/s3-port-constraints.md)"
     exit 1

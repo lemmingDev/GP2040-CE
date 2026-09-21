@@ -56,11 +56,26 @@ read the matching section here before touching the code.
 ## 5. One-tick waits spell `vTaskDelay(1)`
 
 - **Symptom:** task watchdog fires on an apparently yielding task.
-- **Root cause:** `pdMS_TO_TICKS(1)` truncates to **0 ticks** at the default
-  100 Hz tick rate — a mere yield that still starves IDLE.
+- **Root cause:** `pdMS_TO_TICKS(1)` truncates to **0 ticks** below a
+  1000 Hz tick rate — a mere yield that still starves IDLE. (At the old
+  100 Hz default it was likewise 0.)
 - **Rule:** one-tick waits spell `vTaskDelay(1)` (exactly one tick at any
   rate). Never use `pdMS_TO_TICKS(1)`.
 - **Verify:** guard check 5; hardware: no watchdog, IDLE runs.
+
+## 8. Gamepad loop runs at 1000 Hz
+
+- **Symptom:** up to 10 ms input latency despite a 1 ms USB poll rate.
+- **Root cause:** the S3 core loop yields exactly one RTOS tick per
+  iteration (`vTaskDelay(1)`); at the IDF default 100 Hz tick that quantum
+  is 10 ms, so reports were generated at ~100 Hz while the host polled at
+  1000 Hz.
+- **Rule:** `esp32-s3/sdkconfig.defaults` pins `CONFIG_FREERTOS_HZ=1000`,
+  making the yield 1 ms (~1000 Hz loop, hardware-measured stable). All
+  other S3 waits are millisecond-based (`pdMS_TO_TICKS(ms)`) and scale
+  automatically; only the two intentional one-tick yields depend on this.
+- **Verify:** hardware: 1000 loops measure exactly 1000000 µs; inputs flow
+  in XInput/PS3/SwitchPro/SInput with no watchdog trips.
 
 ## 6. FlashPROM commit must tolerate a cold timer
 

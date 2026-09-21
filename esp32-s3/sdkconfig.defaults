@@ -6,6 +6,11 @@ CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 # save()/load() no-op silently with the default table).
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+# 1000 Hz gamepad loop: GP2040-CE targets 1 ms input latency and the S3 core
+# loop yields exactly one RTOS tick per iteration (vTaskDelay(1)). At the
+# IDF default 100 Hz that quantum is 10 ms; 1000 Hz makes it 1 ms so report
+# generation matches the 1 ms USB poll rate (verified on hardware).
+CONFIG_FREERTOS_HZ=1000
 CONFIG_BT_ENABLED=y
 CONFIG_BT_NIMBLE_ENABLED=y
 # Task 8 Ruling R3 (refined vs IDF v5.4 source 2026-09-20): there is NO

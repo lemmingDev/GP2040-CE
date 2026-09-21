@@ -412,7 +412,7 @@ void GP2040::run() {
 		// pending, wedging polled input in quiet modes (found on hardware
 		// 2026-09-21: Switch idle never wakes it while XInput's traffic
 		// does). Poll with zero timeout instead; the 1-tick yield keeps the
-		// loop at ~100 Hz without starving IDLE.
+		// loop at ~1000 Hz without starving IDLE (CONFIG_FREERTOS_HZ=1000).
 		tud_task_ext(0, false);
 		vTaskDelay(1);
 #else
