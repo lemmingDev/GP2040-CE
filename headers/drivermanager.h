@@ -17,10 +17,11 @@ public:
     GPDriver * getDriver() { return driver; }
     void setup(InputMode);
     InputMode getInputMode(){ return inputMode; }
+    bool isConfigMode(){ return (inputMode == INPUT_MODE_CONFIG); }
 private:
     DriverManager() {}
-    GPDriver * driver;
-    InputMode inputMode;
+    GPDriver * driver = nullptr;
+    InputMode inputMode = INPUT_MODE_XINPUT;
 };
 
 #endif

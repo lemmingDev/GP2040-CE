@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProgressBar } from 'react-bootstrap';
 
@@ -13,6 +13,7 @@ export default function HomePage() {
 		currentVersion,
 		boardConfigProperties,
 		memoryReport,
+		stats,
 		getSystemStats,
 		loading,
 	} = useSystemStats();
@@ -58,6 +59,17 @@ export default function HomePage() {
 								</a>
 							</div>
 						)}
+					<div className="system-text">
+						{t('HomePage:architecture-text', {
+							architecture: stats.architecture,
+						})}
+					</div>
+					<div className="system-text">
+						{t('HomePage:build-type-text', { build: stats.buildType })}
+					</div>
+					<div className="system-text">
+						{t('HomePage:build-text', { build: stats.build })}
+					</div>
 
 					<strong className="system-text">
 						{t('HomePage:memory-header-text')}

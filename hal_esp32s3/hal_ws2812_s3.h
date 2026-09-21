@@ -33,22 +33,31 @@ typedef enum
   LED_FORMAT_RGBW = 3,
 } LEDFormat;
 
+// Identical value to Pico NeoPico's FRAME_MAX (animation.h,
+// animationstation.h and neopicoleds size frame[] with it).
+#define FRAME_MAX 100
+
 class NeoPico
 {
 public:
+  NeoPico();
   NeoPico(int ledPin, int numPixels, LEDFormat format = LED_FORMAT_GRB);
   ~NeoPico();
+  // Pico-compatible two-phase init (PIO/SM args stay Pico-only; the RMT
+  // backend takes pin/pixels/format). Matches NeoPico::Setup sans PIO.
+  void Setup(int ledPin, int inNumPixels, LEDFormat inFormat);
+  void ChangeNumPixels(int inNumPixels);
   void Show();
   void Clear();
   void Off();
   LEDFormat GetFormat();
-  void SetFrame(uint32_t newFrame[100]);
+  void SetFrame(uint32_t newFrame[FRAME_MAX]);
 private:
   void PutPixel(int index, uint32_t pixel);
-  LEDFormat format;
+  LEDFormat format = LED_FORMAT_GRB;
   int ledPin = -1;
   int numPixels = 0;
-  uint32_t frame[100];
+  uint32_t frame[FRAME_MAX];
   led_strip_handle_t strip = nullptr;
 };
 

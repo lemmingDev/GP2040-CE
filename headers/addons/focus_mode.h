@@ -37,14 +37,15 @@
 
 class FocusModeAddon : public GPAddon {
 public:
-	virtual bool available();
-	virtual void setup();       // FocusMode Setup
-	virtual void process();     // FocusMode Process
-	virtual void preprocess() {}
-	virtual std::string name() { return FocusModeName; }
+    virtual bool available();
+    virtual void setup();       // FocusMode Setup
+    virtual void process();     // FocusMode Process
+    virtual void preprocess() {}
+    virtual void postprocess(bool sent) {}
+    virtual void reinit() {}
+    virtual std::string name() { return FocusModeName; }
 private:
-	uint32_t buttonLockMask;
-	GamepadButtonMapping *mapFocusMode;
+    uint32_t buttonLockMask;
 };
 
 #endif  // _FocusMode_H_

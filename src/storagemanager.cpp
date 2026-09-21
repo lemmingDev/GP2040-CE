@@ -6,10 +6,8 @@
 #include "storagemanager.h"
 
 #include "BoardConfig.h"
-#if defined(PICO_BOARD) || defined(ESP_PLATFORM)
-#include "AnimationStorage.hpp"
-#endif
 #include "FlashPROM.h"
+#include "drivermanager.h"
 #include "eventmanager.h"
 #if defined(PICO_BOARD)
 #include "peripheralmanager.h"
@@ -26,15 +24,14 @@
 #include "CRC32.h"
 #include "types.h"
 
+// Check for saves
+#include "ps4/PS4Driver.h"
+
 #include "config_utils.h"
 
 void Storage::init() {
+	systemFlashSize = System::getPhysicalFlash(); // System Flash Size must be called once
 	EEPROM.start();
-#if defined(PICO_BOARD)
-	critical_section_init(&animationOptionsCs);
-#elif defined(ESP_PLATFORM)
-	// S3: animationOptionsCs is a std::mutex; no init call needed.
-#endif
 	ConfigUtils::load(config);
 }
 
@@ -51,105 +48,25 @@ bool Storage::save()
  */
 bool Storage::save(const bool force) {
 #if defined(PICO_BOARD)
-	if (!PeripheralManager::getInstance().isUSBEnabled(0) || force) {
-		return ConfigUtils::save(config);
-	} else {
+	// Conditions for saving:
+	//   1. Force = True
+	//   2. Input Mode NOT (PS4/PS5 with USB enabled)
+	// Save will disconnect USB host, which is okay for gamepad and keyboard hosts
+	if (!force &&
+		PeripheralManager::getInstance().isUSBEnabled(0) &&
+		(DriverManager::getInstance().getInputMode() == INPUT_MODE_PS4 ||
+			DriverManager::getInstance().getInputMode() == INPUT_MODE_PS5) &&
+		((PS4Driver*)DriverManager::getInstance().getDriver())->getDongleAuthRequired() == true ) {
 		return false;
 	}
+
+	return ConfigUtils::save(config);
 #elif defined(ESP_PLATFORM)
 	// S3: no USB host until Phase 2, so saves are never gated.
 	(void)force;
 	return ConfigUtils::save(config);
 #endif
 }
-
-#if defined(PICO_BOARD)
-static void updateAnimationOptionsProto(const AnimationOptions& options)
-{
-	AnimationOptions_Proto& optionsProto = Storage::getInstance().getAnimationOptions();
-
-	optionsProto.baseAnimationIndex			= options.baseAnimationIndex;
-	optionsProto.brightness					= options.brightness;
-	optionsProto.staticColorIndex			= options.staticColorIndex;
-	optionsProto.buttonColorIndex			= options.buttonColorIndex;
-	optionsProto.chaseCycleTime				= options.chaseCycleTime;
-	optionsProto.rainbowCycleTime			= options.rainbowCycleTime;
-	optionsProto.themeIndex					= options.themeIndex;
-	optionsProto.hasCustomTheme				= options.hasCustomTheme;
-	optionsProto.customThemeUp				= options.customThemeUp;
-	optionsProto.customThemeDown			= options.customThemeDown;
-	optionsProto.customThemeLeft			= options.customThemeLeft;
-	optionsProto.customThemeRight			= options.customThemeRight;
-	optionsProto.customThemeB1				= options.customThemeB1;
-	optionsProto.customThemeB2				= options.customThemeB2;
-	optionsProto.customThemeB3				= options.customThemeB3;
-	optionsProto.customThemeB4				= options.customThemeB4;
-	optionsProto.customThemeL1				= options.customThemeL1;
-	optionsProto.customThemeR1				= options.customThemeR1;
-	optionsProto.customThemeL2				= options.customThemeL2;
-	optionsProto.customThemeR2				= options.customThemeR2;
-	optionsProto.customThemeS1				= options.customThemeS1;
-	optionsProto.customThemeS2				= options.customThemeS2;
-	optionsProto.customThemeA1				= options.customThemeA1;
-	optionsProto.customThemeA2				= options.customThemeA2;
-	optionsProto.customThemeL3				= options.customThemeL3;
-	optionsProto.customThemeR3				= options.customThemeR3;
-	optionsProto.customThemeUpPressed		= options.customThemeUpPressed;
-	optionsProto.customThemeDownPressed		= options.customThemeDownPressed;
-	optionsProto.customThemeLeftPressed		= options.customThemeLeftPressed;
-	optionsProto.customThemeRightPressed	= options.customThemeRightPressed;
-	optionsProto.customThemeB1Pressed		= options.customThemeB1Pressed;
-	optionsProto.customThemeB2Pressed		= options.customThemeB2Pressed;
-	optionsProto.customThemeB3Pressed		= options.customThemeB3Pressed;
-	optionsProto.customThemeB4Pressed		= options.customThemeB4Pressed;
-	optionsProto.customThemeL1Pressed		= options.customThemeL1Pressed;
-	optionsProto.customThemeR1Pressed		= options.customThemeR1Pressed;
-	optionsProto.customThemeL2Pressed		= options.customThemeL2Pressed;
-	optionsProto.customThemeR2Pressed		= options.customThemeR2Pressed;
-	optionsProto.customThemeS1Pressed		= options.customThemeS1Pressed;
-	optionsProto.customThemeS2Pressed		= options.customThemeS2Pressed;
-	optionsProto.customThemeA1Pressed		= options.customThemeA1Pressed;
-	optionsProto.customThemeA2Pressed		= options.customThemeA2Pressed;
-	optionsProto.customThemeL3Pressed		= options.customThemeL3Pressed;
-	optionsProto.customThemeR3Pressed		= options.customThemeR3Pressed;
-	optionsProto.buttonPressColorCooldownTimeInMs = options.buttonPressColorCooldownTimeInMs;	
-}
-#endif
-// S3: updateAnimationOptionsProto is Pico-only in Phase 1 (AnimationOptions
-// lives in the Task-4/5 LED stack); performEnqueuedSaves below is a no-op.
-
-void Storage::performEnqueuedSaves()
-{
-#if defined(PICO_BOARD)
-	if (animationOptionsSavePending.load())
-	{
-		critical_section_enter_blocking(&animationOptionsCs);
-		updateAnimationOptionsProto(animationOptionsToSave);
-		save();
-		animationOptionsSavePending.store(false);
-		critical_section_exit(&animationOptionsCs);
-	}
-#elif defined(ESP_PLATFORM)
-	// S3: LED animation stack lands in Tasks 4/5; nothing is ever enqueued.
-	(void)animationOptionsSavePending;
-#endif
-}
-
-#if defined(PICO_BOARD)
-void Storage::enqueueAnimationOptionsSave(const AnimationOptions& animationOptions)
-{
-	const uint32_t crc = CRC32::calculate(&animationOptions);
-	critical_section_enter_blocking(&animationOptionsCs);
-	if (crc != animationOptionsCrc)
-	{
-		animationOptionsToSave = animationOptions;
-		animationOptionsCrc = crc;
-		animationOptionsSavePending.store(true);
-	}
-	critical_section_exit(&animationOptionsCs);
-}
-#endif
-// S3: enqueueAnimationOptionsSave is Pico-only in Phase 1 (see above).
 
 void Storage::ResetSettings()
 {
@@ -163,12 +80,14 @@ void Storage::ResetSettings()
 
 bool Storage::setProfile(const uint32_t profileNum)
 {
+	uint32_t profileCeiling = config.profileOptions.gpioMappingsSets_count + 1;
+	
 	// is this profile defined?
-	if (profileNum >= 1 && profileNum <= config.profileOptions.gpioMappingsSets_count + 1) {
+	if (profileNum >= 1 && profileNum <= profileCeiling) {
 		// is this profile enabled?
 		// profile 1 (core) is always enabled, others we must check
 		if (profileNum == 1 || config.profileOptions.gpioMappingsSets[profileNum-2].enabled) {
-			EventManager::getInstance().triggerEvent(new GPProfileChangeEvent(this->config.gamepadOptions.profileNumber, profileNum));
+			// Update the profile number - reinit will be triggered automatically in gp2040.cpp
 			this->config.gamepadOptions.profileNumber = profileNum;
 			return true;
 		}
@@ -210,8 +129,10 @@ char* Storage::currentProfileLabel() {
 void Storage::setFunctionalPinMappings()
 {
 	GpioMappingInfo* alts = nullptr;
+	uint32_t profileCeiling = config.profileOptions.gpioMappingsSets_count + 1;
+
 	if (config.gamepadOptions.profileNumber >= 2 &&
-			config.gamepadOptions.profileNumber <= config.profileOptions.gpioMappingsSets_count + 1) {
+			config.gamepadOptions.profileNumber <= profileCeiling) {
 		if (config.profileOptions.gpioMappingsSets[config.gamepadOptions.profileNumber-2].enabled) {
 			alts = config.profileOptions.gpioMappingsSets[config.gamepadOptions.profileNumber-2].pins;
 		}
@@ -235,14 +156,37 @@ void Storage::setFunctionalPinMappings()
 	}
 }
 
-void Storage::SetConfigMode(bool mode) { // hack for config mode
-	CONFIG_MODE = mode;
-	previewDisplayOptions = config.displayOptions;
-}
-
-bool Storage::GetConfigMode()
+/**
+ * @brief constructs a temporary pin-mapping in order to correctly initialize GPIO pins before
+ * selecting input mode at boot
+ */
+void Storage::setBootModeFunctionalPinMappings()
 {
-	return CONFIG_MODE;
+	BootModeOptions& bootModeOptions = getBootModeOptions();
+	if (!bootModeOptions.enabled) {
+		return;
+	}
+	// Relying on the assumption that all profiles share same set of RESERVED/ASSIGNED_TO_ADDON pins
+	GpioMappingInfo* pins = getGpioMappings().pins;
+
+	int32_t mask = bootModeOptions.webConfigPinMask | bootModeOptions.usbModePinMask;
+	for (size_t i = 0; i < bootModeOptions.inputModeMappings_count; i++) {
+		auto mapping = bootModeOptions.inputModeMappings[i];
+		if (mapping.pinMask == -1) {
+			continue;
+		}
+		mask |= mapping.pinMask;
+	}
+
+	for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
+		if (pins[pin].action != GpioAction::RESERVED &&
+			pins[pin].action != GpioAction::ASSIGNED_TO_ADDON &&
+			(mask & (1 << pin)))
+		{
+			// Just setting an arbitrary non-zero action
+			functionalPinMappings[pin].action = GpioAction::BUTTON_PRESS_A1;
+		}
+	}
 }
 
 void Storage::SetGamepad(Gamepad * newpad)
@@ -264,136 +208,3 @@ Gamepad * Storage::GetProcessedGamepad()
 {
 	return processedGamepad;
 }
-
-/* Animation stuffs */
-#if defined(PICO_BOARD)
-AnimationOptions AnimationStorage::getAnimationOptions()
-{
-	AnimationOptions options;
-	const AnimationOptions_Proto& optionsProto = Storage::getInstance().getAnimationOptions();
-
-	options.checksum				= 0;
-	options.baseAnimationIndex		= std::min<uint32_t>(optionsProto.baseAnimationIndex, 255);
-	options.brightness				= std::min<uint32_t>(optionsProto.brightness, 255);
-	options.staticColorIndex		= std::min<uint32_t>(optionsProto.staticColorIndex, 255);
-	options.buttonColorIndex		= std::min<uint32_t>(optionsProto.buttonColorIndex, 255);
-	options.chaseCycleTime			= std::min<int32_t>(optionsProto.chaseCycleTime, 65535);
-	options.rainbowCycleTime		= std::min<int32_t>(optionsProto.rainbowCycleTime, 65535);
-	options.themeIndex				= std::min<uint8_t>(optionsProto.themeIndex, 255);
-	options.hasCustomTheme			= optionsProto.hasCustomTheme;
-	options.customThemeUp			= optionsProto.customThemeUp;
-	options.customThemeDown			= optionsProto.customThemeDown;
-	options.customThemeLeft			= optionsProto.customThemeLeft;
-	options.customThemeRight		= optionsProto.customThemeRight;
-	options.customThemeB1			= optionsProto.customThemeB1;
-	options.customThemeB2			= optionsProto.customThemeB2;
-	options.customThemeB3			= optionsProto.customThemeB3;
-	options.customThemeB4			= optionsProto.customThemeB4;
-	options.customThemeL1			= optionsProto.customThemeL1;
-	options.customThemeR1			= optionsProto.customThemeR1;
-	options.customThemeL2			= optionsProto.customThemeL2;
-	options.customThemeR2			= optionsProto.customThemeR2;
-	options.customThemeS1			= optionsProto.customThemeS1;
-	options.customThemeS2			= optionsProto.customThemeS2;
-	options.customThemeA1			= optionsProto.customThemeA1;
-	options.customThemeA2			= optionsProto.customThemeA2;
-	options.customThemeL3			= optionsProto.customThemeL3;
-	options.customThemeR3			= optionsProto.customThemeR3;
-	options.customThemeUpPressed	= optionsProto.customThemeUpPressed;
-	options.customThemeDownPressed	= optionsProto.customThemeDownPressed;
-	options.customThemeLeftPressed	= optionsProto.customThemeLeftPressed;
-	options.customThemeRightPressed	= optionsProto.customThemeRightPressed;
-	options.customThemeB1Pressed	= optionsProto.customThemeB1Pressed;
-	options.customThemeB2Pressed	= optionsProto.customThemeB2Pressed;
-	options.customThemeB3Pressed	= optionsProto.customThemeB3Pressed;
-	options.customThemeB4Pressed	= optionsProto.customThemeB4Pressed;
-	options.customThemeL1Pressed	= optionsProto.customThemeL1Pressed;
-	options.customThemeR1Pressed	= optionsProto.customThemeR1Pressed;
-	options.customThemeL2Pressed	= optionsProto.customThemeL2Pressed;
-	options.customThemeR2Pressed	= optionsProto.customThemeR2Pressed;
-	options.customThemeS1Pressed	= optionsProto.customThemeS1Pressed;
-	options.customThemeS2Pressed	= optionsProto.customThemeS2Pressed;
-	options.customThemeA1Pressed	= optionsProto.customThemeA1Pressed;
-	options.customThemeA2Pressed	= optionsProto.customThemeA2Pressed;
-	options.customThemeL3Pressed	= optionsProto.customThemeL3Pressed;
-	options.customThemeR3Pressed	= optionsProto.customThemeR3Pressed;
-	options.buttonPressColorCooldownTimeInMs = optionsProto.buttonPressColorCooldownTimeInMs;		
-
-	return options;
-}
-
-void AnimationStorage::save()
-{
-#if defined(PICO_BOARD)
-	Storage::getInstance().enqueueAnimationOptionsSave(AnimationStation::options);
-#elif defined(ESP_PLATFORM)
-	// S3 (unreachable while the outer guard stays Pico-only): animation saves
-	// are never enqueued in Phase 1; ConfigUtils persistence is real (Task-3c).
-#endif
-}
-#elif defined(ESP_PLATFORM)
-// S3: same proto-to-struct mapping as Pico (clamps included), read from the
-// persisted config; animation saves are never enqueued in Phase 1 —
-// ConfigUtils persistence is real (Task-3c). Pico branch above is untouched.
-AnimationOptions AnimationStorage::getAnimationOptions()
-{
-	AnimationOptions options = {};
-	const AnimationOptions_Proto& optionsProto = Storage::getInstance().getAnimationOptions();
-
-	options.baseAnimationIndex		= std::min<uint32_t>(optionsProto.baseAnimationIndex, 255);
-	options.brightness				= std::min<uint32_t>(optionsProto.brightness, 255);
-	options.staticColorIndex		= std::min<uint32_t>(optionsProto.staticColorIndex, 255);
-	options.buttonColorIndex		= std::min<uint32_t>(optionsProto.buttonColorIndex, 255);
-	options.chaseCycleTime			= std::min<int32_t>(optionsProto.chaseCycleTime, 65535);
-	options.rainbowCycleTime		= std::min<int32_t>(optionsProto.rainbowCycleTime, 65535);
-	options.themeIndex				= std::min<uint8_t>(optionsProto.themeIndex, 255);
-	options.hasCustomTheme			= optionsProto.hasCustomTheme;
-	options.customThemeUp			= optionsProto.customThemeUp;
-	options.customThemeDown			= optionsProto.customThemeDown;
-	options.customThemeLeft			= optionsProto.customThemeLeft;
-	options.customThemeRight			= optionsProto.customThemeRight;
-	options.customThemeB1			= optionsProto.customThemeB1;
-	options.customThemeB2			= optionsProto.customThemeB2;
-	options.customThemeB3			= optionsProto.customThemeB3;
-	options.customThemeB4			= optionsProto.customThemeB4;
-	options.customThemeL1			= optionsProto.customThemeL1;
-	options.customThemeR1			= optionsProto.customThemeR1;
-	options.customThemeL2			= optionsProto.customThemeL2;
-	options.customThemeR2			= optionsProto.customThemeR2;
-	options.customThemeS1			= optionsProto.customThemeS1;
-	options.customThemeS2			= optionsProto.customThemeS2;
-	options.customThemeA1			= optionsProto.customThemeA1;
-	options.customThemeA2			= optionsProto.customThemeA2;
-	options.customThemeL3			= optionsProto.customThemeL3;
-	options.customThemeR3			= optionsProto.customThemeR3;
-	options.customThemeUpPressed	= optionsProto.customThemeUpPressed;
-	options.customThemeDownPressed	= optionsProto.customThemeDownPressed;
-	options.customThemeLeftPressed	= optionsProto.customThemeLeftPressed;
-	options.customThemeRightPressed	= optionsProto.customThemeRightPressed;
-	options.customThemeB1Pressed	= optionsProto.customThemeB1Pressed;
-	options.customThemeB2Pressed	= optionsProto.customThemeB2Pressed;
-	options.customThemeB3Pressed	= optionsProto.customThemeB3Pressed;
-	options.customThemeB4Pressed	= optionsProto.customThemeB4Pressed;
-	options.customThemeL1Pressed	= optionsProto.customThemeL1Pressed;
-	options.customThemeR1Pressed	= optionsProto.customThemeR1Pressed;
-	options.customThemeL2Pressed	= optionsProto.customThemeL2Pressed;
-	options.customThemeR2Pressed	= optionsProto.customThemeR2Pressed;
-	options.customThemeS1Pressed	= optionsProto.customThemeS1Pressed;
-	options.customThemeS2Pressed	= optionsProto.customThemeS2Pressed;
-	options.customThemeA1Pressed	= optionsProto.customThemeA1Pressed;
-	options.customThemeA2Pressed	= optionsProto.customThemeA2Pressed;
-	options.customThemeL3Pressed	= optionsProto.customThemeL3Pressed;
-	options.customThemeR3Pressed	= optionsProto.customThemeR3Pressed;
-	options.buttonPressColorCooldownTimeInMs = optionsProto.buttonPressColorCooldownTimeInMs;
-
-	return options;
-}
-
-void AnimationStorage::save()
-{
-	// S3: animation saves are never enqueued in Phase 1;
-	// ConfigUtils persistence is real (Task-3c).
-	// (void) marks the AnimationStorage.hpp static used in this TU.
-	(void)AnimationStore;
-}
-#endif

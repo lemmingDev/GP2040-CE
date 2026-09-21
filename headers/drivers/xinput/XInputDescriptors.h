@@ -52,6 +52,24 @@ typedef struct __attribute((packed, aligned(1)))
     uint8_t _reserved[6];
 } XInputReport;
 
+// XInput protocol command packets
+static const uint8_t XBOX360_WIRED_RUMBLE[] = {0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static const uint8_t XBOX360_WIRED_LED[] = {0x01, 0x03, 0x00};
+
+typedef enum {
+    XINPUT_SUBTYPE_NONE = 0x00,
+    XINPUT_SUBTYPE_GAMEPAD = 0x01,
+    XINPUT_SUBTYPE_WHEEL = 0x02,
+    XINPUT_SUBTYPE_ARCADE_STICK = 0x03,
+    XINPUT_SUBTYPE_HOTAS = 0x04,
+    XINPUT_SUBTYPE_DANCE_PAD = 0x05,
+    XINPUT_SUBTYPE_GUITAR = 0x06,
+    XINPUT_SUBTYPE_GUITAR_ALT = 0x07,
+    XINPUT_SUBTYPE_DRUMS = 0x08,
+    XINPUT_SUBTYPE_GUITAR_BASS = 0x0B,
+    XINPUT_SUBTYPE_ARCADE_PAD = 0x13,
+} XInputSubtype;
+
 static const uint8_t xinput_string_language[]    = { 0x09, 0x04 };
 static const uint8_t xinput_string_serial[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 static const uint8_t xinput_string_manfacturer[] = "\xa9Microsoft Corporation";
@@ -176,7 +194,7 @@ static const uint8_t xinput_configuration_descriptor[] =
     // Audio Descriptor
     0x1B,        // bLength
     0x21,
-    0x00,        
+    0x00,
     0x01,
     0x01,
     0x01,
@@ -280,7 +298,7 @@ static const uint8_t xinput_configuration_descriptor[] =
     0x00,
     0x01,
     0x01,
-    0x03,  
+    0x03,
 };
 
 typedef enum
@@ -292,5 +310,4 @@ typedef enum
     XSM360_AUTH_KEEPALIVE             = 0x84,    // Xbox 360 Keep Authentication Alive
     XSM360_REQUEST_STATE              = 0x86,    // Xbox 360 Request Authentication State
     XSM360_VERIFY_AUTH                = 0x87,    // Xbox 360 Verify Authentication
-    
 } XSM360AuthRequest;

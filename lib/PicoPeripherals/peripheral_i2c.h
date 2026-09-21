@@ -2,6 +2,17 @@
 #define _PERIPHERAL_I2C_H_
 
 #include <map>
+#if defined(PICO_BOARD)
+#include <hardware/gpio.h>
+#include <hardware/i2c.h>
+#include <hardware/platform_defs.h>
+#endif
+
+#if __has_include("BoardConfig.h")
+#include "BoardConfig.h"
+#endif
+
+//#define DEBUG_PERIPHERALI2C
 
 // I2C block defaults: common scope (as upstream) so BOTH the Pico backend
 // and the S3 backend (plus config_utils.cpp on either path) see them;

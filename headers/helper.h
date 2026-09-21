@@ -8,13 +8,8 @@
 
 #include "BoardConfig.h"
 #include <stdint.h>
-#if defined(PICO_BOARD) || defined(ESP_PLATFORM)
-// S3: AnimationStation/NeoPico types (RGB, LEDFormat) come from the
-// Task-5 RMT backend (hal_ws2812_s3.h, identical enum values); the header
-// is S3-safe (Pico SDK includes are shim-backed, proven by neopicoleds.cpp).
-#include "AnimationStation.hpp"
-#endif
-#include "PlayerLEDs.h"
+#include "animationstation.h"
+#include "playerleds.h"
 
 // GP2040-CE Board Config (64 character limit)
 #ifndef GP2040_BOARDCONFIG
@@ -39,23 +34,7 @@
 #define PLED_TYPE PLED_TYPE_NONE
 #endif
 #ifndef PLED_COLOR
-#define PLED_COLOR ColorWhite // White
-#endif
-
-#ifndef CASE_RGB_TYPE
-#define CASE_RGB_TYPE CASE_RGB_TYPE_NONE
-#endif
-
-#ifndef CASE_RGB_INDEX
-#define CASE_RGB_INDEX -1
-#endif
-
-#ifndef CASE_RGB_COLOR
-#define CASE_RGB_COLOR ColorGreen // Green
-#endif
-
-#ifndef CASE_RGB_COUNT
-#define CASE_RGB_COUNT 0
+#define PLED_COLOR 1 // ColorWhite index from Animation.h
 #endif
 
 static inline bool isValidPin(int32_t pin) {

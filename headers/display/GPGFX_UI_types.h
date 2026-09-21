@@ -5,10 +5,13 @@
 #include <functional>
 #include <vector>
 
-typedef struct {
+typedef struct MenuEntry {
     std::string label;
-    uint8_t* icon;
+    uint8_t* icon = nullptr;
+    std::vector<MenuEntry>* submenu = nullptr;
+    std::function<int32_t()> currentValue;
     std::function<void()> action;
+    int32_t optionValue = -1;
 } MenuEntry;
 
 typedef struct {

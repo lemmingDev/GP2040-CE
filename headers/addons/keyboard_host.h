@@ -15,16 +15,26 @@
 #define KEYBOARD_HOST_PIN_5V -1
 #endif
 
+#ifndef KEYBOARD_HOST_MOUSE_SENSITIVITY
+#define KEYBOARD_HOST_MOUSE_SENSITIVITY 50
+#endif
+
+#ifndef KEYBOARD_HOST_MOUSE_MOVEMENT
+#define KEYBOARD_HOST_MOUSE_MOVEMENT 0
+#endif
+
 // KeyboardHost Module Name
 #define KeyboardHostName "KeyboardHost"
 
 class KeyboardHostAddon : public GPAddon {
 public:
-	virtual bool available();
-	virtual void setup();       // KeyboardHost Setup
-	virtual void process() {}   // KeyboardHost Process
-	virtual void preprocess();
-	virtual std::string name() { return KeyboardHostName; }
+    virtual bool available();
+    virtual void setup();       // KeyboardHost Setup
+    virtual void process() {}   // KeyboardHost Process
+    virtual void preprocess();
+    virtual void postprocess(bool sent) {}
+    virtual void reinit() {}
+    virtual std::string name() { return KeyboardHostName; }
 private:
 };
 

@@ -9,6 +9,8 @@ export default {
 	'input-mode-options': {
 		none: 'モード未選択',
 		'nintendo-switch': '任天堂Switch',
+		'nintendo-switch-pro': '任天堂Switch Pro',
+		generic: '標準HID',
 		keyboard: 'キーボード',
 		mdmini: 'Sega Genesis/メガドライブ Mini',
 		pcemini: 'PCエンジン/Turbografx 16 Mini',
@@ -49,6 +51,8 @@ export default {
 	},
 	'profile-label': 'プロファイル',
 	'debounce-delay-label': 'チャタリング除去ディレイ(ミリ秒)',
+	'mini-menu-gamepad-input':
+		'ディスプレイメニューの入力にゲームパッド入力を利用',
 	'ps4-mode-explanation-text':
 		'PS4モードはGP2040-CEコントローラを認証済みPS4コントローラとして動作させることができます。',
 	'ps4-mode-warning-text':
@@ -71,7 +75,7 @@ export default {
 	'xbone-mode-text':
 		'<span>補足: </span> XBox One モードで正しく認証するにははUSBホスト接続とUSBドングルが必要です。',
 	'xinput-mode-text':
-		'<span>補足:</span> Xinput モードはPCでは認証無しで利用可能です。Xbox 360本体で利用する場合は適切な認証用のUSBドングルを接続することで利用可能です。',
+		'<span>補足:</span> XInput モードはドングル無しでXbox 360で利用可能です。外部の認証ドングルを利用したい場合のみUSBを選択してください。',
 	'hotkey-settings-label': 'ホットキー設定',
 	'hotkey-settings-sub-header':
 		'<strong>Fn</strong>スライダーは<link_pinmap>端子割り当て設定</link_pinmap>ページで割り当て可能なファンクションボタン機能を有効化します。<strong>Fn</strong>スライダーを有効化することで、選択されたホットキーと同時にファンクションボタンを押す様に設定できます。<br />また、<strong>None</strong>を選択することでボタンの割り当てを解除できます。',
@@ -92,6 +96,8 @@ export default {
 		'invert-x': '上下入力反転',
 		'invert-y': '左右入力反転',
 		'toggle-4way-joystick-mode': '4方向ジョイスティックモード切り替え',
+		'enable-4way-joystick-mode': '4方向ジョイスティックモードを有効化',
+		'disable-4way-joystick-mode': '4方向ジョイスティックモードを無効化',
 		'toggle-ddi-4way-joystick-mode': 'DDI 4方向ジョイスティックモード切り替え',
 		'b1-button': 'B1 ボタン',
 		'b2-button': 'B2 ボタン',
@@ -118,9 +124,22 @@ export default {
 		'load-profile-2': 'プロファイル #2をロード',
 		'load-profile-3': 'プロファイル #3をロード',
 		'load-profile-4': 'プロファイル #4をロード',
+		'load-profile-5': 'プロファイル #5をロード',
+		'load-profile-6': 'プロファイル #6をロード',
 		'reboot-default': 'GP2040-CEを再起動',
+		'save-config': '設定を保存',
 		'next-profile': '次のプロファイル',
 		'previous-profile': '前のプロファイル',
+		'menu-nav-up': 'メニュー 上',
+		'menu-nav-down': 'メニュー 下',
+		'menu-nav-left': 'メニュー 左',
+		'menu-nav-right': 'メニュー 右',
+		'menu-nav-select': 'メニュー 選択',
+		'menu-nav-back': 'メニュー 戻る',
+		'menu-nav-toggle': 'メニュー 切替え',
+		'focus-mode-toggle': 'フォーカスモード切替え',
+		'turbo-count-up': 'ターボカウントUP',
+		'turbo-count-down': 'ターボカウントDOWN',
 	},
 	'forced-setup-mode-label': '強制セットアップモード',
 	'forced-setup-mode-options': {
@@ -133,8 +152,19 @@ export default {
 	'forced-setup-mode-modal-body':
 		'保存後にコントローラモードで再起動すると、以降Web設定モードにはアクセスできなくなります。注意点をよく理解したうえで、保存ボタンを有効化するには「{{warningCheckText}}」を以下に入力してください。閉じるボタンを押下した場合はこの設定は元に戻され保存されます。',
 	'4-way-joystick-mode-label': '4方向ジョイスティックモード',
-	'lock-hotkeys-label': 'ホットキーをロック',
 	'keyboard-mapping-header-text': 'キーボードキー割り当て',
 	'keyboard-mapping-sub-header-text':
 		'以下のフォームを利用してボタンとキーの割り当て変更をしてください。',
+	'usb-override': {
+		'advanced-override': '⚠️ USBオーバーライド(上級者向け)',
+		'invalid-warning-danger':
+			'危険: 無効なUSBパラメータを設定するとデバイスが動作しなくなります。',
+		'product-name': '製品名',
+		manufacturer: '製造者',
+		version: 'バージョン',
+		'physical-warning-danger': '⚡ 物理ID変更 ⚡ ',
+		'product-id': 'プロダクトID',
+		'vendor-id': 'ベンダーID',
+	},
+	'input-mode-device-type-label': '入力モードコントローラ種別',
 };

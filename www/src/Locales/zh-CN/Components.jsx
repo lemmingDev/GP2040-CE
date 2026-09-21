@@ -7,6 +7,9 @@ export default {
 		'de-DE': 'Deutsch (德语)',
 		'ja-JP': '日本語 (日语)',
 		'ko-KR': '한국어 (韩语)',
+		'es-MX': 'Español (墨西哥西班牙语)',
+		'tr-TR': 'Türkçe (土耳其语)',
+		'fr-FR': 'Français (法语)',
 	},
 	'color-scheme': {
 		dark: '黑暗',
@@ -15,7 +18,5 @@ export default {
 	},
 	'keyboard-mapper': {
 		'key-header': '按键',
-		'error-conflict': '按键 {{key}} 已分配',
-		'error-invalid': '{{key}} 对该电路板无效',
 	},
 };

@@ -1,12 +1,15 @@
 export default {
 	'language-selector': {
-		en: 'English (英語)',
+		en: 'English (US)',
 		nl: 'Nederlands (オランダ語)',
 		'pt-BR': 'Português Brasil (ブラジルポルトガル語)',
-		'zh-CN': '简体中文 (中国語 簡体字)',
+		'zh-CN': '简体中文 (簡体字中国語)',
 		'de-DE': 'Deutsch (ドイツ語)',
-		'ja-JP': '日本語 (Japanese)',
+		'ja-JP': '日本語',
 		'ko-KR': '한국어 (韓国語)',
+		'es-MX': 'Español (メキシコスペイン語)',
+		'tr-TR': 'Türkçe (トルコ語)',
+		'fr-FR': 'Français (フランス語)',
 	},
 	'color-scheme': {
 		dark: 'ダーク',
@@ -15,7 +18,5 @@ export default {
 	},
 	'keyboard-mapper': {
 		'key-header': 'キー',
-		'error-conflict': '{{key}} キーは既に割り当て済みです',
-		'error-invalid': 'このボードでは {{key}} は無効です',
 	},
 };

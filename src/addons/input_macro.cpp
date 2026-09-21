@@ -66,7 +66,6 @@ void InputMacro::setup() {
     } else {
         boardLedEnabled = false;
     }
-    boardLedEnabled = false;
     prevMacroInputPressed = false;
     reset();
 }
@@ -128,6 +127,11 @@ void InputMacro::checkMacroAction() {
     }
 
     bool newPress = macroInputPressed && (prevMacroInputPressed ^ macroInputPressed);
+
+    if ( macroPosition == -1 ) {
+        prevMacroInputPressed = macroInputPressed;
+        return;
+    }
 
     // Check to see if we should change the current macro (or turn off based on input)
     if ( inputMacroOptions->macroList[macroPosition].macroType == ON_PRESS ) {
@@ -244,8 +248,14 @@ void InputMacro::runCurrentMacro() {
 void InputMacro::preprocess()
 {
     FocusModeOptions * focusModeOptions = &Storage::getInstance().getAddonOptions().focusModeOptions;
-    if (focusModeOptions->enabled && focusModeOptions->macroLockEnabled)
-        return;
+    if (focusModeOptions->enabled && focusModeOptions->macroLockEnabled) {
+        Gamepad * gamepad = Storage::getInstance().GetGamepad();
+        // Override Toggle Pressed OR focus mode pin is set
+        if (focusModeOptions->overrideEnabled ||
+            (gamepad->mapFocusMode->pinMask && (gamepad->debouncedGpio & gamepad->mapFocusMode->pinMask))) {
+            return;
+        }
+    }
 
     checkMacroPress();
     checkMacroAction();

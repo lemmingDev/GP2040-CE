@@ -7,11 +7,11 @@ export default {
 	'load-export-option-label': '{{api}} オプションをインポート',
 	'api-display-text': 'ディスプレイ',
 	'api-gamepad-text': 'ゲームパッド',
-	'api-led-text': 'LED',
-	'api-ledTheme-text': 'カスタムLEDテーマ',
+	'api-leds-text': 'LED',
 	'api-macros-text': 'マクロボタン割り当て',
 	'api-pins-text': '端子割り当て',
 	'api-profiles-text': 'プロファイルボタン割り当て',
 	'api-addons-text': 'アドオン',
+	'api-heTrigger-text': 'ホールセンサボタン',
 	'api-splash-text': 'スプラッシュ画像',
 };

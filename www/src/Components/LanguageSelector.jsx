@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import { Dropdown, DropdownButton } from 'react-bootstrap';
 import { AppContext } from '../Contexts/AppContext';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,9 @@ import ptBRFlag from '../Icons/Flags/ptBR';
 import deDEFlag from '../Icons/Flags/De';
 import jaJPFlag from '../Icons/Flags/jaJP';
 import krKOFlag from '../Icons/Flags/koKR';
+import esMXFlag from '../Icons/Flags/esMX';
+import trTRFlag from '../Icons/Flags/trTR';
+import frFRFlag from '../Icons/Flags/fr';
 
 const dropdownOptions = [
 	{ code: 'en', icon: UsFlag },
@@ -17,6 +20,9 @@ const dropdownOptions = [
 	{ code: 'de-DE', icon: deDEFlag },
 	{ code: 'ja-JP', icon: jaJPFlag },
 	{ code: 'ko-KR', icon: krKOFlag },
+	{ code: 'es-MX', icon: esMXFlag },
+	{ code: 'tr-TR', icon: trTRFlag },
+	{ code: 'fr-FR', icon: frFRFlag },
 ];
 
 const LanguageSelector = () => {

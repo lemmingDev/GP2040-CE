@@ -1,12 +1,11 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 import { FormCheck, Row } from 'react-bootstrap';
 import * as yup from 'yup';
 
 import Section from '../Components/Section';
 import FormSelect from '../Components/FormSelect';
-import FormControl from '../Components/FormControl';
 import { SOCD_MODES } from '../Data/Addons';
+import { AddonPropTypes } from '../Pages/AddonsConfigPage';
 
 export const socdScheme = {
 	SliderSOCDInputEnabled: yup
@@ -24,21 +23,46 @@ export const socdState = {
 	sliderSOCDModeDefault: 1,
 };
 
-const SOCD = ({ values, errors, handleChange, handleCheckbox }) => {
+const SOCD = ({
+	values,
+	errors,
+	handleChange,
+	handleCheckbox,
+}: AddonPropTypes) => {
 	const { t } = useTranslation();
 	return (
 		<Section
-			title={t('AddonsConfig:socd-cleaning-mode-selection-slider-header-text')}
+			title={
+				<a
+					href="https://gp2040-ce.info/add-ons/socd-selection-slider"
+					target="_blank"
+					className="text-reset text-decoration-none"
+				>
+					{t('AddonsConfig:socd-cleaning-mode-selection-slider-header-text')}
+				</a>
+			}
 		>
 			<div id="SliderSOCDInputOptions" hidden={!values.SliderSOCDInputEnabled}>
+				<div className="alert alert-info" role="alert">
+					{t(
+						'AddonsConfig:socd-cleaning-mode-selection-slider-sub-header-text',
+					)}
+				</div>
+				<div className="alert alert-info" role="alert">
+					<Trans
+						ns="AddonsConfig"
+						i18nKey="AddonsConfig:pin-config-moved-to-core-text"
+						components={[
+							<a
+								key="0"
+								href="../pin-mapping"
+								className="alert-link"
+								target="_blank"
+							/>,
+						]}
+					/>
+				</div>
 				<Row className="mb-3">
-					<p>
-						{t(
-							'AddonsConfig:socd-cleaning-mode-selection-slider-sub-header-text',
-						)}
-						<br />
-						{t('AddonsConfig:pin-config-moved-to-core-text')}
-					</p>
 					<FormSelect
 						label={t(
 							'AddonsConfig:socd-cleaning-mode-selection-slider-mode-default-label',
@@ -48,7 +72,7 @@ const SOCD = ({ values, errors, handleChange, handleCheckbox }) => {
 						groupClassName="col-sm-3 mb-3"
 						value={values.sliderSOCDModeDefault}
 						error={errors.sliderSOCDModeDefault}
-						isInvalid={errors.sliderSOCDModeDefault}
+						isInvalid={Boolean(errors.sliderSOCDModeDefault)}
 						onChange={handleChange}
 					>
 						{SOCD_MODES.map((o, i) => (
@@ -67,7 +91,7 @@ const SOCD = ({ values, errors, handleChange, handleCheckbox }) => {
 				isInvalid={false}
 				checked={Boolean(values.SliderSOCDInputEnabled)}
 				onChange={(e) => {
-					handleCheckbox('SliderSOCDInputEnabled', values);
+					handleCheckbox('SliderSOCDInputEnabled');
 					handleChange(e);
 				}}
 			/>

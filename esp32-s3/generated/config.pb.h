@@ -11,6 +11,27 @@
 #endif
 
 /* Struct definitions */
+typedef struct _InputModeMapping {
+    /* negative if mapping disabled */
+    bool has_pinMask;
+    int32_t pinMask;
+    bool has_inputMode;
+    InputMode inputMode;
+    bool has_profileNumber;
+    uint32_t profileNumber;
+} InputModeMapping;
+
+typedef struct _BootModeOptions {
+    bool has_enabled;
+    bool enabled;
+    bool has_webConfigPinMask;
+    uint32_t webConfigPinMask;
+    bool has_usbModePinMask;
+    uint32_t usbModePinMask;
+    pb_size_t inputModeMappings_count;
+    InputModeMapping inputModeMappings[8];
+} BootModeOptions;
+
 typedef struct _GamepadOptions {
     bool has_inputMode;
     InputMode inputMode;
@@ -74,6 +95,10 @@ typedef struct _GamepadOptions {
     uint32_t usbProductID;
     bool has_usbVendorID;
     uint32_t usbVendorID;
+    bool has_miniMenuGamepadInput;
+    uint32_t miniMenuGamepadInput;
+    bool has_inputDeviceType;
+    InputModeDeviceType inputDeviceType;
 } GamepadOptions;
 
 typedef struct _KeyboardMapping {
@@ -328,7 +353,7 @@ typedef struct _GpioMappingInfo {
 
 typedef struct _GpioMappings {
     pb_size_t pins_count;
-    GpioMappingInfo pins[30];
+    GpioMappingInfo pins[48];
     bool has_profileLabel;
     char profileLabel[17];
     bool has_enabled;
@@ -366,7 +391,7 @@ typedef struct _ProfileOptions {
     pb_size_t deprecatedAlternativePinMappings_count;
     AlternativePinMappings deprecatedAlternativePinMappings[3];
     pb_size_t gpioMappingsSets_count;
-    GpioMappings gpioMappingsSets[3];
+    GpioMappings gpioMappingsSets[5];
 } ProfileOptions;
 
 typedef PB_BYTES_ARRAY_T(1024) DisplayOptions_splashImage_t;
@@ -407,7 +432,40 @@ typedef struct _DisplayOptions {
     int32_t displaySaverTimeout;
     bool has_turnOffWhenSuspended;
     bool turnOffWhenSuspended;
+    bool has_displaySaverMode;
+    DisplaySaverMode displaySaverMode;
+    bool has_buttonLayoutOrientation;
+    ButtonLayoutOrientation buttonLayoutOrientation;
+    bool has_inputMode;
+    bool inputMode;
+    bool has_turboMode;
+    bool turboMode;
+    bool has_dpadMode;
+    bool dpadMode;
+    bool has_socdMode;
+    bool socdMode;
+    bool has_macroMode;
+    bool macroMode;
+    bool has_profileMode;
+    bool profileMode;
+    bool has_inputHistoryEnabled;
+    bool inputHistoryEnabled;
+    bool has_inputHistoryLength;
+    uint32_t inputHistoryLength;
+    bool has_inputHistoryCol;
+    uint32_t inputHistoryCol;
+    bool has_inputHistoryRow;
+    uint32_t inputHistoryRow;
+    bool has_contrast;
+    uint32_t contrast;
 } DisplayOptions;
+
+typedef struct _LightCluster {
+    bool has_lightLocationData;
+    uint32_t lightLocationData; /* [ledIndex, ledCount, xCoord, yCoord] */
+    bool has_lightTypeData;
+    uint32_t lightTypeData; /* [gpioPin, type, unused, unused] */
+} LightCluster;
 
 typedef struct _LEDOptions {
     bool has_dataPin;
@@ -488,101 +546,71 @@ typedef struct _LEDOptions {
     uint32_t caseRGBColor;
     bool has_caseRGBCount;
     uint32_t caseRGBCount;
+    pb_size_t lightClusterData_count;
+    LightCluster lightClusterData[100]; /* FRAME_MAX (100) */
+    bool has_lightClusterDataInitialised;
+    bool lightClusterDataInitialised;
 } LEDOptions;
 
-/* This has to be kept in sync with AnimationOptions in AnimationStation.hpp */
-typedef struct _AnimationOptions_Proto {
-    bool has_baseAnimationIndex;
-    uint32_t baseAnimationIndex;
+/* This has to be kept in sync with AnimationProfile_Unpacked in AnimationStation.hpp */
+typedef struct _AnimationProfile {
+    bool has_bEnabled;
+    bool bEnabled;
+    bool has_baseNonPressedEffect;
+    AnimationNonPressedEffects baseNonPressedEffect;
+    bool has_basePressedEffect;
+    AnimationPressedEffects basePressedEffect;
+    bool has_baseCycleTime;
+    int32_t baseCycleTime;
+    pb_size_t notPressedStaticColors_count;
+    uint32_t notPressedStaticColors[12]; /* NUM_BANK0_GPIOS/4 from platform_defs.h */
+    pb_size_t pressedStaticColors_count;
+    uint32_t pressedStaticColors[12]; /* NUM_BANK0_GPIOS/4 from platform_defs.h */
+    bool has_buttonPressHoldTimeInMs;
+    uint32_t buttonPressHoldTimeInMs;
+    bool has_buttonPressFadeOutTimeInMs;
+    uint32_t buttonPressFadeOutTimeInMs;
+    bool has_nonPressedSpecialColor;
+    uint32_t nonPressedSpecialColor;
+    bool has_baseCaseEffect;
+    AnimationNonPressedEffects baseCaseEffect;
+    pb_size_t nonButtonStaticColors_count;
+    uint32_t nonButtonStaticColors[8]; /* (MAX_NON_BUTTON_LIGHT_COLOR_INDEXES/4) from AnimationStation.hpp */
+    bool has_pressedSpecialColor;
+    uint32_t pressedSpecialColor;
+    bool has_bUseCaseLightsInSpecialMoves;
+    bool bUseCaseLightsInSpecialMoves;
+    bool has_basePressedCycleTime;
+    int32_t basePressedCycleTime;
+    bool has_bUseCaseLightsInPressedAnimations;
+    bool bUseCaseLightsInPressedAnimations;
+    bool has_baseCaseCycleTime;
+    int32_t baseCaseCycleTime;
+    bool has_bNonPressedSpecialColorIsRainbow;
+    bool bNonPressedSpecialColorIsRainbow;
+    bool has_bPressedSpecialColorIsRainbow;
+    bool bPressedSpecialColorIsRainbow;
+    bool has_bCaseSpecialColorIsRainbow;
+    bool bCaseSpecialColorIsRainbow;
+    bool has_caseSpecialColor;
+    uint32_t caseSpecialColor;
+    bool has_effectContextParam;
+    uint32_t effectContextParam;
+} AnimationProfile;
+
+/* This has to be kept in sync with AnimationOptions_Unpacked in animationstation.hpp */
+typedef struct _AnimationOptions {
     bool has_brightness;
     uint32_t brightness;
-    bool has_staticColorIndex;
-    uint32_t staticColorIndex;
-    bool has_buttonColorIndex;
-    uint32_t buttonColorIndex;
-    bool has_chaseCycleTime;
-    int32_t chaseCycleTime;
-    bool has_rainbowCycleTime;
-    int32_t rainbowCycleTime;
-    bool has_themeIndex;
-    uint32_t themeIndex;
-    bool has_hasCustomTheme;
-    bool hasCustomTheme;
-    bool has_customThemeUp;
-    uint32_t customThemeUp;
-    bool has_customThemeDown;
-    uint32_t customThemeDown;
-    bool has_customThemeLeft;
-    uint32_t customThemeLeft;
-    bool has_customThemeRight;
-    uint32_t customThemeRight;
-    bool has_customThemeB1;
-    uint32_t customThemeB1;
-    bool has_customThemeB2;
-    uint32_t customThemeB2;
-    bool has_customThemeB3;
-    uint32_t customThemeB3;
-    bool has_customThemeB4;
-    uint32_t customThemeB4;
-    bool has_customThemeL1;
-    uint32_t customThemeL1;
-    bool has_customThemeR1;
-    uint32_t customThemeR1;
-    bool has_customThemeL2;
-    uint32_t customThemeL2;
-    bool has_customThemeR2;
-    uint32_t customThemeR2;
-    bool has_customThemeS1;
-    uint32_t customThemeS1;
-    bool has_customThemeS2;
-    uint32_t customThemeS2;
-    bool has_customThemeL3;
-    uint32_t customThemeL3;
-    bool has_customThemeR3;
-    uint32_t customThemeR3;
-    bool has_customThemeA1;
-    uint32_t customThemeA1;
-    bool has_customThemeA2;
-    uint32_t customThemeA2;
-    bool has_customThemeUpPressed;
-    uint32_t customThemeUpPressed;
-    bool has_customThemeDownPressed;
-    uint32_t customThemeDownPressed;
-    bool has_customThemeLeftPressed;
-    uint32_t customThemeLeftPressed;
-    bool has_customThemeRightPressed;
-    uint32_t customThemeRightPressed;
-    bool has_customThemeB1Pressed;
-    uint32_t customThemeB1Pressed;
-    bool has_customThemeB2Pressed;
-    uint32_t customThemeB2Pressed;
-    bool has_customThemeB3Pressed;
-    uint32_t customThemeB3Pressed;
-    bool has_customThemeB4Pressed;
-    uint32_t customThemeB4Pressed;
-    bool has_customThemeL1Pressed;
-    uint32_t customThemeL1Pressed;
-    bool has_customThemeR1Pressed;
-    uint32_t customThemeR1Pressed;
-    bool has_customThemeL2Pressed;
-    uint32_t customThemeL2Pressed;
-    bool has_customThemeR2Pressed;
-    uint32_t customThemeR2Pressed;
-    bool has_customThemeS1Pressed;
-    uint32_t customThemeS1Pressed;
-    bool has_customThemeS2Pressed;
-    uint32_t customThemeS2Pressed;
-    bool has_customThemeL3Pressed;
-    uint32_t customThemeL3Pressed;
-    bool has_customThemeR3Pressed;
-    uint32_t customThemeR3Pressed;
-    bool has_customThemeA1Pressed;
-    uint32_t customThemeA1Pressed;
-    bool has_customThemeA2Pressed;
-    uint32_t customThemeA2Pressed;
-    bool has_buttonPressColorCooldownTimeInMs;
-    uint32_t buttonPressColorCooldownTimeInMs;
-} AnimationOptions_Proto;
+    pb_size_t profiles_count;
+    AnimationProfile profiles[4]; /* MAX_ANIMATION_PROFILES from AnimationStation.hpp */
+    bool has_baseProfileIndex;
+    int32_t baseProfileIndex;
+    pb_size_t customColors_count;
+    uint32_t customColors[16]; /* MAX_CUSTOM_COLORS from Animation.hpp */
+    bool has_autoDisableTime;
+    uint32_t autoDisableTime;
+} AnimationOptions;
 
 typedef struct _BootselButtonOptions {
     bool has_enabled;
@@ -631,6 +659,28 @@ typedef struct _AnalogOptions {
     float smoothing_factor;
     bool has_analog_error;
     uint32_t analog_error;
+    bool has_analog_smoothing2;
+    bool analog_smoothing2;
+    bool has_smoothing_factor2;
+    float smoothing_factor2;
+    bool has_analog_error2;
+    uint32_t analog_error2;
+    bool has_inner_deadzone2;
+    uint32_t inner_deadzone2;
+    bool has_outer_deadzone2;
+    uint32_t outer_deadzone2;
+    bool has_auto_calibrate2;
+    bool auto_calibrate2;
+    bool has_forced_circularity2;
+    bool forced_circularity2;
+    bool has_joystick_center_x;
+    uint32_t joystick_center_x;
+    bool has_joystick_center_y;
+    uint32_t joystick_center_y;
+    bool has_joystick_center_x2;
+    uint32_t joystick_center_x2;
+    bool has_joystick_center_y2;
+    uint32_t joystick_center_y2;
 } AnalogOptions;
 
 typedef struct _TurboOptions {
@@ -710,6 +760,17 @@ typedef struct _SOCDSliderOptions {
     SOCDMode deprecatedModeTwo;
 } SOCDSliderOptions;
 
+typedef struct _ProfileSliderOptions {
+    bool has_enabled;
+    bool enabled;
+    bool has_numPositions;
+    uint32_t numPositions;
+    bool has_defaultProfile;
+    uint32_t defaultProfile;
+    pb_size_t profileAssignments_count;
+    uint32_t profileAssignments[8];
+} ProfileSliderOptions;
+
 typedef struct _ReverseOptions {
     bool has_enabled;
     bool enabled;
@@ -726,6 +787,53 @@ typedef struct _ReverseOptions {
     bool has_actionRight;
     uint32_t actionRight;
 } ReverseOptions;
+
+typedef struct _AnalogADS1115Options {
+    bool has_enabled;
+    bool enabled;
+    bool has_channel_enabled;
+    uint32_t channel_enabled;
+    bool has_channel_inner_deadzone_enabled;
+    uint32_t channel_inner_deadzone_enabled;
+    bool has_channel_outer_deadzone_enabled;
+    uint32_t channel_outer_deadzone_enabled;
+    bool has_left_stick_deadzone_enabled;
+    bool left_stick_deadzone_enabled;
+    bool has_right_stick_deadzone_enabled;
+    bool right_stick_deadzone_enabled;
+    bool has_channel0InnerDeadzone;
+    uint32_t channel0InnerDeadzone;
+    bool has_channel1InnerDeadzone;
+    uint32_t channel1InnerDeadzone;
+    bool has_channel2InnerDeadzone;
+    uint32_t channel2InnerDeadzone;
+    bool has_channel3InnerDeadzone;
+    uint32_t channel3InnerDeadzone;
+    bool has_channel0OuterDeadzone;
+    uint32_t channel0OuterDeadzone;
+    bool has_channel1OuterDeadzone;
+    uint32_t channel1OuterDeadzone;
+    bool has_channel2OuterDeadzone;
+    uint32_t channel2OuterDeadzone;
+    bool has_channel3OuterDeadzone;
+    uint32_t channel3OuterDeadzone;
+    bool has_leftStickDeadzone;
+    uint32_t leftStickDeadzone;
+    bool has_rightStickDeadzone;
+    uint32_t rightStickDeadzone;
+    bool has_invert_enabled;
+    uint32_t invert_enabled;
+    bool has_autoCalibrate;
+    uint32_t autoCalibrate;
+    bool has_lxChannel;
+    uint32_t lxChannel;
+    bool has_lyChannel;
+    uint32_t lyChannel;
+    bool has_rxChannel;
+    uint32_t rxChannel;
+    bool has_ryChannel;
+    uint32_t ryChannel;
+} AnalogADS1115Options;
 
 typedef struct _AnalogADS1219Options {
     bool has_enabled;
@@ -1097,6 +1205,23 @@ typedef struct _SNESOptions {
     int32_t dataPin;
 } SNESOptions;
 
+typedef struct _TG16Options {
+    bool has_enabled;
+    bool enabled;
+    bool has_oePin;
+    int32_t oePin;
+    bool has_selectPin;
+    int32_t selectPin;
+    bool has_dataPin0;
+    int32_t dataPin0;
+    bool has_dataPin1;
+    int32_t dataPin1;
+    bool has_dataPin2;
+    int32_t dataPin2;
+    bool has_dataPin3;
+    int32_t dataPin3;
+} TG16Options;
+
 typedef struct _KeyboardHostOptions {
     bool has_enabled;
     bool enabled;
@@ -1112,6 +1237,10 @@ typedef struct _KeyboardHostOptions {
     uint32_t mouseMiddle;
     bool has_mouseRight;
     uint32_t mouseRight;
+    bool has_mouseSensitivity;
+    uint32_t mouseSensitivity;
+    bool has_movementMode;
+    MouseMovementMode movementMode;
 } KeyboardHostOptions;
 
 typedef struct _GamepadUSBHostOptions {
@@ -1134,6 +1263,8 @@ typedef struct _FocusModeOptions {
     bool buttonLockEnabled;
     bool has_macroLockEnabled;
     bool macroLockEnabled;
+    bool has_overrideEnabled;
+    bool overrideEnabled;
 } FocusModeOptions;
 
 typedef struct _MacroInput {
@@ -1180,14 +1311,14 @@ typedef struct _MacroOptions {
 } MacroOptions;
 
 typedef struct _InputHistoryOptions {
-    bool has_enabled;
-    bool enabled;
-    bool has_length;
-    uint32_t length;
-    bool has_col;
-    uint32_t col;
-    bool has_row;
-    uint32_t row;
+    bool has_deprecatedEnabled;
+    bool deprecatedEnabled;
+    bool has_deprecatedLength;
+    uint32_t deprecatedLength;
+    bool has_deprecatedCol;
+    uint32_t deprecatedCol;
+    bool has_deprecatedRow;
+    uint32_t deprecatedRow;
 } InputHistoryOptions;
 
 typedef struct _RotaryPinOptions {
@@ -1262,6 +1393,56 @@ typedef struct _ReactiveLEDOptions {
     ReactiveLEDInfo leds[10];
 } ReactiveLEDOptions;
 
+typedef struct _HETriggerInfo {
+    bool has_action;
+    GpioAction action;
+    bool has_active;
+    int32_t active;
+    bool has_idle;
+    int32_t idle;
+    bool has_pressed;
+    int32_t pressed;
+    bool has_polarity;
+    int32_t polarity;
+    bool has_release;
+    int32_t release;
+    bool has_noise;
+    int32_t noise;
+    bool has_rapidTrigger;
+    bool rapidTrigger;
+    bool has_is_polarized;
+    bool is_polarized;
+} HETriggerInfo;
+
+typedef struct _HETriggerOptions {
+    bool has_enabled;
+    bool enabled;
+    bool has_selectPin0;
+    int32_t selectPin0;
+    bool has_selectPin1;
+    int32_t selectPin1;
+    bool has_selectPin2;
+    int32_t selectPin2;
+    bool has_selectPin3;
+    int32_t selectPin3;
+    bool has_muxADCPin0;
+    int32_t muxADCPin0;
+    bool has_muxADCPin1;
+    int32_t muxADCPin1;
+    bool has_muxADCPin2;
+    int32_t muxADCPin2;
+    bool has_muxADCPin3;
+    int32_t muxADCPin3;
+    bool has_muxChannels;
+    int32_t muxChannels;
+    pb_size_t triggers_count;
+    HETriggerInfo triggers[32];
+    bool has_emaSmoothing;
+    bool emaSmoothing;
+    bool has_smoothingFactor;
+    int32_t smoothingFactor;
+} HETriggerOptions;
+
 typedef struct _AddonOptions {
     bool has_bootselButtonOptions;
     BootselButtonOptions bootselButtonOptions;
@@ -1319,6 +1500,14 @@ typedef struct _AddonOptions {
     ReactiveLEDOptions reactiveLEDOptions;
     bool has_gamepadUSBHostOptions;
     GamepadUSBHostOptions gamepadUSBHostOptions;
+    bool has_tg16Options;
+    TG16Options tg16Options;
+    bool has_heTriggerOptions;
+    HETriggerOptions heTriggerOptions;
+    bool has_profileSliderOptions;
+    ProfileSliderOptions profileSliderOptions;
+    bool has_analogADS1115Options;
+    AnalogADS1115Options analogADS1115Options;
 } AddonOptions;
 
 typedef struct _MigrationHistory {
@@ -1348,7 +1537,7 @@ typedef struct _Config {
     bool has_ledOptions;
     LEDOptions ledOptions;
     bool has_animationOptions;
-    AnimationOptions_Proto animationOptions;
+    AnimationOptions animationOptions;
     bool has_addonOptions;
     AddonOptions addonOptions;
     bool has_forcedSetupOptions;
@@ -1363,6 +1552,8 @@ typedef struct _Config {
     MigrationHistory migrations;
     bool has_peripheralOptions;
     PeripheralOptions peripheralOptions;
+    bool has_bootModeOptions;
+    BootModeOptions bootModeOptions;
 } Config;
 
 
@@ -1371,6 +1562,7 @@ extern "C" {
 #endif
 
 /* Defines to allow user code to refer to enum type of a specific field */
+#define InputModeMapping_inputMode_ENUMTYPE InputMode
 #define GamepadOptions_inputMode_ENUMTYPE InputMode
 #define GamepadOptions_dpadMode_ENUMTYPE DpadMode
 #define GamepadOptions_socdMode_ENUMTYPE SOCDMode
@@ -1379,6 +1571,7 @@ extern "C" {
 #define GamepadOptions_ps5AuthType_ENUMTYPE InputModeAuthType
 #define GamepadOptions_xinputAuthType_ENUMTYPE InputModeAuthType
 #define GamepadOptions_ps4ControllerIDMode_ENUMTYPE PS4ControllerIDMode
+#define GamepadOptions_inputDeviceType_ENUMTYPE InputModeDeviceType
 #define HotkeyEntry_action_ENUMTYPE GamepadHotkey
 #define ForcedSetupOptions_mode_ENUMTYPE ForcedSetupMode
 #define ButtonLayoutParamsLeft_layout_ENUMTYPE ButtonLayout
@@ -1389,10 +1582,15 @@ extern "C" {
 #define DisplayOptions_buttonLayoutRight_ENUMTYPE ButtonLayoutRight
 #define DisplayOptions_splashMode_ENUMTYPE SplashMode
 #define DisplayOptions_splashChoice_ENUMTYPE SplashChoice
+#define DisplayOptions_displaySaverMode_ENUMTYPE DisplaySaverMode
+#define DisplayOptions_buttonLayoutOrientation_ENUMTYPE ButtonLayoutOrientation
 #define LEDOptions_ledFormat_ENUMTYPE LEDFormat_Proto
 #define LEDOptions_ledLayout_ENUMTYPE ButtonLayout
 #define LEDOptions_pledType_ENUMTYPE PLEDType
 #define LEDOptions_caseRGBType_ENUMTYPE CaseRGBType
+#define AnimationProfile_baseNonPressedEffect_ENUMTYPE AnimationNonPressedEffects
+#define AnimationProfile_basePressedEffect_ENUMTYPE AnimationPressedEffects
+#define AnimationProfile_baseCaseEffect_ENUMTYPE AnimationNonPressedEffects
 #define OnBoardLedOptions_mode_ENUMTYPE OnBoardLedMode
 #define AnalogOptions_analogAdc1Mode_ENUMTYPE DpadMode
 #define AnalogOptions_analogAdc2Mode_ENUMTYPE DpadMode
@@ -1409,14 +1607,18 @@ extern "C" {
 #define DualDirectionalOptions_dpadMode_ENUMTYPE DpadMode
 #define DualDirectionalOptions_combineMode_ENUMTYPE DualDirectionalCombinationMode
 #define TiltOptions_tiltSOCDMode_ENUMTYPE SOCDMode
+#define KeyboardHostOptions_movementMode_ENUMTYPE MouseMovementMode
 #define Macro_macroType_ENUMTYPE MacroType
 #define RotaryPinOptions_mode_ENUMTYPE RotaryEncoderPinMode
 #define ReactiveLEDInfo_action_ENUMTYPE GpioAction
 #define ReactiveLEDInfo_modeDown_ENUMTYPE ReactiveLEDMode
 #define ReactiveLEDInfo_modeUp_ENUMTYPE ReactiveLEDMode
+#define HETriggerInfo_action_ENUMTYPE GpioAction
 
 /* Initializer values for message structs */
-#define GamepadOptions_init_default              {false, _InputMode_MIN, false, _DpadMode_MIN, false, _SOCDMode_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _PS4ControllerType_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _InputModeAuthType_MIN, false, _InputModeAuthType_MIN, false, _InputModeAuthType_MIN, false, _PS4ControllerIDMode_MIN, false, 0, false, "", false, "", false, "", false, 0, false, 0, false, 0}
+#define InputModeMapping_init_default            {false, 0, false, _InputMode_MIN, false, 0}
+#define BootModeOptions_init_default             {false, 0, false, 0, false, 0, 0, {InputModeMapping_init_default, InputModeMapping_init_default, InputModeMapping_init_default, InputModeMapping_init_default, InputModeMapping_init_default, InputModeMapping_init_default, InputModeMapping_init_default, InputModeMapping_init_default}}
+#define GamepadOptions_init_default              {false, _InputMode_MIN, false, _DpadMode_MIN, false, _SOCDMode_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _PS4ControllerType_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _InputModeAuthType_MIN, false, _InputModeAuthType_MIN, false, _InputModeAuthType_MIN, false, _PS4ControllerIDMode_MIN, false, 0, false, "", false, "", false, "", false, 0, false, 0, false, 0, false, 0, false, _InputModeDeviceType_MIN}
 #define KeyboardMapping_init_default             {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define HotkeyEntry_init_default                 {false, 0, false, _GamepadHotkey_MIN, false, 0, false, 0}
 #define HotkeyOptions_init_default               {false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default, false, HotkeyEntry_init_default}
@@ -1431,19 +1633,23 @@ extern "C" {
 #define ButtonLayoutCustomOptions_init_default   {false, ButtonLayoutParamsLeft_init_default, false, ButtonLayoutParamsRight_init_default}
 #define PinMappings_init_default                 {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define GpioMappingInfo_init_default             {false, _GpioAction_MIN, false, _GpioDirection_MIN, false, 0, false, 0}
-#define GpioMappings_init_default                {0, {GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default}, false, "", false, false}
+#define GpioMappings_init_default                {0, {GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default}, false, "", false, false}
 #define AlternativePinMappings_init_default      {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
-#define ProfileOptions_init_default              {0, {AlternativePinMappings_init_default, AlternativePinMappings_init_default, AlternativePinMappings_init_default}, 0, {GpioMappings_init_default, GpioMappings_init_default, GpioMappings_init_default}}
-#define DisplayOptions_init_default              {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _ButtonLayout_MIN, false, _ButtonLayoutRight_MIN, false, ButtonLayoutCustomOptions_init_default, false, _SplashMode_MIN, false, _SplashChoice_MIN, false, 0, false, {0, {0}}, false, 0, false, 0, false, 0, false, 0, false, 0}
-#define LEDOptions_init_default                  {false, 0, false, _LEDFormat_Proto_MIN, false, _ButtonLayout_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _PLEDType_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _CaseRGBType_MIN, false, 0, false, 0, false, 0}
-#define AnimationOptions_Proto_init_default      {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define ProfileOptions_init_default              {0, {AlternativePinMappings_init_default, AlternativePinMappings_init_default, AlternativePinMappings_init_default}, 0, {GpioMappings_init_default, GpioMappings_init_default, GpioMappings_init_default, GpioMappings_init_default, GpioMappings_init_default}}
+#define DisplayOptions_init_default              {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _ButtonLayout_MIN, false, _ButtonLayoutRight_MIN, false, ButtonLayoutCustomOptions_init_default, false, _SplashMode_MIN, false, _SplashChoice_MIN, false, 0, false, {0, {0}}, false, 0, false, 0, false, 0, false, 0, false, 0, false, _DisplaySaverMode_MIN, false, _ButtonLayoutOrientation_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define LightCluster_init_default                {false, 0, false, 0}
+#define LEDOptions_init_default                  {false, 0, false, _LEDFormat_Proto_MIN, false, _ButtonLayout_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _PLEDType_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _CaseRGBType_MIN, false, 0, false, 0, false, 0, 0, {LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default}, false, 0}
+#define AnimationProfile_init_default            {false, 0, false, _AnimationNonPressedEffects_MIN, false, _AnimationPressedEffects_MIN, false, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false, 0, false, 0, false, 0, false, _AnimationNonPressedEffects_MIN, 0, {0, 0, 0, 0, 0, 0, 0, 0}, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define AnimationOptions_init_default            {false, 0, 0, {AnimationProfile_init_default, AnimationProfile_init_default, AnimationProfile_init_default, AnimationProfile_init_default}, false, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false, 0}
 #define BootselButtonOptions_init_default        {false, 0, false, 0}
 #define OnBoardLedOptions_init_default           {false, _OnBoardLedMode_MIN, false, 0}
-#define AnalogOptions_init_default               {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _DpadMode_MIN, false, _DpadMode_MIN, false, _InvertMode_MIN, false, _InvertMode_MIN, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define AnalogOptions_init_default               {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _DpadMode_MIN, false, _DpadMode_MIN, false, _InvertMode_MIN, false, _InvertMode_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define TurboOptions_init_default                {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _ShmupMixMode_MIN, false, _PLEDType_MIN, false, 0, false, 0}
 #define SliderOptions_init_default               {false, 0, false, 0, false, 0, false, _DpadMode_MIN, false, _DpadMode_MIN, false, _DpadMode_MIN}
 #define SOCDSliderOptions_init_default           {false, 0, false, 0, false, 0, false, _SOCDMode_MIN, false, _SOCDMode_MIN, false, _SOCDMode_MIN}
+#define ProfileSliderOptions_init_default        {false, 0, false, 0, false, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}}
 #define ReverseOptions_init_default              {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define AnalogADS1115Options_init_default        {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define AnalogADS1219Options_init_default        {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define AnalogADS1256Options_init_default        {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define DualDirectionalOptions_init_default      {false, 0, false, 0, false, 0, false, 0, false, 0, false, _DpadMode_MIN, false, _DualDirectionalCombinationMode_MIN, false, 0}
@@ -1465,9 +1671,10 @@ extern "C" {
 #define WiiOptions_TurntableOptions_init_default {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, WiiOptions_StickOptions_init_default, false, WiiOptions_AnalogAxis_init_default, false, WiiOptions_AnalogAxis_init_default, false, WiiOptions_AnalogAxis_init_default, false, WiiOptions_AnalogAxis_init_default}
 #define WiiOptions_ControllerOptions_init_default {false, WiiOptions_NunchukOptions_init_default, false, WiiOptions_ClassicOptions_init_default, false, WiiOptions_TaikoOptions_init_default, false, WiiOptions_GuitarOptions_init_default, false, WiiOptions_DrumOptions_init_default, false, WiiOptions_TurntableOptions_init_default}
 #define SNESOptions_init_default                 {false, 0, false, 0, false, 0, false, 0}
-#define KeyboardHostOptions_init_default         {false, 0, false, 0, false, KeyboardMapping_init_default, false, 0, false, 0, false, 0, false, 0}
+#define TG16Options_init_default                 {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define KeyboardHostOptions_init_default         {false, 0, false, 0, false, KeyboardMapping_init_default, false, 0, false, 0, false, 0, false, 0, false, 0, false, _MouseMovementMode_MIN}
 #define GamepadUSBHostOptions_init_default       {false, 0}
-#define FocusModeOptions_init_default            {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define FocusModeOptions_init_default            {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define MacroInput_init_default                  {false, 0, false, 0, false, 0u}
 #define Macro_init_default                       {false, _MacroType_MIN, false, "", 0, {MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default, MacroInput_init_default}, false, 0, false, 0, false, 0, false, 0, false, true, false, true, false, false}
 #define MacroOptions_init_default                {false, 0, false, 0, 0, {Macro_init_default, Macro_init_default, Macro_init_default, Macro_init_default, Macro_init_default, Macro_init_default}, false, 0}
@@ -1478,10 +1685,14 @@ extern "C" {
 #define DRV8833RumbleOptions_init_default        {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define ReactiveLEDInfo_init_default             {false, 0, false, _GpioAction_MIN, false, _ReactiveLEDMode_MIN, false, _ReactiveLEDMode_MIN}
 #define ReactiveLEDOptions_init_default          {false, 0, 0, {ReactiveLEDInfo_init_default, ReactiveLEDInfo_init_default, ReactiveLEDInfo_init_default, ReactiveLEDInfo_init_default, ReactiveLEDInfo_init_default, ReactiveLEDInfo_init_default, ReactiveLEDInfo_init_default, ReactiveLEDInfo_init_default, ReactiveLEDInfo_init_default, ReactiveLEDInfo_init_default}}
-#define AddonOptions_init_default                {false, BootselButtonOptions_init_default, false, OnBoardLedOptions_init_default, false, AnalogOptions_init_default, false, TurboOptions_init_default, false, SliderOptions_init_default, false, ReverseOptions_init_default, false, AnalogADS1219Options_init_default, false, DualDirectionalOptions_init_default, false, BuzzerOptions_init_default, false, ExtraButtonOptions_init_default, false, PlayerNumberOptions_init_default, false, PS4Options_init_default, false, WiiOptions_init_default, false, SOCDSliderOptions_init_default, false, SNESOptions_init_default, false, FocusModeOptions_init_default, false, KeyboardHostOptions_init_default, false, TiltOptions_init_default, false, PSPassthroughOptions_init_default, false, MacroOptions_init_default, false, InputHistoryOptions_init_default, false, XBOnePassthroughOptions_init_default, false, AnalogADS1256Options_init_default, false, RotaryOptions_init_default, false, PCF8575Options_init_default, false, DRV8833RumbleOptions_init_default, false, ReactiveLEDOptions_init_default, false, GamepadUSBHostOptions_init_default}
+#define HETriggerInfo_init_default               {false, _GpioAction_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define HETriggerOptions_init_default            {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, 0, {HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default}, false, 0, false, 0}
+#define AddonOptions_init_default                {false, BootselButtonOptions_init_default, false, OnBoardLedOptions_init_default, false, AnalogOptions_init_default, false, TurboOptions_init_default, false, SliderOptions_init_default, false, ReverseOptions_init_default, false, AnalogADS1219Options_init_default, false, DualDirectionalOptions_init_default, false, BuzzerOptions_init_default, false, ExtraButtonOptions_init_default, false, PlayerNumberOptions_init_default, false, PS4Options_init_default, false, WiiOptions_init_default, false, SOCDSliderOptions_init_default, false, SNESOptions_init_default, false, FocusModeOptions_init_default, false, KeyboardHostOptions_init_default, false, TiltOptions_init_default, false, PSPassthroughOptions_init_default, false, MacroOptions_init_default, false, InputHistoryOptions_init_default, false, XBOnePassthroughOptions_init_default, false, AnalogADS1256Options_init_default, false, RotaryOptions_init_default, false, PCF8575Options_init_default, false, DRV8833RumbleOptions_init_default, false, ReactiveLEDOptions_init_default, false, GamepadUSBHostOptions_init_default, false, TG16Options_init_default, false, HETriggerOptions_init_default, false, ProfileSliderOptions_init_default, false, AnalogADS1115Options_init_default}
 #define MigrationHistory_init_default            {false, false, false, false, false, false, false, false}
-#define Config_init_default                      {false, "", false, GamepadOptions_init_default, false, HotkeyOptions_init_default, false, PinMappings_init_default, false, KeyboardMapping_init_default, false, DisplayOptions_init_default, false, LEDOptions_init_default, false, AnimationOptions_Proto_init_default, false, AddonOptions_init_default, false, ForcedSetupOptions_init_default, false, ProfileOptions_init_default, false, "", false, GpioMappings_init_default, false, MigrationHistory_init_default, false, PeripheralOptions_init_default}
-#define GamepadOptions_init_zero                 {false, _InputMode_MIN, false, _DpadMode_MIN, false, _SOCDMode_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _PS4ControllerType_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _InputModeAuthType_MIN, false, _InputModeAuthType_MIN, false, _InputModeAuthType_MIN, false, _PS4ControllerIDMode_MIN, false, 0, false, "", false, "", false, "", false, 0, false, 0, false, 0}
+#define Config_init_default                      {false, "", false, GamepadOptions_init_default, false, HotkeyOptions_init_default, false, PinMappings_init_default, false, KeyboardMapping_init_default, false, DisplayOptions_init_default, false, LEDOptions_init_default, false, AnimationOptions_init_default, false, AddonOptions_init_default, false, ForcedSetupOptions_init_default, false, ProfileOptions_init_default, false, "", false, GpioMappings_init_default, false, MigrationHistory_init_default, false, PeripheralOptions_init_default, false, BootModeOptions_init_default}
+#define InputModeMapping_init_zero               {false, 0, false, _InputMode_MIN, false, 0}
+#define BootModeOptions_init_zero                {false, 0, false, 0, false, 0, 0, {InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero}}
+#define GamepadOptions_init_zero                 {false, _InputMode_MIN, false, _DpadMode_MIN, false, _SOCDMode_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _PS4ControllerType_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _InputModeAuthType_MIN, false, _InputModeAuthType_MIN, false, _InputModeAuthType_MIN, false, _PS4ControllerIDMode_MIN, false, 0, false, "", false, "", false, "", false, 0, false, 0, false, 0, false, 0, false, _InputModeDeviceType_MIN}
 #define KeyboardMapping_init_zero                {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define HotkeyEntry_init_zero                    {false, 0, false, _GamepadHotkey_MIN, false, 0, false, 0}
 #define HotkeyOptions_init_zero                  {false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero, false, HotkeyEntry_init_zero}
@@ -1496,19 +1707,23 @@ extern "C" {
 #define ButtonLayoutCustomOptions_init_zero      {false, ButtonLayoutParamsLeft_init_zero, false, ButtonLayoutParamsRight_init_zero}
 #define PinMappings_init_zero                    {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define GpioMappingInfo_init_zero                {false, _GpioAction_MIN, false, _GpioDirection_MIN, false, 0, false, 0}
-#define GpioMappings_init_zero                   {0, {GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero}, false, "", false, 0}
+#define GpioMappings_init_zero                   {0, {GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero}, false, "", false, 0}
 #define AlternativePinMappings_init_zero         {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
-#define ProfileOptions_init_zero                 {0, {AlternativePinMappings_init_zero, AlternativePinMappings_init_zero, AlternativePinMappings_init_zero}, 0, {GpioMappings_init_zero, GpioMappings_init_zero, GpioMappings_init_zero}}
-#define DisplayOptions_init_zero                 {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _ButtonLayout_MIN, false, _ButtonLayoutRight_MIN, false, ButtonLayoutCustomOptions_init_zero, false, _SplashMode_MIN, false, _SplashChoice_MIN, false, 0, false, {0, {0}}, false, 0, false, 0, false, 0, false, 0, false, 0}
-#define LEDOptions_init_zero                     {false, 0, false, _LEDFormat_Proto_MIN, false, _ButtonLayout_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _PLEDType_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _CaseRGBType_MIN, false, 0, false, 0, false, 0}
-#define AnimationOptions_Proto_init_zero         {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define ProfileOptions_init_zero                 {0, {AlternativePinMappings_init_zero, AlternativePinMappings_init_zero, AlternativePinMappings_init_zero}, 0, {GpioMappings_init_zero, GpioMappings_init_zero, GpioMappings_init_zero, GpioMappings_init_zero, GpioMappings_init_zero}}
+#define DisplayOptions_init_zero                 {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _ButtonLayout_MIN, false, _ButtonLayoutRight_MIN, false, ButtonLayoutCustomOptions_init_zero, false, _SplashMode_MIN, false, _SplashChoice_MIN, false, 0, false, {0, {0}}, false, 0, false, 0, false, 0, false, 0, false, 0, false, _DisplaySaverMode_MIN, false, _ButtonLayoutOrientation_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define LightCluster_init_zero                   {false, 0, false, 0}
+#define LEDOptions_init_zero                     {false, 0, false, _LEDFormat_Proto_MIN, false, _ButtonLayout_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _PLEDType_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _CaseRGBType_MIN, false, 0, false, 0, false, 0, 0, {LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero}, false, 0}
+#define AnimationProfile_init_zero               {false, 0, false, _AnimationNonPressedEffects_MIN, false, _AnimationPressedEffects_MIN, false, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false, 0, false, 0, false, 0, false, _AnimationNonPressedEffects_MIN, 0, {0, 0, 0, 0, 0, 0, 0, 0}, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define AnimationOptions_init_zero               {false, 0, 0, {AnimationProfile_init_zero, AnimationProfile_init_zero, AnimationProfile_init_zero, AnimationProfile_init_zero}, false, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false, 0}
 #define BootselButtonOptions_init_zero           {false, 0, false, 0}
 #define OnBoardLedOptions_init_zero              {false, _OnBoardLedMode_MIN, false, 0}
-#define AnalogOptions_init_zero                  {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _DpadMode_MIN, false, _DpadMode_MIN, false, _InvertMode_MIN, false, _InvertMode_MIN, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define AnalogOptions_init_zero                  {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _DpadMode_MIN, false, _DpadMode_MIN, false, _InvertMode_MIN, false, _InvertMode_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define TurboOptions_init_zero                   {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _ShmupMixMode_MIN, false, _PLEDType_MIN, false, 0, false, 0}
 #define SliderOptions_init_zero                  {false, 0, false, 0, false, 0, false, _DpadMode_MIN, false, _DpadMode_MIN, false, _DpadMode_MIN}
 #define SOCDSliderOptions_init_zero              {false, 0, false, 0, false, 0, false, _SOCDMode_MIN, false, _SOCDMode_MIN, false, _SOCDMode_MIN}
+#define ProfileSliderOptions_init_zero           {false, 0, false, 0, false, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}}
 #define ReverseOptions_init_zero                 {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define AnalogADS1115Options_init_zero           {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define AnalogADS1219Options_init_zero           {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define AnalogADS1256Options_init_zero           {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define DualDirectionalOptions_init_zero         {false, 0, false, 0, false, 0, false, 0, false, 0, false, _DpadMode_MIN, false, _DualDirectionalCombinationMode_MIN, false, 0}
@@ -1530,9 +1745,10 @@ extern "C" {
 #define WiiOptions_TurntableOptions_init_zero    {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, WiiOptions_StickOptions_init_zero, false, WiiOptions_AnalogAxis_init_zero, false, WiiOptions_AnalogAxis_init_zero, false, WiiOptions_AnalogAxis_init_zero, false, WiiOptions_AnalogAxis_init_zero}
 #define WiiOptions_ControllerOptions_init_zero   {false, WiiOptions_NunchukOptions_init_zero, false, WiiOptions_ClassicOptions_init_zero, false, WiiOptions_TaikoOptions_init_zero, false, WiiOptions_GuitarOptions_init_zero, false, WiiOptions_DrumOptions_init_zero, false, WiiOptions_TurntableOptions_init_zero}
 #define SNESOptions_init_zero                    {false, 0, false, 0, false, 0, false, 0}
-#define KeyboardHostOptions_init_zero            {false, 0, false, 0, false, KeyboardMapping_init_zero, false, 0, false, 0, false, 0, false, 0}
+#define TG16Options_init_zero                    {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define KeyboardHostOptions_init_zero            {false, 0, false, 0, false, KeyboardMapping_init_zero, false, 0, false, 0, false, 0, false, 0, false, 0, false, _MouseMovementMode_MIN}
 #define GamepadUSBHostOptions_init_zero          {false, 0}
-#define FocusModeOptions_init_zero               {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define FocusModeOptions_init_zero               {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define MacroInput_init_zero                     {false, 0, false, 0, false, 0}
 #define Macro_init_zero                          {false, _MacroType_MIN, false, "", 0, {MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero, MacroInput_init_zero}, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define MacroOptions_init_zero                   {false, 0, false, 0, 0, {Macro_init_zero, Macro_init_zero, Macro_init_zero, Macro_init_zero, Macro_init_zero, Macro_init_zero}, false, 0}
@@ -1543,11 +1759,20 @@ extern "C" {
 #define DRV8833RumbleOptions_init_zero           {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define ReactiveLEDInfo_init_zero                {false, 0, false, _GpioAction_MIN, false, _ReactiveLEDMode_MIN, false, _ReactiveLEDMode_MIN}
 #define ReactiveLEDOptions_init_zero             {false, 0, 0, {ReactiveLEDInfo_init_zero, ReactiveLEDInfo_init_zero, ReactiveLEDInfo_init_zero, ReactiveLEDInfo_init_zero, ReactiveLEDInfo_init_zero, ReactiveLEDInfo_init_zero, ReactiveLEDInfo_init_zero, ReactiveLEDInfo_init_zero, ReactiveLEDInfo_init_zero, ReactiveLEDInfo_init_zero}}
-#define AddonOptions_init_zero                   {false, BootselButtonOptions_init_zero, false, OnBoardLedOptions_init_zero, false, AnalogOptions_init_zero, false, TurboOptions_init_zero, false, SliderOptions_init_zero, false, ReverseOptions_init_zero, false, AnalogADS1219Options_init_zero, false, DualDirectionalOptions_init_zero, false, BuzzerOptions_init_zero, false, ExtraButtonOptions_init_zero, false, PlayerNumberOptions_init_zero, false, PS4Options_init_zero, false, WiiOptions_init_zero, false, SOCDSliderOptions_init_zero, false, SNESOptions_init_zero, false, FocusModeOptions_init_zero, false, KeyboardHostOptions_init_zero, false, TiltOptions_init_zero, false, PSPassthroughOptions_init_zero, false, MacroOptions_init_zero, false, InputHistoryOptions_init_zero, false, XBOnePassthroughOptions_init_zero, false, AnalogADS1256Options_init_zero, false, RotaryOptions_init_zero, false, PCF8575Options_init_zero, false, DRV8833RumbleOptions_init_zero, false, ReactiveLEDOptions_init_zero, false, GamepadUSBHostOptions_init_zero}
+#define HETriggerInfo_init_zero                  {false, _GpioAction_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define HETriggerOptions_init_zero               {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, 0, {HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero}, false, 0, false, 0}
+#define AddonOptions_init_zero                   {false, BootselButtonOptions_init_zero, false, OnBoardLedOptions_init_zero, false, AnalogOptions_init_zero, false, TurboOptions_init_zero, false, SliderOptions_init_zero, false, ReverseOptions_init_zero, false, AnalogADS1219Options_init_zero, false, DualDirectionalOptions_init_zero, false, BuzzerOptions_init_zero, false, ExtraButtonOptions_init_zero, false, PlayerNumberOptions_init_zero, false, PS4Options_init_zero, false, WiiOptions_init_zero, false, SOCDSliderOptions_init_zero, false, SNESOptions_init_zero, false, FocusModeOptions_init_zero, false, KeyboardHostOptions_init_zero, false, TiltOptions_init_zero, false, PSPassthroughOptions_init_zero, false, MacroOptions_init_zero, false, InputHistoryOptions_init_zero, false, XBOnePassthroughOptions_init_zero, false, AnalogADS1256Options_init_zero, false, RotaryOptions_init_zero, false, PCF8575Options_init_zero, false, DRV8833RumbleOptions_init_zero, false, ReactiveLEDOptions_init_zero, false, GamepadUSBHostOptions_init_zero, false, TG16Options_init_zero, false, HETriggerOptions_init_zero, false, ProfileSliderOptions_init_zero, false, AnalogADS1115Options_init_zero}
 #define MigrationHistory_init_zero               {false, 0, false, 0, false, 0, false, 0}
-#define Config_init_zero                         {false, "", false, GamepadOptions_init_zero, false, HotkeyOptions_init_zero, false, PinMappings_init_zero, false, KeyboardMapping_init_zero, false, DisplayOptions_init_zero, false, LEDOptions_init_zero, false, AnimationOptions_Proto_init_zero, false, AddonOptions_init_zero, false, ForcedSetupOptions_init_zero, false, ProfileOptions_init_zero, false, "", false, GpioMappings_init_zero, false, MigrationHistory_init_zero, false, PeripheralOptions_init_zero}
+#define Config_init_zero                         {false, "", false, GamepadOptions_init_zero, false, HotkeyOptions_init_zero, false, PinMappings_init_zero, false, KeyboardMapping_init_zero, false, DisplayOptions_init_zero, false, LEDOptions_init_zero, false, AnimationOptions_init_zero, false, AddonOptions_init_zero, false, ForcedSetupOptions_init_zero, false, ProfileOptions_init_zero, false, "", false, GpioMappings_init_zero, false, MigrationHistory_init_zero, false, PeripheralOptions_init_zero, false, BootModeOptions_init_zero}
 
 /* Field tags (for use in manual encoding/decoding) */
+#define InputModeMapping_pinMask_tag             1
+#define InputModeMapping_inputMode_tag           2
+#define InputModeMapping_profileNumber_tag       3
+#define BootModeOptions_enabled_tag              1
+#define BootModeOptions_webConfigPinMask_tag     2
+#define BootModeOptions_usbModePinMask_tag       3
+#define BootModeOptions_inputModeMappings_tag    4
 #define GamepadOptions_inputMode_tag             1
 #define GamepadOptions_dpadMode_tag              2
 #define GamepadOptions_socdMode_tag              3
@@ -1579,6 +1804,8 @@ extern "C" {
 #define GamepadOptions_usbOverrideID_tag         29
 #define GamepadOptions_usbProductID_tag          30
 #define GamepadOptions_usbVendorID_tag           31
+#define GamepadOptions_miniMenuGamepadInput_tag  32
+#define GamepadOptions_inputDeviceType_tag       33
 #define KeyboardMapping_keyDpadUp_tag            1
 #define KeyboardMapping_keyDpadDown_tag          2
 #define KeyboardMapping_keyDpadLeft_tag          3
@@ -1718,6 +1945,21 @@ extern "C" {
 #define DisplayOptions_invert_tag                16
 #define DisplayOptions_displaySaverTimeout_tag   17
 #define DisplayOptions_turnOffWhenSuspended_tag  18
+#define DisplayOptions_displaySaverMode_tag      19
+#define DisplayOptions_buttonLayoutOrientation_tag 20
+#define DisplayOptions_inputMode_tag             21
+#define DisplayOptions_turboMode_tag             22
+#define DisplayOptions_dpadMode_tag              23
+#define DisplayOptions_socdMode_tag              24
+#define DisplayOptions_macroMode_tag             25
+#define DisplayOptions_profileMode_tag           26
+#define DisplayOptions_inputHistoryEnabled_tag   27
+#define DisplayOptions_inputHistoryLength_tag    28
+#define DisplayOptions_inputHistoryCol_tag       29
+#define DisplayOptions_inputHistoryRow_tag       30
+#define DisplayOptions_contrast_tag              31
+#define LightCluster_lightLocationData_tag       1
+#define LightCluster_lightTypeData_tag           2
 #define LEDOptions_dataPin_tag                   1
 #define LEDOptions_ledFormat_tag                 2
 #define LEDOptions_ledLayout_tag                 3
@@ -1757,51 +1999,34 @@ extern "C" {
 #define LEDOptions_caseRGBIndex_tag              37
 #define LEDOptions_caseRGBColor_tag              38
 #define LEDOptions_caseRGBCount_tag              39
-#define AnimationOptions_Proto_baseAnimationIndex_tag 1
-#define AnimationOptions_Proto_brightness_tag    2
-#define AnimationOptions_Proto_staticColorIndex_tag 3
-#define AnimationOptions_Proto_buttonColorIndex_tag 4
-#define AnimationOptions_Proto_chaseCycleTime_tag 5
-#define AnimationOptions_Proto_rainbowCycleTime_tag 6
-#define AnimationOptions_Proto_themeIndex_tag    7
-#define AnimationOptions_Proto_hasCustomTheme_tag 8
-#define AnimationOptions_Proto_customThemeUp_tag 9
-#define AnimationOptions_Proto_customThemeDown_tag 10
-#define AnimationOptions_Proto_customThemeLeft_tag 11
-#define AnimationOptions_Proto_customThemeRight_tag 12
-#define AnimationOptions_Proto_customThemeB1_tag 13
-#define AnimationOptions_Proto_customThemeB2_tag 14
-#define AnimationOptions_Proto_customThemeB3_tag 15
-#define AnimationOptions_Proto_customThemeB4_tag 16
-#define AnimationOptions_Proto_customThemeL1_tag 17
-#define AnimationOptions_Proto_customThemeR1_tag 18
-#define AnimationOptions_Proto_customThemeL2_tag 19
-#define AnimationOptions_Proto_customThemeR2_tag 20
-#define AnimationOptions_Proto_customThemeS1_tag 21
-#define AnimationOptions_Proto_customThemeS2_tag 22
-#define AnimationOptions_Proto_customThemeL3_tag 23
-#define AnimationOptions_Proto_customThemeR3_tag 24
-#define AnimationOptions_Proto_customThemeA1_tag 25
-#define AnimationOptions_Proto_customThemeA2_tag 26
-#define AnimationOptions_Proto_customThemeUpPressed_tag 27
-#define AnimationOptions_Proto_customThemeDownPressed_tag 28
-#define AnimationOptions_Proto_customThemeLeftPressed_tag 29
-#define AnimationOptions_Proto_customThemeRightPressed_tag 30
-#define AnimationOptions_Proto_customThemeB1Pressed_tag 31
-#define AnimationOptions_Proto_customThemeB2Pressed_tag 32
-#define AnimationOptions_Proto_customThemeB3Pressed_tag 33
-#define AnimationOptions_Proto_customThemeB4Pressed_tag 34
-#define AnimationOptions_Proto_customThemeL1Pressed_tag 35
-#define AnimationOptions_Proto_customThemeR1Pressed_tag 36
-#define AnimationOptions_Proto_customThemeL2Pressed_tag 37
-#define AnimationOptions_Proto_customThemeR2Pressed_tag 38
-#define AnimationOptions_Proto_customThemeS1Pressed_tag 39
-#define AnimationOptions_Proto_customThemeS2Pressed_tag 40
-#define AnimationOptions_Proto_customThemeL3Pressed_tag 41
-#define AnimationOptions_Proto_customThemeR3Pressed_tag 42
-#define AnimationOptions_Proto_customThemeA1Pressed_tag 43
-#define AnimationOptions_Proto_customThemeA2Pressed_tag 44
-#define AnimationOptions_Proto_buttonPressColorCooldownTimeInMs_tag 45
+#define LEDOptions_lightClusterData_tag          40
+#define LEDOptions_lightClusterDataInitialised_tag 41
+#define AnimationProfile_bEnabled_tag            1
+#define AnimationProfile_baseNonPressedEffect_tag 2
+#define AnimationProfile_basePressedEffect_tag   3
+#define AnimationProfile_baseCycleTime_tag       4
+#define AnimationProfile_notPressedStaticColors_tag 5
+#define AnimationProfile_pressedStaticColors_tag 6
+#define AnimationProfile_buttonPressHoldTimeInMs_tag 7
+#define AnimationProfile_buttonPressFadeOutTimeInMs_tag 8
+#define AnimationProfile_nonPressedSpecialColor_tag 9
+#define AnimationProfile_baseCaseEffect_tag      10
+#define AnimationProfile_nonButtonStaticColors_tag 11
+#define AnimationProfile_pressedSpecialColor_tag 12
+#define AnimationProfile_bUseCaseLightsInSpecialMoves_tag 13
+#define AnimationProfile_basePressedCycleTime_tag 14
+#define AnimationProfile_bUseCaseLightsInPressedAnimations_tag 15
+#define AnimationProfile_baseCaseCycleTime_tag   16
+#define AnimationProfile_bNonPressedSpecialColorIsRainbow_tag 17
+#define AnimationProfile_bPressedSpecialColorIsRainbow_tag 18
+#define AnimationProfile_bCaseSpecialColorIsRainbow_tag 19
+#define AnimationProfile_caseSpecialColor_tag    20
+#define AnimationProfile_effectContextParam_tag  21
+#define AnimationOptions_brightness_tag          2
+#define AnimationOptions_profiles_tag            57
+#define AnimationOptions_baseProfileIndex_tag    58
+#define AnimationOptions_customColors_tag        59
+#define AnimationOptions_autoDisableTime_tag     60
 #define BootselButtonOptions_enabled_tag         1
 #define BootselButtonOptions_buttonMap_tag       2
 #define OnBoardLedOptions_mode_tag               1
@@ -1822,6 +2047,17 @@ extern "C" {
 #define AnalogOptions_analog_smoothing_tag       14
 #define AnalogOptions_smoothing_factor_tag       15
 #define AnalogOptions_analog_error_tag           16
+#define AnalogOptions_analog_smoothing2_tag      17
+#define AnalogOptions_smoothing_factor2_tag      18
+#define AnalogOptions_analog_error2_tag          19
+#define AnalogOptions_inner_deadzone2_tag        20
+#define AnalogOptions_outer_deadzone2_tag        21
+#define AnalogOptions_auto_calibrate2_tag        22
+#define AnalogOptions_forced_circularity2_tag    23
+#define AnalogOptions_joystick_center_x_tag      24
+#define AnalogOptions_joystick_center_y_tag      25
+#define AnalogOptions_joystick_center_x2_tag     26
+#define AnalogOptions_joystick_center_y2_tag     27
 #define TurboOptions_enabled_tag                 1
 #define TurboOptions_deprecatedButtonPin_tag     2
 #define TurboOptions_ledPin_tag                  3
@@ -1856,6 +2092,10 @@ extern "C" {
 #define SOCDSliderOptions_modeDefault_tag        4
 #define SOCDSliderOptions_deprecatedModeOne_tag  5
 #define SOCDSliderOptions_deprecatedModeTwo_tag  6
+#define ProfileSliderOptions_enabled_tag         1
+#define ProfileSliderOptions_numPositions_tag    2
+#define ProfileSliderOptions_defaultProfile_tag  3
+#define ProfileSliderOptions_profileAssignments_tag 4
 #define ReverseOptions_enabled_tag               1
 #define ReverseOptions_buttonPin_tag             2
 #define ReverseOptions_ledPin_tag                3
@@ -1863,6 +2103,28 @@ extern "C" {
 #define ReverseOptions_actionDown_tag            5
 #define ReverseOptions_actionLeft_tag            6
 #define ReverseOptions_actionRight_tag           7
+#define AnalogADS1115Options_enabled_tag         1
+#define AnalogADS1115Options_channel_enabled_tag 2
+#define AnalogADS1115Options_channel_inner_deadzone_enabled_tag 3
+#define AnalogADS1115Options_channel_outer_deadzone_enabled_tag 4
+#define AnalogADS1115Options_left_stick_deadzone_enabled_tag 5
+#define AnalogADS1115Options_right_stick_deadzone_enabled_tag 6
+#define AnalogADS1115Options_channel0InnerDeadzone_tag 7
+#define AnalogADS1115Options_channel1InnerDeadzone_tag 8
+#define AnalogADS1115Options_channel2InnerDeadzone_tag 9
+#define AnalogADS1115Options_channel3InnerDeadzone_tag 10
+#define AnalogADS1115Options_channel0OuterDeadzone_tag 11
+#define AnalogADS1115Options_channel1OuterDeadzone_tag 12
+#define AnalogADS1115Options_channel2OuterDeadzone_tag 13
+#define AnalogADS1115Options_channel3OuterDeadzone_tag 14
+#define AnalogADS1115Options_leftStickDeadzone_tag 15
+#define AnalogADS1115Options_rightStickDeadzone_tag 16
+#define AnalogADS1115Options_invert_enabled_tag  17
+#define AnalogADS1115Options_autoCalibrate_tag   18
+#define AnalogADS1115Options_lxChannel_tag       19
+#define AnalogADS1115Options_lyChannel_tag       20
+#define AnalogADS1115Options_rxChannel_tag       21
+#define AnalogADS1115Options_ryChannel_tag       22
 #define AnalogADS1219Options_enabled_tag         1
 #define AnalogADS1219Options_deprecatedI2cBlock_tag 2
 #define AnalogADS1219Options_deprecatedI2cSDAPin_tag 3
@@ -2011,6 +2273,13 @@ extern "C" {
 #define SNESOptions_clockPin_tag                 2
 #define SNESOptions_latchPin_tag                 3
 #define SNESOptions_dataPin_tag                  4
+#define TG16Options_enabled_tag                  1
+#define TG16Options_oePin_tag                    2
+#define TG16Options_selectPin_tag                3
+#define TG16Options_dataPin0_tag                 4
+#define TG16Options_dataPin1_tag                 5
+#define TG16Options_dataPin2_tag                 6
+#define TG16Options_dataPin3_tag                 7
 #define KeyboardHostOptions_enabled_tag          1
 #define KeyboardHostOptions_deprecatedPinDplus_tag 2
 #define KeyboardHostOptions_mapping_tag          3
@@ -2018,6 +2287,8 @@ extern "C" {
 #define KeyboardHostOptions_mouseLeft_tag        5
 #define KeyboardHostOptions_mouseMiddle_tag      6
 #define KeyboardHostOptions_mouseRight_tag       7
+#define KeyboardHostOptions_mouseSensitivity_tag 8
+#define KeyboardHostOptions_movementMode_tag     9
 #define GamepadUSBHostOptions_enabled_tag        1
 #define FocusModeOptions_enabled_tag             1
 #define FocusModeOptions_pin_tag                 2
@@ -2026,6 +2297,7 @@ extern "C" {
 #define FocusModeOptions_rgbLockEnabled_tag      5
 #define FocusModeOptions_buttonLockEnabled_tag   6
 #define FocusModeOptions_macroLockEnabled_tag    7
+#define FocusModeOptions_overrideEnabled_tag     8
 #define MacroInput_buttonMask_tag                1
 #define MacroInput_duration_tag                  2
 #define MacroInput_waitDuration_tag              3
@@ -2043,10 +2315,10 @@ extern "C" {
 #define MacroOptions_deprecatedPin_tag           2
 #define MacroOptions_macroList_tag               3
 #define MacroOptions_macroBoardLedEnabled_tag    4
-#define InputHistoryOptions_enabled_tag          1
-#define InputHistoryOptions_length_tag           2
-#define InputHistoryOptions_col_tag              3
-#define InputHistoryOptions_row_tag              4
+#define InputHistoryOptions_deprecatedEnabled_tag 1
+#define InputHistoryOptions_deprecatedLength_tag 2
+#define InputHistoryOptions_deprecatedCol_tag    3
+#define InputHistoryOptions_deprecatedRow_tag    4
 #define RotaryPinOptions_enabled_tag             1
 #define RotaryPinOptions_pinA_tag                2
 #define RotaryPinOptions_pinB_tag                3
@@ -2074,6 +2346,28 @@ extern "C" {
 #define ReactiveLEDInfo_modeUp_tag               4
 #define ReactiveLEDOptions_enabled_tag           1
 #define ReactiveLEDOptions_leds_tag              2
+#define HETriggerInfo_action_tag                 1
+#define HETriggerInfo_active_tag                 2
+#define HETriggerInfo_idle_tag                   3
+#define HETriggerInfo_pressed_tag                4
+#define HETriggerInfo_polarity_tag               5
+#define HETriggerInfo_release_tag                6
+#define HETriggerInfo_noise_tag                  7
+#define HETriggerInfo_rapidTrigger_tag           8
+#define HETriggerInfo_is_polarized_tag           9
+#define HETriggerOptions_enabled_tag             1
+#define HETriggerOptions_selectPin0_tag          2
+#define HETriggerOptions_selectPin1_tag          3
+#define HETriggerOptions_selectPin2_tag          4
+#define HETriggerOptions_selectPin3_tag          5
+#define HETriggerOptions_muxADCPin0_tag          6
+#define HETriggerOptions_muxADCPin1_tag          7
+#define HETriggerOptions_muxADCPin2_tag          8
+#define HETriggerOptions_muxADCPin3_tag          9
+#define HETriggerOptions_muxChannels_tag         10
+#define HETriggerOptions_triggers_tag            11
+#define HETriggerOptions_emaSmoothing_tag        12
+#define HETriggerOptions_smoothingFactor_tag     13
 #define AddonOptions_bootselButtonOptions_tag    1
 #define AddonOptions_onBoardLedOptions_tag       2
 #define AddonOptions_analogOptions_tag           3
@@ -2102,6 +2396,10 @@ extern "C" {
 #define AddonOptions_drv8833RumbleOptions_tag    26
 #define AddonOptions_reactiveLEDOptions_tag      27
 #define AddonOptions_gamepadUSBHostOptions_tag   28
+#define AddonOptions_tg16Options_tag             29
+#define AddonOptions_heTriggerOptions_tag        30
+#define AddonOptions_profileSliderOptions_tag    31
+#define AddonOptions_analogADS1115Options_tag    32
 #define MigrationHistory_hotkeysMigrated_tag     1
 #define MigrationHistory_gpioMappingsMigrated_tag 2
 #define MigrationHistory_buttonProfilesMigrated_tag 3
@@ -2121,8 +2419,25 @@ extern "C" {
 #define Config_gpioMappings_tag                  13
 #define Config_migrations_tag                    14
 #define Config_peripheralOptions_tag             15
+#define Config_bootModeOptions_tag               16
 
 /* Struct field encoding specification for nanopb */
+#define InputModeMapping_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, INT32,    pinMask,                          1, 0) \
+X(a, STATIC,   OPTIONAL, UENUM,    inputMode,                        2, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   profileNumber,                    3, 0)
+#define InputModeMapping_CALLBACK NULL
+#define InputModeMapping_DEFAULT NULL
+
+#define BootModeOptions_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, BOOL,     enabled,                          1, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   webConfigPinMask,                 2, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   usbModePinMask,                   3, 0) \
+X(a, STATIC,   REPEATED, MESSAGE,  inputModeMappings,                4, 0)
+#define BootModeOptions_CALLBACK NULL
+#define BootModeOptions_DEFAULT NULL
+#define BootModeOptions_inputModeMappings_MSGTYPE InputModeMapping
+
 #define GamepadOptions_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, UENUM,    inputMode,                        1, 0) \
 X(a, STATIC,   OPTIONAL, UENUM,    dpadMode,                         2, 0) \
@@ -2154,7 +2469,9 @@ X(a, STATIC,   OPTIONAL, STRING,   usbDescManufacturer,             27, 0) \
 X(a, STATIC,   OPTIONAL, STRING,   usbDescVersion,                  28, 0) \
 X(a, STATIC,   OPTIONAL, BOOL,     usbOverrideID,                   29, 0) \
 X(a, STATIC,   OPTIONAL, UINT32,   usbProductID,                    30, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   usbVendorID,                     31, 0)
+X(a, STATIC,   OPTIONAL, UINT32,   usbVendorID,                     31, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   miniMenuGamepadInput,            32, 0) \
+X(a, STATIC,   OPTIONAL, UENUM,    inputDeviceType,                 33, 0)
 #define GamepadOptions_CALLBACK NULL
 #define GamepadOptions_DEFAULT NULL
 
@@ -2393,10 +2710,29 @@ X(a, STATIC,   OPTIONAL, INT32,    size,                            14, 0) \
 X(a, STATIC,   OPTIONAL, INT32,    flip,                            15, 0) \
 X(a, STATIC,   OPTIONAL, BOOL,     invert,                          16, 0) \
 X(a, STATIC,   OPTIONAL, INT32,    displaySaverTimeout,             17, 0) \
-X(a, STATIC,   OPTIONAL, BOOL,     turnOffWhenSuspended,            18, 0)
+X(a, STATIC,   OPTIONAL, BOOL,     turnOffWhenSuspended,            18, 0) \
+X(a, STATIC,   OPTIONAL, UENUM,    displaySaverMode,                19, 0) \
+X(a, STATIC,   OPTIONAL, UENUM,    buttonLayoutOrientation,         20, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     inputMode,                       21, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     turboMode,                       22, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     dpadMode,                        23, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     socdMode,                        24, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     macroMode,                       25, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     profileMode,                     26, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     inputHistoryEnabled,             27, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   inputHistoryLength,              28, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   inputHistoryCol,                 29, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   inputHistoryRow,                 30, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   contrast,                        31, 0)
 #define DisplayOptions_CALLBACK NULL
 #define DisplayOptions_DEFAULT NULL
 #define DisplayOptions_buttonLayoutCustomOptions_MSGTYPE ButtonLayoutCustomOptions
+
+#define LightCluster_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, UINT32,   lightLocationData,                1, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   lightTypeData,                    2, 0)
+#define LightCluster_CALLBACK NULL
+#define LightCluster_DEFAULT NULL
 
 #define LEDOptions_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, INT32,    dataPin,                          1, 0) \
@@ -2437,58 +2773,47 @@ X(a, STATIC,   OPTIONAL, INT32,    pledIndex4,                      35, 0) \
 X(a, STATIC,   OPTIONAL, ENUM,     caseRGBType,                     36, 0) \
 X(a, STATIC,   OPTIONAL, INT32,    caseRGBIndex,                    37, 0) \
 X(a, STATIC,   OPTIONAL, UINT32,   caseRGBColor,                    38, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   caseRGBCount,                    39, 0)
+X(a, STATIC,   OPTIONAL, UINT32,   caseRGBCount,                    39, 0) \
+X(a, STATIC,   REPEATED, MESSAGE,  lightClusterData,                40, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     lightClusterDataInitialised,     41, 0)
 #define LEDOptions_CALLBACK NULL
 #define LEDOptions_DEFAULT (const pb_byte_t*)"\xc8\x01\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\xa0\x02\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x00"
+#define LEDOptions_lightClusterData_MSGTYPE LightCluster
 
-#define AnimationOptions_Proto_FIELDLIST(X, a) \
-X(a, STATIC,   OPTIONAL, UINT32,   baseAnimationIndex,               1, 0) \
+#define AnimationProfile_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, BOOL,     bEnabled,                         1, 0) \
+X(a, STATIC,   OPTIONAL, UENUM,    baseNonPressedEffect,             2, 0) \
+X(a, STATIC,   OPTIONAL, UENUM,    basePressedEffect,                3, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    baseCycleTime,                    4, 0) \
+X(a, STATIC,   REPEATED, UINT32,   notPressedStaticColors,           5, 0) \
+X(a, STATIC,   REPEATED, UINT32,   pressedStaticColors,              6, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   buttonPressHoldTimeInMs,          7, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   buttonPressFadeOutTimeInMs,       8, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   nonPressedSpecialColor,           9, 0) \
+X(a, STATIC,   OPTIONAL, UENUM,    baseCaseEffect,                  10, 0) \
+X(a, STATIC,   REPEATED, UINT32,   nonButtonStaticColors,           11, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   pressedSpecialColor,             12, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     bUseCaseLightsInSpecialMoves,    13, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    basePressedCycleTime,            14, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     bUseCaseLightsInPressedAnimations, 15, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    baseCaseCycleTime,               16, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     bNonPressedSpecialColorIsRainbow, 17, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     bPressedSpecialColorIsRainbow,   18, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     bCaseSpecialColorIsRainbow,      19, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   caseSpecialColor,                20, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   effectContextParam,              21, 0)
+#define AnimationProfile_CALLBACK NULL
+#define AnimationProfile_DEFAULT NULL
+
+#define AnimationOptions_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, UINT32,   brightness,                       2, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   staticColorIndex,                 3, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   buttonColorIndex,                 4, 0) \
-X(a, STATIC,   OPTIONAL, INT32,    chaseCycleTime,                   5, 0) \
-X(a, STATIC,   OPTIONAL, INT32,    rainbowCycleTime,                 6, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   themeIndex,                       7, 0) \
-X(a, STATIC,   OPTIONAL, BOOL,     hasCustomTheme,                   8, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeUp,                    9, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeDown,                 10, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeLeft,                 11, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeRight,                12, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeB1,                   13, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeB2,                   14, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeB3,                   15, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeB4,                   16, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeL1,                   17, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeR1,                   18, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeL2,                   19, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeR2,                   20, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeS1,                   21, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeS2,                   22, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeL3,                   23, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeR3,                   24, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeA1,                   25, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeA2,                   26, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeUpPressed,            27, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeDownPressed,          28, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeLeftPressed,          29, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeRightPressed,         30, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeB1Pressed,            31, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeB2Pressed,            32, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeB3Pressed,            33, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeB4Pressed,            34, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeL1Pressed,            35, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeR1Pressed,            36, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeL2Pressed,            37, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeR2Pressed,            38, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeS1Pressed,            39, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeS2Pressed,            40, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeL3Pressed,            41, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeR3Pressed,            42, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeA1Pressed,            43, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   customThemeA2Pressed,            44, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   buttonPressColorCooldownTimeInMs, 45, 0)
-#define AnimationOptions_Proto_CALLBACK NULL
-#define AnimationOptions_Proto_DEFAULT NULL
+X(a, STATIC,   REPEATED, MESSAGE,  profiles,                        57, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    baseProfileIndex,                58, 0) \
+X(a, STATIC,   REPEATED, UINT32,   customColors,                    59, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   autoDisableTime,                 60, 0)
+#define AnimationOptions_CALLBACK NULL
+#define AnimationOptions_DEFAULT NULL
+#define AnimationOptions_profiles_MSGTYPE AnimationProfile
 
 #define BootselButtonOptions_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, BOOL,     enabled,                          1, 0) \
@@ -2518,7 +2843,18 @@ X(a, STATIC,   OPTIONAL, BOOL,     auto_calibrate,                  12, 0) \
 X(a, STATIC,   OPTIONAL, UINT32,   outer_deadzone,                  13, 0) \
 X(a, STATIC,   OPTIONAL, BOOL,     analog_smoothing,                14, 0) \
 X(a, STATIC,   OPTIONAL, FLOAT,    smoothing_factor,                15, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   analog_error,                    16, 0)
+X(a, STATIC,   OPTIONAL, UINT32,   analog_error,                    16, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     analog_smoothing2,               17, 0) \
+X(a, STATIC,   OPTIONAL, FLOAT,    smoothing_factor2,               18, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   analog_error2,                   19, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   inner_deadzone2,                 20, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   outer_deadzone2,                 21, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     auto_calibrate2,                 22, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     forced_circularity2,             23, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   joystick_center_x,               24, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   joystick_center_y,               25, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   joystick_center_x2,              26, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   joystick_center_y2,              27, 0)
 #define AnalogOptions_CALLBACK NULL
 #define AnalogOptions_DEFAULT NULL
 
@@ -2568,6 +2904,14 @@ X(a, STATIC,   OPTIONAL, UENUM,    deprecatedModeTwo,                6, 0)
 #define SOCDSliderOptions_CALLBACK NULL
 #define SOCDSliderOptions_DEFAULT NULL
 
+#define ProfileSliderOptions_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, BOOL,     enabled,                          1, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   numPositions,                     2, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   defaultProfile,                   3, 0) \
+X(a, STATIC,   REPEATED, UINT32,   profileAssignments,               4, 0)
+#define ProfileSliderOptions_CALLBACK NULL
+#define ProfileSliderOptions_DEFAULT NULL
+
 #define ReverseOptions_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, BOOL,     enabled,                          1, 0) \
 X(a, STATIC,   OPTIONAL, INT32,    buttonPin,                        2, 0) \
@@ -2578,6 +2922,32 @@ X(a, STATIC,   OPTIONAL, UINT32,   actionLeft,                       6, 0) \
 X(a, STATIC,   OPTIONAL, UINT32,   actionRight,                      7, 0)
 #define ReverseOptions_CALLBACK NULL
 #define ReverseOptions_DEFAULT NULL
+
+#define AnalogADS1115Options_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, BOOL,     enabled,                          1, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   channel_enabled,                  2, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   channel_inner_deadzone_enabled,   3, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   channel_outer_deadzone_enabled,   4, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     left_stick_deadzone_enabled,      5, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     right_stick_deadzone_enabled,     6, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   channel0InnerDeadzone,            7, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   channel1InnerDeadzone,            8, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   channel2InnerDeadzone,            9, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   channel3InnerDeadzone,           10, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   channel0OuterDeadzone,           11, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   channel1OuterDeadzone,           12, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   channel2OuterDeadzone,           13, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   channel3OuterDeadzone,           14, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   leftStickDeadzone,               15, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   rightStickDeadzone,              16, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   invert_enabled,                  17, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   autoCalibrate,                   18, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   lxChannel,                       19, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   lyChannel,                       20, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   rxChannel,                       21, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   ryChannel,                       22, 0)
+#define AnalogADS1115Options_CALLBACK NULL
+#define AnalogADS1115Options_DEFAULT NULL
 
 #define AnalogADS1219Options_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, BOOL,     enabled,                          1, 0) \
@@ -2833,6 +3203,17 @@ X(a, STATIC,   OPTIONAL, INT32,    dataPin,                          4, 0)
 #define SNESOptions_CALLBACK NULL
 #define SNESOptions_DEFAULT NULL
 
+#define TG16Options_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, BOOL,     enabled,                          1, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    oePin,                            2, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    selectPin,                        3, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    dataPin0,                         4, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    dataPin1,                         5, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    dataPin2,                         6, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    dataPin3,                         7, 0)
+#define TG16Options_CALLBACK NULL
+#define TG16Options_DEFAULT NULL
+
 #define KeyboardHostOptions_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, BOOL,     enabled,                          1, 0) \
 X(a, STATIC,   OPTIONAL, INT32,    deprecatedPinDplus,               2, 0) \
@@ -2840,7 +3221,9 @@ X(a, STATIC,   OPTIONAL, MESSAGE,  mapping,                          3, 0) \
 X(a, STATIC,   OPTIONAL, INT32,    deprecatedPin5V,                  4, 0) \
 X(a, STATIC,   OPTIONAL, UINT32,   mouseLeft,                        5, 0) \
 X(a, STATIC,   OPTIONAL, UINT32,   mouseMiddle,                      6, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   mouseRight,                       7, 0)
+X(a, STATIC,   OPTIONAL, UINT32,   mouseRight,                       7, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   mouseSensitivity,                 8, 0) \
+X(a, STATIC,   OPTIONAL, UENUM,    movementMode,                     9, 0)
 #define KeyboardHostOptions_CALLBACK NULL
 #define KeyboardHostOptions_DEFAULT NULL
 #define KeyboardHostOptions_mapping_MSGTYPE KeyboardMapping
@@ -2857,7 +3240,8 @@ X(a, STATIC,   OPTIONAL, INT32,    buttonLockMask,                   3, 0) \
 X(a, STATIC,   OPTIONAL, BOOL,     oledLockEnabled,                  4, 0) \
 X(a, STATIC,   OPTIONAL, BOOL,     rgbLockEnabled,                   5, 0) \
 X(a, STATIC,   OPTIONAL, BOOL,     buttonLockEnabled,                6, 0) \
-X(a, STATIC,   OPTIONAL, BOOL,     macroLockEnabled,                 7, 0)
+X(a, STATIC,   OPTIONAL, BOOL,     macroLockEnabled,                 7, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     overrideEnabled,                  8, 0)
 #define FocusModeOptions_CALLBACK NULL
 #define FocusModeOptions_DEFAULT NULL
 
@@ -2893,10 +3277,10 @@ X(a, STATIC,   OPTIONAL, BOOL,     macroBoardLedEnabled,             4, 0)
 #define MacroOptions_macroList_MSGTYPE Macro
 
 #define InputHistoryOptions_FIELDLIST(X, a) \
-X(a, STATIC,   OPTIONAL, BOOL,     enabled,                          1, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   length,                           2, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   col,                              3, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   row,                              4, 0)
+X(a, STATIC,   OPTIONAL, BOOL,     deprecatedEnabled,                1, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   deprecatedLength,                 2, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   deprecatedCol,                    3, 0) \
+X(a, STATIC,   OPTIONAL, UINT32,   deprecatedRow,                    4, 0)
 #define InputHistoryOptions_CALLBACK NULL
 #define InputHistoryOptions_DEFAULT NULL
 
@@ -2955,6 +3339,37 @@ X(a, STATIC,   REPEATED, MESSAGE,  leds,                             2, 0)
 #define ReactiveLEDOptions_DEFAULT NULL
 #define ReactiveLEDOptions_leds_MSGTYPE ReactiveLEDInfo
 
+#define HETriggerInfo_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, ENUM,     action,                           1, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    active,                           2, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    idle,                             3, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    pressed,                          4, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    polarity,                         5, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    release,                          6, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    noise,                            7, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     rapidTrigger,                     8, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     is_polarized,                     9, 0)
+#define HETriggerInfo_CALLBACK NULL
+#define HETriggerInfo_DEFAULT (const pb_byte_t*)"\x08\xf6\xff\xff\xff\xff\xff\xff\xff\xff\x01\x00"
+
+#define HETriggerOptions_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, BOOL,     enabled,                          1, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    selectPin0,                       2, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    selectPin1,                       3, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    selectPin2,                       4, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    selectPin3,                       5, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    muxADCPin0,                       6, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    muxADCPin1,                       7, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    muxADCPin2,                       8, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    muxADCPin3,                       9, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    muxChannels,                     10, 0) \
+X(a, STATIC,   REPEATED, MESSAGE,  triggers,                        11, 0) \
+X(a, STATIC,   OPTIONAL, BOOL,     emaSmoothing,                    12, 0) \
+X(a, STATIC,   OPTIONAL, INT32,    smoothingFactor,                 13, 0)
+#define HETriggerOptions_CALLBACK NULL
+#define HETriggerOptions_DEFAULT NULL
+#define HETriggerOptions_triggers_MSGTYPE HETriggerInfo
+
 #define AddonOptions_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  bootselButtonOptions,             1, 0) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  onBoardLedOptions,                2, 0) \
@@ -2983,7 +3398,11 @@ X(a, STATIC,   OPTIONAL, MESSAGE,  rotaryOptions,                   24, 0) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  pcf8575Options,                  25, 0) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  drv8833RumbleOptions,            26, 0) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  reactiveLEDOptions,              27, 0) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  gamepadUSBHostOptions,           28, 0)
+X(a, STATIC,   OPTIONAL, MESSAGE,  gamepadUSBHostOptions,           28, 0) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  tg16Options,                     29, 0) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  heTriggerOptions,                30, 0) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  profileSliderOptions,            31, 0) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  analogADS1115Options,            32, 0)
 #define AddonOptions_CALLBACK NULL
 #define AddonOptions_DEFAULT NULL
 #define AddonOptions_bootselButtonOptions_MSGTYPE BootselButtonOptions
@@ -3014,6 +3433,10 @@ X(a, STATIC,   OPTIONAL, MESSAGE,  gamepadUSBHostOptions,           28, 0)
 #define AddonOptions_drv8833RumbleOptions_MSGTYPE DRV8833RumbleOptions
 #define AddonOptions_reactiveLEDOptions_MSGTYPE ReactiveLEDOptions
 #define AddonOptions_gamepadUSBHostOptions_MSGTYPE GamepadUSBHostOptions
+#define AddonOptions_tg16Options_MSGTYPE TG16Options
+#define AddonOptions_heTriggerOptions_MSGTYPE HETriggerOptions
+#define AddonOptions_profileSliderOptions_MSGTYPE ProfileSliderOptions
+#define AddonOptions_analogADS1115Options_MSGTYPE AnalogADS1115Options
 
 #define MigrationHistory_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, BOOL,     hotkeysMigrated,                  1, 0) \
@@ -3038,7 +3461,8 @@ X(a, STATIC,   OPTIONAL, MESSAGE,  profileOptions,                  11, 0) \
 X(a, STATIC,   OPTIONAL, STRING,   boardConfig,                     12, 0) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  gpioMappings,                    13, 0) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  migrations,                      14, 0) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  peripheralOptions,               15, 0)
+X(a, STATIC,   OPTIONAL, MESSAGE,  peripheralOptions,               15, 0) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  bootModeOptions,                 16, 0)
 #define Config_CALLBACK NULL
 #define Config_DEFAULT NULL
 #define Config_gamepadOptions_MSGTYPE GamepadOptions
@@ -3047,14 +3471,17 @@ X(a, STATIC,   OPTIONAL, MESSAGE,  peripheralOptions,               15, 0)
 #define Config_keyboardMapping_MSGTYPE KeyboardMapping
 #define Config_displayOptions_MSGTYPE DisplayOptions
 #define Config_ledOptions_MSGTYPE LEDOptions
-#define Config_animationOptions_MSGTYPE AnimationOptions_Proto
+#define Config_animationOptions_MSGTYPE AnimationOptions
 #define Config_addonOptions_MSGTYPE AddonOptions
 #define Config_forcedSetupOptions_MSGTYPE ForcedSetupOptions
 #define Config_profileOptions_MSGTYPE ProfileOptions
 #define Config_gpioMappings_MSGTYPE GpioMappings
 #define Config_migrations_MSGTYPE MigrationHistory
 #define Config_peripheralOptions_MSGTYPE PeripheralOptions
+#define Config_bootModeOptions_MSGTYPE BootModeOptions
 
+extern const pb_msgdesc_t InputModeMapping_msg;
+extern const pb_msgdesc_t BootModeOptions_msg;
 extern const pb_msgdesc_t GamepadOptions_msg;
 extern const pb_msgdesc_t KeyboardMapping_msg;
 extern const pb_msgdesc_t HotkeyEntry_msg;
@@ -3074,15 +3501,19 @@ extern const pb_msgdesc_t GpioMappings_msg;
 extern const pb_msgdesc_t AlternativePinMappings_msg;
 extern const pb_msgdesc_t ProfileOptions_msg;
 extern const pb_msgdesc_t DisplayOptions_msg;
+extern const pb_msgdesc_t LightCluster_msg;
 extern const pb_msgdesc_t LEDOptions_msg;
-extern const pb_msgdesc_t AnimationOptions_Proto_msg;
+extern const pb_msgdesc_t AnimationProfile_msg;
+extern const pb_msgdesc_t AnimationOptions_msg;
 extern const pb_msgdesc_t BootselButtonOptions_msg;
 extern const pb_msgdesc_t OnBoardLedOptions_msg;
 extern const pb_msgdesc_t AnalogOptions_msg;
 extern const pb_msgdesc_t TurboOptions_msg;
 extern const pb_msgdesc_t SliderOptions_msg;
 extern const pb_msgdesc_t SOCDSliderOptions_msg;
+extern const pb_msgdesc_t ProfileSliderOptions_msg;
 extern const pb_msgdesc_t ReverseOptions_msg;
+extern const pb_msgdesc_t AnalogADS1115Options_msg;
 extern const pb_msgdesc_t AnalogADS1219Options_msg;
 extern const pb_msgdesc_t AnalogADS1256Options_msg;
 extern const pb_msgdesc_t DualDirectionalOptions_msg;
@@ -3104,6 +3535,7 @@ extern const pb_msgdesc_t WiiOptions_DrumOptions_msg;
 extern const pb_msgdesc_t WiiOptions_TurntableOptions_msg;
 extern const pb_msgdesc_t WiiOptions_ControllerOptions_msg;
 extern const pb_msgdesc_t SNESOptions_msg;
+extern const pb_msgdesc_t TG16Options_msg;
 extern const pb_msgdesc_t KeyboardHostOptions_msg;
 extern const pb_msgdesc_t GamepadUSBHostOptions_msg;
 extern const pb_msgdesc_t FocusModeOptions_msg;
@@ -3117,11 +3549,15 @@ extern const pb_msgdesc_t PCF8575Options_msg;
 extern const pb_msgdesc_t DRV8833RumbleOptions_msg;
 extern const pb_msgdesc_t ReactiveLEDInfo_msg;
 extern const pb_msgdesc_t ReactiveLEDOptions_msg;
+extern const pb_msgdesc_t HETriggerInfo_msg;
+extern const pb_msgdesc_t HETriggerOptions_msg;
 extern const pb_msgdesc_t AddonOptions_msg;
 extern const pb_msgdesc_t MigrationHistory_msg;
 extern const pb_msgdesc_t Config_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
+#define InputModeMapping_fields &InputModeMapping_msg
+#define BootModeOptions_fields &BootModeOptions_msg
 #define GamepadOptions_fields &GamepadOptions_msg
 #define KeyboardMapping_fields &KeyboardMapping_msg
 #define HotkeyEntry_fields &HotkeyEntry_msg
@@ -3141,15 +3577,19 @@ extern const pb_msgdesc_t Config_msg;
 #define AlternativePinMappings_fields &AlternativePinMappings_msg
 #define ProfileOptions_fields &ProfileOptions_msg
 #define DisplayOptions_fields &DisplayOptions_msg
+#define LightCluster_fields &LightCluster_msg
 #define LEDOptions_fields &LEDOptions_msg
-#define AnimationOptions_Proto_fields &AnimationOptions_Proto_msg
+#define AnimationProfile_fields &AnimationProfile_msg
+#define AnimationOptions_fields &AnimationOptions_msg
 #define BootselButtonOptions_fields &BootselButtonOptions_msg
 #define OnBoardLedOptions_fields &OnBoardLedOptions_msg
 #define AnalogOptions_fields &AnalogOptions_msg
 #define TurboOptions_fields &TurboOptions_msg
 #define SliderOptions_fields &SliderOptions_msg
 #define SOCDSliderOptions_fields &SOCDSliderOptions_msg
+#define ProfileSliderOptions_fields &ProfileSliderOptions_msg
 #define ReverseOptions_fields &ReverseOptions_msg
+#define AnalogADS1115Options_fields &AnalogADS1115Options_msg
 #define AnalogADS1219Options_fields &AnalogADS1219Options_msg
 #define AnalogADS1256Options_fields &AnalogADS1256Options_msg
 #define DualDirectionalOptions_fields &DualDirectionalOptions_msg
@@ -3171,6 +3611,7 @@ extern const pb_msgdesc_t Config_msg;
 #define WiiOptions_TurntableOptions_fields &WiiOptions_TurntableOptions_msg
 #define WiiOptions_ControllerOptions_fields &WiiOptions_ControllerOptions_msg
 #define SNESOptions_fields &SNESOptions_msg
+#define TG16Options_fields &TG16Options_msg
 #define KeyboardHostOptions_fields &KeyboardHostOptions_msg
 #define GamepadUSBHostOptions_fields &GamepadUSBHostOptions_msg
 #define FocusModeOptions_fields &FocusModeOptions_msg
@@ -3184,40 +3625,49 @@ extern const pb_msgdesc_t Config_msg;
 #define DRV8833RumbleOptions_fields &DRV8833RumbleOptions_msg
 #define ReactiveLEDInfo_fields &ReactiveLEDInfo_msg
 #define ReactiveLEDOptions_fields &ReactiveLEDOptions_msg
+#define HETriggerInfo_fields &HETriggerInfo_msg
+#define HETriggerOptions_fields &HETriggerOptions_msg
 #define AddonOptions_fields &AddonOptions_msg
 #define MigrationHistory_fields &MigrationHistory_msg
 #define Config_fields &Config_msg
 
 /* Maximum encoded size of messages (where known) */
-#define AddonOptions_size                        9317
+#define AddonOptions_size                        12432
 #define AlternativePinMappings_size              132
+#define AnalogADS1115Options_size                127
 #define AnalogADS1219Options_size                57
 #define AnalogADS1256Options_size                42
-#define AnalogOptions_size                       84
-#define AnimationOptions_Proto_size              306
+#define AnalogOptions_size                       148
+#define AnimationOptions_size                    1293
+#define AnimationProfile_size                    285
+#define BootModeOptions_size                     190
 #define BootselButtonOptions_size                8
 #define ButtonLayoutCustomOptions_size           100
 #define ButtonLayoutParamsCommon_size            44
 #define ButtonLayoutParamsLeft_size              48
 #define ButtonLayoutParamsRight_size             48
 #define BuzzerOptions_size                       30
-#define Config_size                              16349
+#define Config_size                              26795
 #define DRV8833RumbleOptions_size                51
-#define DisplayOptions_size                      1245
+#define DisplayOptions_size                      1300
 #define DualDirectionalOptions_size              52
 #define ExtraButtonOptions_size                  19
-#define FocusModeOptions_size                    32
+#define FocusModeOptions_size                    34
 #define ForcedSetupOptions_size                  2
-#define GamepadOptions_size                      239
+#define GamepadOptions_size                      249
 #define GamepadUSBHostOptions_size               2
 #define GpioMappingInfo_size                     25
-#define GpioMappings_size                        830
+#define GpioMappings_size                        1316
+#define HETriggerInfo_size                       81
+#define HETriggerOptions_size                    2770
 #define HotkeyEntry_size                         20
 #define HotkeyOptions_size                       353
 #define InputHistoryOptions_size                 20
-#define KeyboardHostOptions_size                 254
+#define InputModeMapping_size                    20
+#define KeyboardHostOptions_size                 262
 #define KeyboardMapping_size                     209
-#define LEDOptions_size                          396
+#define LEDOptions_size                          1899
+#define LightCluster_size                        12
 #define MacroInput_size                          18
 #define MacroOptions_size                        4203
 #define Macro_size                               695
@@ -3232,7 +3682,8 @@ extern const pb_msgdesc_t Config_msg;
 #define PeripheralOptions_size                   192
 #define PinMappings_size                         213
 #define PlayerNumberOptions_size                 8
-#define ProfileOptions_size                      2904
+#define ProfileOptions_size                      7000
+#define ProfileSliderOptions_size                62
 #define ReactiveLEDInfo_size                     26
 #define ReactiveLEDOptions_size                  282
 #define ReverseOptions_size                      48
@@ -3241,6 +3692,7 @@ extern const pb_msgdesc_t Config_msg;
 #define SNESOptions_size                         35
 #define SOCDSliderOptions_size                   30
 #define SliderOptions_size                       30
+#define TG16Options_size                         68
 #define TiltOptions_size                         219
 #define TurboOptions_size                        172
 #define WiiOptions_AnalogAxis_size               33
@@ -3257,6 +3709,8 @@ extern const pb_msgdesc_t Config_msg;
 
 /* List of all messages (GP2040-CE extension) */
 #define CONFIG_MESSAGES_GP2040(X) \
+X(InputModeMapping) \
+X(BootModeOptions) \
 X(GamepadOptions) \
 X(KeyboardMapping) \
 X(HotkeyEntry) \
@@ -3276,15 +3730,19 @@ X(GpioMappings) \
 X(AlternativePinMappings) \
 X(ProfileOptions) \
 X(DisplayOptions) \
+X(LightCluster) \
 X(LEDOptions) \
-X(AnimationOptions_Proto) \
+X(AnimationProfile) \
+X(AnimationOptions) \
 X(BootselButtonOptions) \
 X(OnBoardLedOptions) \
 X(AnalogOptions) \
 X(TurboOptions) \
 X(SliderOptions) \
 X(SOCDSliderOptions) \
+X(ProfileSliderOptions) \
 X(ReverseOptions) \
+X(AnalogADS1115Options) \
 X(AnalogADS1219Options) \
 X(AnalogADS1256Options) \
 X(DualDirectionalOptions) \
@@ -3306,6 +3764,7 @@ X(WiiOptions_DrumOptions) \
 X(WiiOptions_TurntableOptions) \
 X(WiiOptions_ControllerOptions) \
 X(SNESOptions) \
+X(TG16Options) \
 X(KeyboardHostOptions) \
 X(GamepadUSBHostOptions) \
 X(FocusModeOptions) \
@@ -3319,6 +3778,8 @@ X(PCF8575Options) \
 X(DRV8833RumbleOptions) \
 X(ReactiveLEDInfo) \
 X(ReactiveLEDOptions) \
+X(HETriggerInfo) \
+X(HETriggerOptions) \
 X(AddonOptions) \
 X(MigrationHistory) \
 X(Config) \

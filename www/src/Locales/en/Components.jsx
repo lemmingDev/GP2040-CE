@@ -7,6 +7,9 @@ export default {
 		'de-DE': 'Deutsch (German)',
 		'ja-JP': '日本語 (Japanese)',
 		'ko-KR': '한국어 (Korean)',
+		'es-MX': 'Español (Mexican Spanish)',
+		'tr-TR': 'Türkçe (Turkish)',
+		'fr-FR': 'Français (French)',
 	},
 	'color-scheme': {
 		dark: 'Dark',
@@ -15,7 +18,5 @@ export default {
 	},
 	'keyboard-mapper': {
 		'key-header': 'Key',
-		'error-conflict': 'Key {{key}} is already assigned',
-		'error-invalid': '{{key}} is invalid for this board',
 	},
 };

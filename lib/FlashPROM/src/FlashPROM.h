@@ -15,13 +15,15 @@
 #include <hardware/timer.h>
 #endif
 
-#define EEPROM_SIZE_BYTES    0x4000           // Reserve 16k of flash memory (ensure this value is divisible by 256)
-#if defined(PICO_BOARD)
-#define EEPROM_ADDRESS_START _u(0x101FC000) // The arduino-pico EEPROM lib starts here, so we'll do the same
-#elif defined(ESP_PLATFORM)
-// S3: no XIP alias; persistence lives in the gpconfig partition and the
-// Task-2 RAM stub ignores this address (Task 3 wires the esp_partition backend).
+#if defined(ESP_PLATFORM)
+// S3: no XIP alias; persistence lives in the 32k gpconfig partition.
+// (Upstream moved Pico to 32k for the larger post-merge config; S3 matches
+// since the partition fits exactly. Erase gpconfig once when updating.)
+#define EEPROM_SIZE_BYTES    0x8000
 #define EEPROM_ADDRESS_START (0)
+#else
+#define EEPROM_SIZE_BYTES    0x8000           // Reserve 32k of flash memory (ensure this value is divisible by 256)
+#define EEPROM_ADDRESS_START _u(0x101F8000) // The arduino-pico EEPROM lib starts here, so we'll do the same
 #endif
 
 // Warning: If the write wait is too long it can stall other processes

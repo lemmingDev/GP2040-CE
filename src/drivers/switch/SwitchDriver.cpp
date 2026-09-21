@@ -25,7 +25,7 @@ void SwitchDriver::initialize() {
 	};
 }
 
-void SwitchDriver::process(Gamepad * gamepad) {
+bool SwitchDriver::process(Gamepad * gamepad) {
 	switch (gamepad->state.dpad & GAMEPAD_MASK_DPAD)
 	{
 		case GAMEPAD_MASK_UP:                        switchReport.hat = SWITCH_HAT_UP;        break;
@@ -55,6 +55,14 @@ void SwitchDriver::process(Gamepad * gamepad) {
 		| (gamepad->pressedA1() ? SWITCH_MASK_HOME    : 0)
 		| (gamepad->pressedA2() ? SWITCH_MASK_CAPTURE : 0)
 	;
+	if (gamepad->hasAnalogTriggers || gamepad->hasLeftAnalogStick) {
+		if (gamepad->state.lt > 0)
+			switchReport.buttons |= SWITCH_MASK_ZL;
+	}
+	if (gamepad->hasAnalogTriggers || gamepad->hasRightAnalogStick) {
+		if (gamepad->state.rt > 0)
+			switchReport.buttons |= SWITCH_MASK_ZR;
+	}
 
 	switchReport.lx = static_cast<uint8_t>(gamepad->state.lx >> 8);
 	switchReport.ly = static_cast<uint8_t>(gamepad->state.ly >> 8);
@@ -71,8 +79,10 @@ void SwitchDriver::process(Gamepad * gamepad) {
 		// HID ready + report sent, copy previous report
 		if (tud_hid_ready() && tud_hid_report(0, report, report_size) == true ) {
 			memcpy(last_report, report, report_size);
+			return true;
 		}
 	}
+	return false;
 }
 
 // tud_hid_get_report_cb

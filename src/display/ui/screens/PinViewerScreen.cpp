@@ -1,6 +1,7 @@
 #include "PinViewerScreen.h"
 
 #include "pico/stdlib.h"
+#include "drivermanager.h"
 
 void PinViewerScreen::init() {
     getRenderer()->clearScreen();
@@ -14,12 +15,12 @@ void PinViewerScreen::drawScreen() {
     Mask_t pinValues = ~gpio_get_all();
     GpioMappingInfo* pinMappings = Storage::getInstance().getProfilePinMappings();
 
-    std::string pinsPressed = "PIN: ";
-    std::string pinsInUse = "In Use: ";
-    std::string pinsUndefined = "Undef: ";
-    std::string buttonsPressed = "BTN: ";
+    std::string pinsPressed = "GPIO Pin : ";
+    std::string pinsInUse = "In Use   : ";
+    std::string pinsUndefined = "Undefined: ";
+    std::string buttonsPressed = "Button   : ";
 
-    getRenderer()->drawText(5, 0, "[Pin Viewer]");
+    getRenderer()->drawText(2, 0, "[GPIO Pin Viewer]");
 
     for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
         if ((pinMappings[pin].action > 0) && (pinMappings[pin].action != GpioAction::CUSTOM_BUTTON_COMBO)) {
@@ -51,7 +52,7 @@ void PinViewerScreen::drawScreen() {
 }
 
 int8_t PinViewerScreen::update() {
-    if (Storage::getInstance().GetConfigMode()) {
+    if (DriverManager::getInstance().isConfigMode()) {
         uint16_t buttonState = getGamepad()->state.buttons;
         if (prevButtonState && !buttonState) {
             if (prevButtonState == GAMEPAD_MASK_A2) {

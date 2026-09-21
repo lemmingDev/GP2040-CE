@@ -55,9 +55,23 @@ void NeoPico::PutPixel(int index, uint32_t pixel) {
   }
 }
 
-NeoPico::NeoPico(int ledPin, int numPixels, LEDFormat format)
-    : format(format), ledPin(ledPin), numPixels(numPixels) {
+NeoPico::NeoPico() {
   this->Clear();
+}
+
+NeoPico::NeoPico(int ledPin, int numPixels, LEDFormat format) {
+  this->Clear();
+  this->Setup(ledPin, numPixels, format);
+}
+
+void NeoPico::Setup(int ledPin, int inNumPixels, LEDFormat inFormat) {
+  if (strip != nullptr) {
+    ESP_ERROR_CHECK(led_strip_del(strip));
+    strip = nullptr;
+  }
+  format = inFormat;
+  this->ledPin = ledPin;
+  numPixels = inNumPixels;
   if (ledPin < 0 || numPixels <= 0) {
     return; // Dummy instance (addon setup path): no RMT channel, all no-ops.
   }
@@ -85,6 +99,14 @@ NeoPico::NeoPico(int ledPin, int numPixels, LEDFormat format)
     return;
   }
   this->Off();
+}
+
+void NeoPico::ChangeNumPixels(int inNumPixels) {
+  if (inNumPixels == numPixels) return;
+  // RMT channel capacity is fixed at creation; re-run Setup so max_leds
+  // tracks the new count (same clamping contract as Pico: FRAME_MAX cap
+  // is enforced by the addon, see neopicoleds.cpp pledIndexes guard).
+  this->Setup(ledPin, inNumPixels, format);
 }
 
 NeoPico::~NeoPico() {

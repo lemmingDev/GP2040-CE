@@ -14,6 +14,9 @@
 #include "pico/stdlib.h"
 #elif defined(ESP_PLATFORM)
 #include <stdint.h>
+// S3: FocusMode timeout member needs absolute_time_t/nil_time;
+// esp32-s3/shims/pico/time.h provides the Pico time API over esp_timer.
+#include "pico/time.h"
 #endif
 
 #include "config.pb.h"
@@ -29,7 +32,7 @@ struct GamepadButtonMapping
 		buttonMask(bm)
 	{}
 
-	uint32_t pinMask;
+	Mask_t pinMask;
 	const uint32_t buttonMask;
 };
 
@@ -77,6 +80,13 @@ public:
 	}
 
 	/**
+	 * @brief Check for a raw, physical dpad press. Unaffected by macros, SOCD, or D-pad modes. Typically used for hotkey detection.
+	 */
+	inline bool __attribute__((always_inline)) pressedDpadPhysical(const uint8_t mask) {
+		return (state.dpadOriginal & mask) == mask;
+	}
+
+	/**
 	 * @brief Check for an aux button press. Same idea as `pressedButton`.
 	 */
 	inline bool __attribute__((always_inline)) pressedAux(const uint16_t mask) {
@@ -86,9 +96,9 @@ public:
 	/**
 	 * @brief Check for a hotkey combination press. Checks aux, buttons, and dpad.
 	 */
-	inline bool __attribute__((always_inline)) pressedHotkey(const HotkeyEntry hotkey) {
+	inline bool __attribute__((always_inline)) pressedHotkey(const HotkeyEntry &hotkey) {
 		return (hotkey.action != 0 && pressedButton(hotkey.buttonsMask) &&
-				pressedDpad(hotkey.dpadMask) && pressedAux(hotkey.auxMask));
+				pressedDpadPhysical(hotkey.dpadMask) && pressedAux(hotkey.auxMask));
 	}
 
 	/**
@@ -140,7 +150,6 @@ public:
 	void setSOCDMode(SOCDMode socdMode) { options.socdMode = socdMode; }
 	void setDpadMode(DpadMode dpadMode) { options.dpadMode = dpadMode; }
 
-	GamepadState rawState;
 	GamepadState state;
 	GamepadState turboState;
 	GamepadAuxState auxState;
@@ -193,27 +202,26 @@ public:
 	GamepadButtonMapping *mapAnalogRSYNeg;
 	GamepadButtonMapping *mapAnalogRSYPos;
 	GamepadButtonMapping *map48WayMode;
+	GamepadButtonMapping *mapFocusMode;
 
 	// gamepad specific proxy of debounced buttons --- 1 = active (inverse of the raw GPIO)
 	// see GP2040::debounceGpioGetAll for details
 	Mask_t debouncedGpio;
 
-	bool userRequestedReinit = false;
+	uint32_t lastReinitProfileNumber = 0;
 
 	// These are special to SOCD
 	inline static const SOCDMode resolveSOCDMode(const GamepadOptions& options) {
 		return (options.socdMode == SOCD_MODE_BYPASS &&
 				(options.inputMode == INPUT_MODE_PS3 ||
 				options.inputMode == INPUT_MODE_SWITCH ||
+				options.inputMode == INPUT_MODE_SWITCH_PRO ||
 				options.inputMode == INPUT_MODE_NEOGEO ||
 				options.inputMode == INPUT_MODE_PS4)) ?
 			SOCD_MODE_NEUTRAL : options.socdMode;
 	};
 
 private:
-
-	uint8_t getModifier(uint8_t code);
-	uint8_t getMultimedia(uint8_t code);
 	void processHotkeyAction(GamepadHotkey action);
 
 	GamepadOptions & options;
@@ -221,7 +229,10 @@ private:
 	bool map48WayModeToggle;
 	const HotkeyOptions & hotkeyOptions;
 
+	HotkeyEntry hotkeys[16];
 	GamepadHotkey lastAction = HOTKEY_NONE;
+
+	absolute_time_t disableFocusModeTimeout = nil_time;
 };
 
 #endif

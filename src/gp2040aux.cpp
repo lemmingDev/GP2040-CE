@@ -72,22 +72,13 @@ void GP2040Aux::setup() {
 	}
 
 	// Setup Add-ons
-#if defined(PICO_BOARD) || defined(ESP_PLATFORM)
-	addons.LoadAddon(new DisplayAddon(), CORE1_LOOP);
-	addons.LoadAddon(new NeoPicoLEDAddon(), CORE1_LOOP);
-#endif
-	addons.LoadAddon(new PlayerLEDAddon(), CORE1_LOOP);
-	addons.LoadAddon(new BoardLedAddon(), CORE1_LOOP);
-	addons.LoadAddon(new BuzzerSpeakerAddon(), CORE1_LOOP);
-	addons.LoadAddon(new DRV8833RumbleAddon(), CORE1_LOOP);
-	addons.LoadAddon(new ReactiveLEDAddon(), CORE1_LOOP);
-
-#if defined(PICO_BOARD)
-	// Initialize our USB manager
-	USBHostManager::getInstance().start();
-#else
-	// S3: USB host stack is Phase 2 — nothing to start on the aux core yet.
-#endif
+	addons.LoadAddon(new DisplayAddon());
+	addons.LoadAddon(new NeoPicoLEDAddon());
+	addons.LoadAddon(new PlayerLEDAddon());
+	addons.LoadAddon(new BoardLedAddon());
+	addons.LoadAddon(new BuzzerSpeakerAddon());
+	addons.LoadAddon(new DRV8833RumbleAddon());
+	addons.LoadAddon(new ReactiveLEDAddon());
 
 	// Ready to sync Core0 and Core1
 	isReady = true;
@@ -95,7 +86,9 @@ void GP2040Aux::setup() {
 
 void GP2040Aux::run() {
 	while (1) {
-		addons.ProcessAddons(CORE1_LOOP);
+		// Pre, Process, and Post
+		addons.PreprocessAddons();
+		addons.ProcessAddons();
 
 		// Run auxiliary functions for input driver on Core1
 		if ( inputDriver != nullptr ) {

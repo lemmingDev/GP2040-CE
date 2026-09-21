@@ -1,4 +1,3 @@
-import React from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import DangerSection from '../Components/DangerSection';
@@ -12,8 +11,7 @@ export default function ResetSettingsPage() {
 		e.stopPropagation();
 
 		if (window.confirm(t('ResetSettings:confirm-text'))) {
-			const result = await WebApi.resetSettings();
-			console.log(result);
+			await WebApi.resetSettings();
 			setTimeout(() => {
 				window.location.reload();
 			}, 2000);

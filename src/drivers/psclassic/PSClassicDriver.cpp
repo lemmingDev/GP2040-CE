@@ -19,7 +19,7 @@ void PSClassicDriver::initialize() {
 	};
 }
 
-void PSClassicDriver::process(Gamepad * gamepad) {
+bool PSClassicDriver::process(Gamepad * gamepad) {
 	psClassicReport.buttons = PSCLASSIC_MASK_CENTER;
 
 	switch (gamepad->state.dpad & GAMEPAD_MASK_DPAD)
@@ -36,8 +36,8 @@ void PSClassicDriver::process(Gamepad * gamepad) {
 	}
 
 	psClassicReport.buttons |=
-          (gamepad->pressedS2()    ? PSCLASSIC_MASK_SELECT   : 0)
-		| (gamepad->pressedS1()    ? PSCLASSIC_MASK_START    : 0)
+          (gamepad->pressedS2()    ? PSCLASSIC_MASK_START   : 0)
+		| (gamepad->pressedS1()    ? PSCLASSIC_MASK_SELECT    : 0)
 		| (gamepad->pressedB1()    ? PSCLASSIC_MASK_CROSS    : 0)
 		| (gamepad->pressedB2()    ? PSCLASSIC_MASK_CIRCLE   : 0)
 		| (gamepad->pressedB3()    ? PSCLASSIC_MASK_SQUARE   : 0)
@@ -47,6 +47,14 @@ void PSClassicDriver::process(Gamepad * gamepad) {
 		| (gamepad->pressedL2()    ? PSCLASSIC_MASK_L2       : 0)
 		| (gamepad->pressedR2()    ? PSCLASSIC_MASK_R2       : 0)
 	;
+	if (gamepad->hasAnalogTriggers || gamepad->hasLeftAnalogStick) {
+		if (gamepad->state.lt > 0)
+			psClassicReport.buttons |= PSCLASSIC_MASK_L2;
+	}
+	if (gamepad->hasAnalogTriggers || gamepad->hasRightAnalogStick) {
+		if (gamepad->state.rt > 0)
+			psClassicReport.buttons |= PSCLASSIC_MASK_R2;
+	}
 
 	// Wake up TinyUSB device
 	if (tud_suspended())
@@ -58,8 +66,10 @@ void PSClassicDriver::process(Gamepad * gamepad) {
 		// HID ready + report sent, copy previous report
 		if (tud_hid_ready() && tud_hid_report(0, report, report_size) == true ) {
 			memcpy(last_report, report, report_size);
+			return true;
 		}
 	}
+	return false;
 }
 
 // tud_hid_get_report_cb

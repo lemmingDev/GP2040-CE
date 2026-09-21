@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { baseUrl } from '../Services/WebApi';
 
-const percentage = (x, y) => parseFloat(((x / y) * 100).toFixed(2));
-const toKB = (x) => parseFloat((x / 1024).toFixed(2));
+const percentage = (x: number, y: number): number =>
+	parseFloat(((x / y) * 100).toFixed(2));
+const toKB = (x: number): number => parseFloat((x / 1024).toFixed(2));
 
 type State = {
 	latestVersion: string;
@@ -21,6 +22,11 @@ type State = {
 		totalHeap: number;
 		usedFlash: number;
 		usedHeap: number;
+	};
+	stats: {
+		architecture: string;
+		build: string;
+		buildType: string;
 	};
 	loading: boolean;
 	error: boolean;
@@ -48,6 +54,11 @@ const INITIAL_STATE: State = {
 		usedFlash: 0,
 		usedHeap: 0,
 	},
+	stats: {
+		architecture: '',
+		build: '',
+		buildType: '',
+	},
 	loading: false,
 	error: false,
 };
@@ -67,13 +78,13 @@ const useSystemStats = create<State & Actions>()((set) => ({
 			]);
 			const latestDownloadUrl =
 				latestRelease.assets?.find(
-					({ name }) =>
+					({ name }: { name: string }) =>
 						name
 							?.substring(name.lastIndexOf('_') + 1)
 							?.replace('.uf2', '')
 							?.toLowerCase() === firmwareVersion.boardConfig.toLowerCase(),
 				)?.browser_download_url ||
-				`https://github.com/OpenStickCommunity/GP2040-CE/releases/tag/${latestRelease.data.tag_name}`;
+				`https://github.com/OpenStickCommunity/GP2040-CE/releases/tag/${latestRelease.tag_name}`;
 
 			set({
 				currentVersion: firmwareVersion.version,
@@ -98,6 +109,11 @@ const useSystemStats = create<State & Actions>()((set) => ({
 						memoryReport.usedHeap,
 						memoryReport.totalHeap,
 					),
+				},
+				stats: {
+					architecture: firmwareVersion.boardArchitecture,
+					build: firmwareVersion.boardBuild,
+					buildType: firmwareVersion.boardBuildType,
 				},
 				loading: false,
 			});

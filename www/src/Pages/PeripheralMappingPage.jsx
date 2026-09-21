@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../Contexts/AppContext';
 import { Button, Form, FormCheck, FormSelect, Table } from 'react-bootstrap';
 import { Formik, useFormikContext, getIn } from 'formik';
@@ -10,6 +10,8 @@ import Section from '../Components/Section';
 import WebApi, { basePeripheralMapping } from '../Services/WebApi';
 import { PERIPHERAL_DEVICES } from '../Data/Peripherals';
 import boards from '../Data/Boards.json';
+
+import useBoardDefinition from '../Store/useBoardDefinitionStore';
 
 let peripheralFieldsSchema = {
 	peripheral: yup.object().shape(
@@ -68,11 +70,17 @@ export default function PeripheralMappingPage() {
 	const { setButtonLabels, usedPins } = useContext(AppContext);
 	const [saveMessage, setSaveMessage] = useState('');
 
-	let allPins = [
-		...Array(boards[import.meta.env.VITE_GP2040_BOARD].maxPin + 1).keys(),
-	];
+	const { boardDefinition, getBoardDefinition } = useBoardDefinition();
+
+	useEffect(() => {
+		getBoardDefinition();
+	}, []);
+
+	let allPins = [...boardDefinition.availablePins.keys()];
 	const pinLookup = (pinList) => {
-		return pinList && pinList.length > 0 ? pinList : allPins;
+		return (pinList && pinList.length > 0 ? pinList : allPins).filter((x) =>
+			boardDefinition.availablePins.includes(x),
+		);
 	};
 
 	const onSuccess = async (values) => {
@@ -102,6 +110,7 @@ export default function PeripheralMappingPage() {
 						);
 						return (
 							<Table
+								key={`details-${i}`}
 								className="caption-top"
 								striped="columns"
 								responsive
@@ -150,7 +159,6 @@ export default function PeripheralMappingPage() {
 					<div>
 						<Form noValidate onSubmit={handleSubmit}>
 							<Section title={t('PeripheralMapping:header-text')}>
-								<p>{t('PeripheralMapping:sub-header-text')}</p>
 								{PERIPHERAL_DEVICES.map((peripheral, i) => (
 									<Form.Group
 										key={`peripheral-${peripheral.value}`}

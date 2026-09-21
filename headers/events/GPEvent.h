@@ -6,7 +6,7 @@
 class GPEvent {
     public:
         GPEvent() {}
-        virtual ~GPEvent() {} // virtual: EventManager deletes derived events via this base
+        virtual ~GPEvent() {}
 
         virtual GPEventType eventType() { return this->_eventType; }
     private:

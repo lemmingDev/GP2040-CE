@@ -34,10 +34,12 @@
 
 class SPIAnalog1256Input : public GPAddon {
 public:
-	virtual bool available();
-	virtual void setup();       // Analog Setup
-	virtual void preprocess() {}
-	virtual void process();     // Analog Process
+    virtual bool available();
+    virtual void setup();       // Analog Setup
+    virtual void preprocess() {}
+    virtual void process();     // Analog Process
+    virtual void postprocess(bool sent) {}
+    virtual void reinit() {}
     virtual std::string name() { return SPIAnalog1256Name; }
 private:
     uint8_t convert24to8bit(float voltage);
@@ -47,7 +49,7 @@ private:
     float values[ADS1256_CHANNEL_COUNT]; // Cache for latest read values
     bool enableTriggers;
     uint8_t readChannelCount; // Number of channels to read from the ADC
-    float analogMax = ADS1256_MAX_3V;
+    float analogMax = ADS1256_MAX_3V * 10.0f;
 };
 
 #endif  // SPI_ANALOG_ADS1256_H_

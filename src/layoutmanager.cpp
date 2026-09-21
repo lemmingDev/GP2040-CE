@@ -3,14 +3,54 @@
 #include "buttonlayouts.h"
 #include "enums.pb.h"
 
+#ifdef DEFAULT_BOARD_LAYOUT_A_NAME
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+#endif
+
 LayoutManager::LayoutList LayoutManager::getLayoutA() {
-    uint16_t layoutLeft = Storage::getInstance().getDisplayOptions().buttonLayout;
-    return getLeftLayout(layoutLeft);
+    const DisplayOptions& options = Storage::getInstance().getDisplayOptions();
+    uint16_t layoutLeft = options.buttonLayout;
+    if (options.buttonLayoutOrientation != BUTTON_ORIENTATION_DEFAULT) {
+        uint16_t layoutRight = options.buttonLayoutRight;
+        LayoutManager::LayoutList rightLayout = getRightLayout(layoutRight);
+        if (rightLayout.empty() && layoutRight >= BUTTON_LAYOUT_BOARD_DEFINED_ALT0_B && layoutRight <= BUTTON_LAYOUT_BOARD_DEFINED_ALT7_B) {
+            rightLayout = drawBoardDefinedB();
+        }
+        if (options.buttonLayoutOrientation == BUTTON_ORIENTATION_SWITCHED) {
+            return adjustByOffset(rightLayout, -64);
+        } else {
+            return adjustByOffset(flipHorizontally(rightLayout, 64, 0, 128, 0), -64);
+        }
+    } else {
+        LayoutList layout = getLeftLayout(layoutLeft);
+        if (layout.empty() && layoutLeft >= BUTTON_LAYOUT_BOARD_DEFINED_ALT0_A && layoutLeft <= BUTTON_LAYOUT_BOARD_DEFINED_ALT7_A) {
+            return drawBoardDefinedA();
+        }
+        return layout;
+    }
 }
 
 LayoutManager::LayoutList LayoutManager::getLayoutB() {
-    uint16_t layoutRight = Storage::getInstance().getDisplayOptions().buttonLayoutRight;
-    return getRightLayout(layoutRight);
+    const DisplayOptions& options = Storage::getInstance().getDisplayOptions();
+    uint16_t layoutRight = options.buttonLayoutRight;
+    if (options.buttonLayoutOrientation != BUTTON_ORIENTATION_DEFAULT) {
+        uint16_t layoutLeft = options.buttonLayout;
+        LayoutManager::LayoutList leftLayout = getLeftLayout(layoutLeft);
+        if (leftLayout.empty() && layoutLeft >= BUTTON_LAYOUT_BOARD_DEFINED_ALT0_A && layoutLeft <= BUTTON_LAYOUT_BOARD_DEFINED_ALT7_A) {
+            leftLayout = drawBoardDefinedA();
+        }
+        if (options.buttonLayoutOrientation == BUTTON_ORIENTATION_SWITCHED) {
+            return adjustByOffset(leftLayout, 64);
+        } else {
+            return adjustByOffset(flipHorizontally(leftLayout, 0, 0, 64, 0), 64);
+        }
+    } else {
+        LayoutList layout = getRightLayout(layoutRight);
+        if (layout.empty() && layoutRight >= BUTTON_LAYOUT_BOARD_DEFINED_ALT0_B && layoutRight <= BUTTON_LAYOUT_BOARD_DEFINED_ALT7_B)
+            return drawBoardDefinedB();
+        return layout;
+    }
 }
 
 std::string LayoutManager::getLayoutAName() {
@@ -24,21 +64,155 @@ std::string LayoutManager::getLayoutBName() {
 }
 
 std::string LayoutManager::getButtonLayoutName(ButtonLayout layout) {
-    #define ENUM_CASE(name, value) case name: return #name;
     switch (layout) {
-        ButtonLayout_VALUELIST(ENUM_CASE)
-        default: return "BUTTON_LAYOUT_UNKNOWN";
+        case BUTTON_LAYOUT_BOARD_DEFINED_A: {
+            #ifdef DEFAULT_BOARD_LAYOUT_A_NAME
+            return DEFAULT_BOARD_LAYOUT_A_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_A";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT0_A: {
+            #ifdef DEFAULT_BOARD_LAYOUT_A_ALT0_NAME
+            return DEFAULT_BOARD_LAYOUT_A_ALT0_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT0_A";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT1_A: {
+            #ifdef DEFAULT_BOARD_LAYOUT_A_ALT1_NAME
+            return DEFAULT_BOARD_LAYOUT_A_ALT1_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT1_A";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT2_A: {
+            #ifdef DEFAULT_BOARD_LAYOUT_A_ALT2_NAME
+            return DEFAULT_BOARD_LAYOUT_A_ALT2_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT2_A";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT3_A: {
+            #ifdef DEFAULT_BOARD_LAYOUT_A_ALT3_NAME
+            return DEFAULT_BOARD_LAYOUT_A_ALT3_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT3_A";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT4_A: {
+            #ifdef DEFAULT_BOARD_LAYOUT_A_ALT4_NAME
+            return DEFAULT_BOARD_LAYOUT_A_ALT4_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT4_A";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT5_A: {
+            #ifdef DEFAULT_BOARD_LAYOUT_A_ALT5_NAME
+            return DEFAULT_BOARD_LAYOUT_A_ALT5_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT5_A";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT6_A: {
+            #ifdef DEFAULT_BOARD_LAYOUT_A_ALT6_NAME
+            return DEFAULT_BOARD_LAYOUT_A_ALT6_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT6_A";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT7_A: {
+            #ifdef DEFAULT_BOARD_LAYOUT_A_ALT7_NAME
+            return DEFAULT_BOARD_LAYOUT_A_ALT7_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT7_A";
+            #endif
+        }
+        default: {
+            #define ENUM_CASE(name, value) case name: return #name;
+            switch (layout) {
+                ButtonLayout_VALUELIST(ENUM_CASE)
+                default: return "BUTTON_LAYOUT_UNKNOWN";
+            }
+            #undef ENUM_CASE
+        }
     }
-    #undef ENUM_CASE
 }
 
 std::string LayoutManager::getButtonLayoutRightName(ButtonLayoutRight layout) {
-    #define ENUM_CASE(name, value) case name: return #name;
     switch (layout) {
-        ButtonLayoutRight_VALUELIST(ENUM_CASE)
-        default: return "BUTTON_LAYOUT_UNKNOWN";
+        case BUTTON_LAYOUT_BOARD_DEFINED_B: {
+            #ifdef DEFAULT_BOARD_LAYOUT_B_NAME
+            return DEFAULT_BOARD_LAYOUT_B_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_B";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT0_B: {
+            #ifdef DEFAULT_BOARD_LAYOUT_B_ALT0_NAME
+            return DEFAULT_BOARD_LAYOUT_B_ALT0_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT0_B";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT1_B: {
+            #ifdef DEFAULT_BOARD_LAYOUT_B_ALT1_NAME
+            return DEFAULT_BOARD_LAYOUT_B_ALT1_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT1_B";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT2_B: {
+            #ifdef DEFAULT_BOARD_LAYOUT_B_ALT2_NAME
+            return DEFAULT_BOARD_LAYOUT_B_ALT2_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT2_B";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT3_B: {
+            #ifdef DEFAULT_BOARD_LAYOUT_B_ALT3_NAME
+            return DEFAULT_BOARD_LAYOUT_B_ALT3_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT3_B";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT4_B: {
+            #ifdef DEFAULT_BOARD_LAYOUT_B_ALT4_NAME
+            return DEFAULT_BOARD_LAYOUT_B_ALT4_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT4_B";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT5_B: {
+            #ifdef DEFAULT_BOARD_LAYOUT_B_ALT5_NAME
+            return DEFAULT_BOARD_LAYOUT_B_ALT5_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT5_B";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT6_B: {
+            #ifdef DEFAULT_BOARD_LAYOUT_B_ALT6_NAME
+            return DEFAULT_BOARD_LAYOUT_B_ALT6_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT6_B";
+            #endif
+        }
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT7_B: {
+            #ifdef DEFAULT_BOARD_LAYOUT_B_ALT7_NAME
+            return DEFAULT_BOARD_LAYOUT_B_ALT7_NAME;
+            #else
+            return "BUTTON_LAYOUT_BOARD_DEFINED_ALT7_B";
+            #endif
+        }
+        default: {
+            #define ENUM_CASE(name, value) case name: return #name;
+            switch (layout) {
+                ButtonLayoutRight_VALUELIST(ENUM_CASE)
+                default: return "BUTTON_LAYOUT_UNKNOWN";
+            }
+            #undef ENUM_CASE
+        }
     }
-    #undef ENUM_CASE
 }
 
 LayoutManager::LayoutList LayoutManager::getLeftLayout(uint16_t index) {
@@ -117,6 +291,22 @@ LayoutManager::LayoutList LayoutManager::getLeftLayout(uint16_t index) {
             return draw6GAWDAllButtonLeft();
         case BUTTON_LAYOUT_6GAWD_ALLBUTTONPLUS_A:
             return draw6GAWDAllButtonPlusLeft();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT0_A:
+            return drawBoardDefinedAlt0A();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT1_A:
+            return drawBoardDefinedAlt1A();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT2_A:
+            return drawBoardDefinedAlt2A();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT3_A:
+            return drawBoardDefinedAlt3A();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT4_A:
+            return drawBoardDefinedAlt4A();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT5_A:
+            return drawBoardDefinedAlt5A();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT6_A:
+            return drawBoardDefinedAlt6A();   
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT7_A:
+            return drawBoardDefinedAlt7A();    
         default:
             break;
     }
@@ -145,6 +335,8 @@ LayoutManager::LayoutList LayoutManager::getRightLayout(uint16_t index) {
             return this->drawCapcom6();
         case BUTTON_LAYOUT_SEGA2P:
             return this->drawSega2p();
+        case BUTTON_LAYOUT_SEGA2P_6B:
+            return this->drawSega2p6b();
         case BUTTON_LAYOUT_NOIR8:
             return this->drawNoir8();
         case BUTTON_LAYOUT_KEYBOARDB:
@@ -155,6 +347,8 @@ LayoutManager::LayoutList LayoutManager::getRightLayout(uint16_t index) {
             return this->drawBlankB();
         case BUTTON_LAYOUT_VLXB:
             return this->drawVLXB();
+        case BUTTON_LAYOUT_VLXB_6B:
+            return this->drawVLXB6B();
         case BUTTON_LAYOUT_FIGHTBOARD:
             return this->drawFightboard();
         case BUTTON_LAYOUT_FIGHTBOARD_STICK_MIRRORED:
@@ -205,6 +399,22 @@ LayoutManager::LayoutList LayoutManager::getRightLayout(uint16_t index) {
             return draw6GAWDAllButtonRight();
         case BUTTON_LAYOUT_6GAWD_ALLBUTTONPLUS_B:
             return draw6GAWDAllButtonPlusRight();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT0_B:
+            return this->drawBoardDefinedAlt0B();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT1_B:
+            return this->drawBoardDefinedAlt1B();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT2_B:
+            return this->drawBoardDefinedAlt2B();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT3_B:
+            return this->drawBoardDefinedAlt3B();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT4_B:
+            return this->drawBoardDefinedAlt4B();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT5_B:
+            return this->drawBoardDefinedAlt5B();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT6_B:
+            return this->drawBoardDefinedAlt6B();
+        case BUTTON_LAYOUT_BOARD_DEFINED_ALT7_B:
+            return this->drawBoardDefinedAlt7B();
         default:
             break;
     }
@@ -250,6 +460,52 @@ LayoutManager::LayoutList LayoutManager::adjustByCustomSettings(LayoutManager::L
                 layout[elementCtr].parameters.x2 = common.buttonRadius;
                 layout[elementCtr].parameters.y2 = common.buttonRadius;
             }
+        }
+    }
+    return layout;
+}
+
+LayoutManager::LayoutList LayoutManager::adjustByOffset(LayoutManager::LayoutList layout, int16_t originX, int16_t originY) {
+    if (layout.size() > 0) {
+        int16_t minX = INT16_MAX;
+        int16_t maxX = INT16_MIN;
+
+        for (uint16_t elementCtr = 0; elementCtr < layout.size(); elementCtr++) {
+            int16_t newX = layout[elementCtr].parameters.x1 + originX;
+            if (((GPShape_Type)layout[elementCtr].parameters.shape == GP_SHAPE_ELLIPSE) || ((GPShape_Type)layout[elementCtr].parameters.shape == GP_SHAPE_POLYGON)) {
+                newX = (layout[elementCtr].parameters.x1-(layout[elementCtr].parameters.x2)) + originX;
+            } else if ((GPShape_Type)layout[elementCtr].parameters.shape == GP_SHAPE_SQUARE) {
+                if (originX > 0) newX = layout[elementCtr].parameters.x2 + originX;
+            }
+            minX = std::min(minX, newX);
+            maxX = std::max(maxX, newX);
+        }
+
+        int16_t offsetX = 0;
+        if (minX < 0) {
+            offsetX = -minX;
+        } else if (maxX > 127) {
+            offsetX = 127 - maxX;
+        }
+
+        // Apply the calculated adjustment to all objects
+        for (uint16_t elementCtr = 0; elementCtr < layout.size(); elementCtr++) {
+            layout[elementCtr].parameters.x1 += originX + offsetX;
+            if ((GPShape_Type)layout[elementCtr].parameters.shape == GP_SHAPE_SQUARE) {
+                layout[elementCtr].parameters.x2 += originX + offsetX;
+            }
+            layout[elementCtr].parameters.y1 += originY; // Apply y offset directly
+        }
+    }
+    return layout;
+}
+
+LayoutManager::LayoutList LayoutManager::flipHorizontally(LayoutList layout, int16_t startX, int16_t startY, int16_t endX, int16_t endY) {
+    if (layout.size() > 0) {
+        for (uint16_t elementCtr = 0; elementCtr < layout.size(); elementCtr++) {
+            int16_t originalX = layout[elementCtr].parameters.x1;
+
+            layout[elementCtr].parameters.x1 = (endX-1) - (originalX - startX);
         }
     }
     return layout;
@@ -345,6 +601,11 @@ LayoutManager::LayoutList LayoutManager::drawVLXB()
     return BUTTON_GROUP_VLXB;
 }
 
+LayoutManager::LayoutList LayoutManager::drawVLXB6B()
+{
+    return BUTTON_GROUP_VLXB_6B;
+}
+
 LayoutManager::LayoutList LayoutManager::drawFightboard()
 {
     return BUTTON_GROUP_FIGHTBOARD;
@@ -358,6 +619,11 @@ LayoutManager::LayoutList LayoutManager::drawVewlix7()
 LayoutManager::LayoutList LayoutManager::drawSega2p()
 {
     return BUTTON_GROUP_SEGA_2P;
+}
+
+LayoutManager::LayoutList LayoutManager::drawSega2p6b()
+{
+    return BUTTON_GROUP_SEGA_2P_6B;
 }
 
 LayoutManager::LayoutList LayoutManager::drawNoir8()
@@ -599,7 +865,71 @@ LayoutManager::LayoutList LayoutManager::drawBoardDefinedA() {
 #ifdef DEFAULT_BOARD_LAYOUT_A
     return DEFAULT_BOARD_LAYOUT_A;
 #else
-    return drawBlankA();
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt0A() {
+#ifdef DEFAULT_BOARD_LAYOUT_A_ALT0
+    return DEFAULT_BOARD_LAYOUT_A_ALT0;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt1A() {
+#ifdef DEFAULT_BOARD_LAYOUT_A_ALT1
+    return DEFAULT_BOARD_LAYOUT_A_ALT1;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt2A() {
+#ifdef DEFAULT_BOARD_LAYOUT_A_ALT2
+    return DEFAULT_BOARD_LAYOUT_A_ALT2;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt3A() {
+#ifdef DEFAULT_BOARD_LAYOUT_A_ALT3
+    return DEFAULT_BOARD_LAYOUT_A_ALT3;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt4A() {
+#ifdef DEFAULT_BOARD_LAYOUT_A_ALT4
+    return DEFAULT_BOARD_LAYOUT_A_ALT4;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt5A() {
+#ifdef DEFAULT_BOARD_LAYOUT_A_ALT5
+    return DEFAULT_BOARD_LAYOUT_A_ALT5;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt6A() {
+#ifdef DEFAULT_BOARD_LAYOUT_A_ALT6
+    return DEFAULT_BOARD_LAYOUT_A_ALT6;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt7A() {
+#ifdef DEFAULT_BOARD_LAYOUT_A_ALT7
+    return DEFAULT_BOARD_LAYOUT_A_ALT7;
+#else
+    return {};
 #endif
 }
 
@@ -607,6 +937,70 @@ LayoutManager::LayoutList LayoutManager::drawBoardDefinedB() {
 #ifdef DEFAULT_BOARD_LAYOUT_B
     return DEFAULT_BOARD_LAYOUT_B;
 #else
-    return drawBlankA();
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt0B() {
+#ifdef DEFAULT_BOARD_LAYOUT_B_ALT0
+    return DEFAULT_BOARD_LAYOUT_B_ALT0;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt1B() {
+#ifdef DEFAULT_BOARD_LAYOUT_B_ALT1
+    return DEFAULT_BOARD_LAYOUT_B_ALT1;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt2B() {
+#ifdef DEFAULT_BOARD_LAYOUT_B_ALT2
+    return DEFAULT_BOARD_LAYOUT_B_ALT2;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt3B() {
+#ifdef DEFAULT_BOARD_LAYOUT_B_ALT3
+    return DEFAULT_BOARD_LAYOUT_B_ALT3;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt4B() {
+#ifdef DEFAULT_BOARD_LAYOUT_B_ALT4
+    return DEFAULT_BOARD_LAYOUT_B_ALT4;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt5B() {
+#ifdef DEFAULT_BOARD_LAYOUT_B_ALT5
+    return DEFAULT_BOARD_LAYOUT_B_ALT5;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt6B() {
+#ifdef DEFAULT_BOARD_LAYOUT_B_ALT6
+    return DEFAULT_BOARD_LAYOUT_B_ALT6;
+#else
+    return {};
+#endif
+}
+
+LayoutManager::LayoutList LayoutManager::drawBoardDefinedAlt7B() {
+#ifdef DEFAULT_BOARD_LAYOUT_B_ALT7
+    return DEFAULT_BOARD_LAYOUT_B_ALT7;
+#else
+    return {};
 #endif
 }

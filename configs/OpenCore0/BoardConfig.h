@@ -31,13 +31,14 @@
 #define GPIO_PIN_02 GpioAction::BUTTON_PRESS_R3     // R3     | RS     | RS      | R3       | 12     | RS     |
 #define GPIO_PIN_05 GpioAction::BUTTON_PRESS_A1     // A1     | Guide  | Home    | PS       | 13     | ~      |
 #define GPIO_PIN_04 GpioAction::BUTTON_PRESS_A2     // A2     | ~      | Capture | ~        | 14     | ~      |
+#define GPIO_PIN_26 GpioAction::BUTTON_PRESS_FN     // FN
+#define GPIO_PIN_21 GpioAction::SUSTAIN_FOCUS_MODE
 
 // Setting GPIO pins to assigned by add-on
 //
 #define GPIO_PIN_00 GpioAction::ASSIGNED_TO_ADDON
 #define GPIO_PIN_01 GpioAction::ASSIGNED_TO_ADDON
 #define GPIO_PIN_08 GpioAction::ASSIGNED_TO_ADDON
-#define GPIO_PIN_21 GpioAction::ASSIGNED_TO_ADDON
 #define GPIO_PIN_28 GpioAction::ASSIGNED_TO_ADDON
 #define GPIO_PIN_29 GpioAction::ASSIGNED_TO_ADDON
 
@@ -104,16 +105,53 @@
 #define PLED2_PIN 25
 #define PLED3_PIN 26
 #define PLED4_PIN 27
-#define PLED_COLOR ColorGreen
+#define PLED_COLOR 6 // ColorGreen index from Animation.h
+
+#define LIGHT_DATA_NAME_DEFAULT "OpenCore0" 
+#define LIGHT_DATA_SIZE_DEFAULT 48 //number of sets in the below data
+#define LIGHT_DATA_DEFAULT \
+0,  1, 5,  4, 5,  LightType::LightType_ActionButton, \
+0,  2, 2,  3, 9,  LightType::LightType_ActionButton, \
+2,  2, 4,  3, 10, LightType::LightType_ActionButton, \
+4,  2, 6,  4, 11, LightType::LightType_ActionButton, \
+6,  2, 8,  3, 17, LightType::LightType_ActionButton, \
+8,  2, 10, 2, 18, LightType::LightType_ActionButton, \
+10, 2, 12, 2, 19, LightType::LightType_ActionButton, \
+12, 2, 14, 2, 20, LightType::LightType_ActionButton, \
+14, 2, 14, 4, 16, LightType::LightType_ActionButton, \
+16, 2, 12, 4, 15, LightType::LightType_ActionButton, \
+18, 2, 10, 4, 14, LightType::LightType_ActionButton, \
+20, 2, 8,  5, 13, LightType::LightType_ActionButton, \
+22, 2, 6,  7, 12, LightType::LightType_ActionButton, \
+29, 1, 16, 0, 0,  LightType::LightType_Case, \
+30, 1, 16, 1, 1,  LightType::LightType_Case, \
+31, 1, 16, 2, 2,  LightType::LightType_Case, \
+32, 1, 16, 3, 3,  LightType::LightType_Case, \
+33, 1, 16, 4, 4,  LightType::LightType_Case, \
+34, 1, 16, 5, 5,  LightType::LightType_Case, \
+35, 1, 16, 6, 6,  LightType::LightType_Case, \
+36, 1, 16, 7, 7,  LightType::LightType_Case, \
+37, 1, 16, 8, 8,  LightType::LightType_Case, \
+38, 1, 16, 9, 9,  LightType::LightType_Case, \
+39, 1, 0,  9, 10, LightType::LightType_Case, \
+40, 1, 0,  8, 11, LightType::LightType_Case, \
+41, 1, 0,  7, 12, LightType::LightType_Case, \
+42, 1, 0,  6, 13 ,LightType::LightType_Case, \
+43, 1, 0,  5, 14 ,LightType::LightType_Case, \
+44, 1, 0,  4, 15 ,LightType::LightType_Case, \
+45, 1, 0,  3, 16 ,LightType::LightType_Case, \
+46, 1, 0,  2, 17 ,LightType::LightType_Case, \
+47, 1, 0,  1, 18 ,LightType::LightType_Case, \
+48, 1, 0,  0, 19 ,LightType::LightType_Case
 
 #define TURBO_LED_INDEX 28
 #define TURBO_LED_TYPE PLED_TYPE_RGB
-#define TURBO_LED_COLOR ColorRed
 
-#define CASE_RGB_TYPE CASE_RGB_TYPE_STATIC
+#define CASE_RGB_TYPE CASE_RGB_TYPE_AMBIENT
 #define CASE_RGB_INDEX 29
 #define CASE_RGB_COUNT 20
-#define CASE_RGB_COLOR ColorGreen
+#define AMBIENT_LIGHT_EFFECT AL_CUSTOM_EFFECT_STATIC_COLOR
+#define AMBIENT_STATIC_COLOR ANIMATION_COLOR_GREEN
 
 #define HAS_I2C_DISPLAY 1
 #define I2C0_ENABLED 1
@@ -127,14 +165,41 @@
 #define REVERSE_LEFT_DEFAULT 1
 #define REVERSE_RIGHT_DEFAULT 1
 
-#define BUTTON_LAYOUT BUTTON_LAYOUT_STICKLESS
-#define BUTTON_LAYOUT_RIGHT BUTTON_LAYOUT_STICKLESSB
+#define BUTTON_LAYOUT BUTTON_LAYOUT_BOARD_DEFINED_A
+#define BUTTON_LAYOUT_RIGHT BUTTON_LAYOUT_BOARD_DEFINED_B
 #define SPLASH_MODE SPLASH_MODE_STATIC
 #define SPLASH_DURATION 3000
 
+#define DEFAULT_BOARD_LAYOUT_A_NAME "Open_Core0 Default"
+#define DEFAULT_BOARD_LAYOUT_A {\
+    {GP_ELEMENT_PIN_BUTTON, {12, 25, 7, 7, 1, 1, 9,    GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {28, 25, 7, 7, 1, 1, 10,   GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {42, 32, 7, 7, 1, 1, 11,   GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {47, 55, 7, 7, 1, 1, 12,   GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {2, 12, 2, 2, 1, 1, 7,    GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {9, 12, 2, 2, 1, 1, 6,    GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {16, 12, 2, 2, 1, 1, 5,    GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {23, 12, 2, 2, 1, 1, 4,    GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {30, 12, 2, 2, 1, 1, 3,    GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {37, 12, 2, 2, 1, 1, 2,    GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {55, 12, 2, 2, 1, 1, 27,   GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {62, 12, 2, 2, 1, 1, 26,   GP_SHAPE_ELLIPSE}}\
+  }
+  
+#define DEFAULT_BOARD_LAYOUT_B_NAME "Open_Core0 Default"
+#define DEFAULT_BOARD_LAYOUT_B {\
+    {GP_ELEMENT_PIN_BUTTON, {56,  25, 7, 7, 1, 1, 17,  GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {72,  22, 7, 7, 1, 1, 18,  GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {88,  22, 7, 7, 1, 1, 19,  GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {104, 25, 7, 7, 1, 1, 20,  GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {56,  41, 7, 7, 1, 1, 13,  GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {72,  38, 7, 7, 1, 1, 14,  GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {88,  38, 7, 7, 1, 1, 15,  GP_SHAPE_ELLIPSE}},\
+    {GP_ELEMENT_PIN_BUTTON, {104, 41, 7, 7, 1, 1, 16,  GP_SHAPE_ELLIPSE}}\
+  }
+
 #define FOCUS_MODE_ENABLED 1
 #define FOCUS_MODE_BUTTON_MASK GAMEPAD_MASK_S1 | GAMEPAD_MASK_S2 | GAMEPAD_MASK_A1 | GAMEPAD_MASK_A2 | GAMEPAD_MASK_L3 | GAMEPAD_MASK_R3
-#define FOCUS_MODE_PIN 21
 #define FOCUS_MODE_BUTTON_LOCK_ENABLED 1
 
 

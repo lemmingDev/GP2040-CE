@@ -18,6 +18,12 @@ env.ini
 .devcontainer
 *Dockerfile
 *docker-compose.yml
-
 # Local git worktrees
 .worktrees/
+www/src_gen/enums.ts
+/lib/NeoPico/src/generated/ws2812.pio.h
+
+
+# Language Server config
+.clangd
+>>>>>>> upstream/main

@@ -1,4 +1,5 @@
-import React, {
+import {
+	FormEvent,
 	memo,
 	useCallback,
 	useContext,
@@ -24,17 +25,22 @@ import invert from 'lodash/invert';
 import omit from 'lodash/omit';
 
 import { AppContext } from '../Contexts/AppContext';
-import useProfilesStore, { MAX_PROFILES } from '../Store/useProfilesStore';
+import useProfilesStore, {
+	MaskPayload,
+	MAX_PROFILES,
+} from '../Store/useProfilesStore';
 
 import Section from '../Components/Section';
 import CustomSelect from '../Components/CustomSelect';
 import CaptureButton from '../Components/CaptureButton';
 
 import { BUTTON_MASKS, DPAD_MASKS, getButtonLabels } from '../Data/Buttons';
-import { BUTTON_ACTIONS, PinActionValues } from '../Data/Pins';
+import { BUTTON_ACTIONS, PinActionKeys, PinActionValues } from '../Data/Pins';
 import './PinMapping.scss';
 import { MultiValue, SingleValue } from 'react-select';
 import InfoCircle from '../Icons/InfoCircle';
+import WebApi from '../Services/WebApi';
+import useLedsPreview from '../Hooks/useLedsPreview';
 
 type OptionType = {
 	label: string;
@@ -47,21 +53,22 @@ type OptionType = {
 const disabledOptions = [
 	BUTTON_ACTIONS.RESERVED,
 	BUTTON_ACTIONS.ASSIGNED_TO_ADDON,
-];
+] as PinActionValues[];
 
-const getMask = (maskArr, key) =>
+const getMask = (maskArr: { label: string; value: number }[], key: string) =>
 	maskArr.find(
 		({ label }) => label?.toUpperCase() === key.split('BUTTON_PRESS_')?.pop(),
 	);
 
-const isNonSelectable = (action) =>
+const isNonSelectable = (action: PinActionValues) =>
 	[
 		BUTTON_ACTIONS.NONE,
 		BUTTON_ACTIONS.CUSTOM_BUTTON_COMBO,
 		...disabledOptions,
 	].includes(action);
 
-const isDisabled = (action) => disabledOptions.includes(action);
+const isDisabled = (action: PinActionValues) =>
+	disabledOptions.includes(action);
 
 const options = Object.entries(BUTTON_ACTIONS)
 	.filter(([, value]) => !isNonSelectable(value))
@@ -93,11 +100,19 @@ const groupedOptions = [
 	},
 ];
 
-const getMultiValue = (pinData) => {
+const getMultiValue = (pinData: MaskPayload) => {
 	if (pinData.action === BUTTON_ACTIONS.NONE) return;
 	if (isDisabled(pinData.action)) {
 		const actionKey = invert(BUTTON_ACTIONS)[pinData.action];
-		return [{ label: actionKey, ...pinData }];
+		return [
+			{
+				label: actionKey,
+				value: pinData.action,
+				type: 'action',
+				customButtonMask: pinData.customButtonMask,
+				customDpadMask: pinData.customDpadMask,
+			},
+		];
 	}
 
 	return pinData.action === BUTTON_ACTIONS.CUSTOM_BUTTON_COMBO
@@ -110,6 +125,7 @@ const getMultiValue = (pinData) => {
 			)
 		: options.filter((option) => option.value === pinData.action);
 };
+
 const ProfileLabel = memo(function ProfileLabel({
 	profileIndex,
 }: {
@@ -120,17 +136,18 @@ const ProfileLabel = memo(function ProfileLabel({
 	const profileLabel = useProfilesStore(
 		(state) => state.profiles[profileIndex].profileLabel,
 	);
+
 	const onLabelChange = useCallback(
-		(event) =>
+		(event: React.ChangeEvent<HTMLInputElement>) =>
 			setProfileLabel(
 				profileIndex,
-				event.target.value.replace(/[^a-zA-Z0-9\s]/g, ''),
+				event.target.value.replace(/[^\x20-\x7e]/g, ''),
 			),
 		[],
 	);
 
 	return (
-		<div className="pin-grid">
+		<div>
 			<Form.Label>{t('PinMapping:profile-label-title')}</Form.Label>
 			<Form.Control
 				type="text"
@@ -140,7 +157,7 @@ const ProfileLabel = memo(function ProfileLabel({
 				})}
 				onChange={onLabelChange}
 				maxLength={16}
-				pattern="[a-zA-Z0-9\s]+"
+				pattern="[\x20-\x7e]+"
 			/>
 			<Form.Text muted>{t('PinMapping:profile-label-description')}</Form.Text>
 		</div>
@@ -153,7 +170,7 @@ const PinSelectList = memo(function PinSelectList({
 	profileIndex: number;
 }) {
 	const setProfilePin = useProfilesStore((state) => state.setProfilePin);
-
+	const { activateLedsOnId, turnOffLedTestModes } = useLedsPreview();
 	const pins = useProfilesStore(
 		useShallow((state) =>
 			omit(state.profiles[profileIndex], ['profileLabel', 'enabled']),
@@ -225,27 +242,37 @@ const PinSelectList = memo(function PinSelectList({
 			// Need to fallback as some button actions are not part of button names
 			return (
 				(labelKey && buttonNames[labelKey]) ||
-				t(`PinMapping:actions.${option.label}`)
+				t(`Proto:GpioAction.${option.label}`)
 			);
 		},
 		[buttonNames],
 	);
-	return Object.entries(pins).map(([pin, pinData], index) => (
-		<div key={`select-${index}`} className="d-flex align-items-center">
-			<div className="d-flex flex-shrink-0" style={{ width: '4rem' }}>
-				<label>{pin.toUpperCase()}</label>
-			</div>
-			<CustomSelect
-				isClearable
-				isMulti={!isDisabled(pinData.action)}
-				options={groupedOptions}
-				isDisabled={isDisabled(pinData.action)}
-				getOptionLabel={getOptionLabel}
-				onChange={onChange(pin)}
-				value={getMultiValue(pinData)}
-			/>
+
+	return (
+		<div
+			className="pin-grid gap-3 mt-2"
+			style={{ '--pin-count': Object.entries(pins).length > 32 ? 12 : 15 }}
+		>
+			{Object.entries(pins).map(([pin, pinData], index) => (
+				<div key={`select-${index}`} className="d-flex align-items-center">
+					<div className="d-flex flex-shrink-0" style={{ width: '3.5rem' }}>
+						<label>GP{index}</label>
+					</div>
+					<CustomSelect
+						isClearable
+						isMulti={!isDisabled(pinData.action)}
+						options={groupedOptions}
+						isDisabled={isDisabled(pinData.action)}
+						getOptionLabel={getOptionLabel}
+						onChange={onChange(pin)}
+						value={getMultiValue(pinData)}
+						onFocus={() => activateLedsOnId(index)}
+						onBlur={turnOffLedTestModes}
+					/>
+				</div>
+			))}
 		</div>
-	));
+	);
 });
 
 const PinSection = memo(function PinSection({
@@ -269,14 +296,16 @@ const PinSection = memo(function PinSection({
 			profileNumber: profileIndex + 1,
 		});
 
-	const { updateUsedPins, buttonLabels } = useContext(AppContext);
+	const [activeProfile, setActiveProfile] = useState(0);
+
+	const { updateUsedPins, buttonLabels, setLoading } = useContext(AppContext);
 	const { buttonLabelType, swapTpShareLabels } = buttonLabels;
 	const CURRENT_BUTTONS = getButtonLabels(buttonLabelType, swapTpShareLabels);
 	const buttonNames = omit(CURRENT_BUTTONS, ['label', 'value']);
 
 	const [saveMessage, setSaveMessage] = useState('');
 
-	const handleSubmit = useCallback(async (e) => {
+	const handleSubmit = useCallback(async (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		e.stopPropagation();
 		try {
@@ -286,6 +315,14 @@ const PinSection = memo(function PinSection({
 		} catch (error) {
 			setSaveMessage(t('Common:saved-error-message'));
 		}
+	}, []);
+
+	useEffect(() => {
+		async function getActiveProfile() {
+			const { profileNumber } = await WebApi.getGamepadOptions(setLoading);
+			setActiveProfile(profileNumber - 1);
+		}
+		getActiveProfile();
 	}, []);
 
 	return (
@@ -307,17 +344,22 @@ const PinSection = memo(function PinSection({
 				})}
 			>
 				<Form onSubmit={handleSubmit}>
-					<div className="d-flex justify-content-between">
-						<ProfileLabel profileIndex={profileIndex} />
+					<Row>
+						<Col md={7}>
+							<ProfileLabel profileIndex={profileIndex} />
+						</Col>
 						{profileIndex > 0 && (
-							<div className="d-flex">
+							<Col className="order-first order-md-last">
 								<FormCheck
+									disabled={profileIndex === activeProfile}
 									size={3}
 									label={
 										<OverlayTrigger
 											overlay={
 												<Tooltip>
-													{t('PinMapping:profile-enabled-tooltip')}
+													{profileIndex === activeProfile
+														? t('PinMapping:profile-enabled-active-tooltip')
+														: t('PinMapping:profile-enabled-tooltip')}
 												</Tooltip>
 											}
 										>
@@ -334,13 +376,12 @@ const PinSection = memo(function PinSection({
 										toggleProfileEnabled(profileIndex);
 									}}
 								/>
-							</div>
+							</Col>
 						)}
-					</div>
+					</Row>
 					<hr />
-					<div className="pin-grid gap-3 mt-3">
-						<PinSelectList profileIndex={profileIndex} />
-					</div>
+
+					<PinSelectList profileIndex={profileIndex} />
 					<div className="d-flex gap-3 my-3">
 						<CaptureButton
 							labels={Object.values(buttonNames)}
@@ -355,7 +396,7 @@ const PinSection = memo(function PinSection({
 											BUTTON_ACTIONS[
 												`BUTTON_PRESS_${invert(buttonNames)[
 													label
-												].toUpperCase()}`
+												].toUpperCase()}` as PinActionKeys
 											],
 										customButtonMask: 0,
 										customDpadMask: 0,
@@ -396,7 +437,7 @@ export default function PinMapping() {
 				<Col md={3}>
 					{loadingProfiles && (
 						<div className="d-flex justify-content-center">
-							<span className="spinner-border" />
+							<span className="spinner-border"></span>
 						</div>
 					)}
 					<Nav variant="pills" className="flex-column">

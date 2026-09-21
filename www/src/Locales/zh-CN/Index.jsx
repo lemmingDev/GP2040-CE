@@ -6,18 +6,23 @@ import ResetSettings from './ResetSettings';
 import Components from './Components';
 import PinMapping from './PinMapping';
 import PeripheralMapping from './PeripheralMapping';
-import LedConfig from './LedConfig';
-import CustomTheme from './CustomTheme';
 import BackupPage from './BackupPage';
 import DisplayConfig from './DisplayConfig';
 import AddonsConfig from './AddonsConfig';
 import CaptureButton from './CaptureButton';
 import WiiAddon from './Addons/WiiAddon';
 import Rotary from './Addons/Rotary';
+import PCF8575 from './Addons/PCF8575';
+import ReactiveLED from './Addons/ReactiveLED';
+import HETrigger from './Addons/HETrigger';
 import InputMacroAddon from './InputMacroAddon';
 import LayoutConfig from './LayoutConfig';
+import Proto from './Proto/Index';
+import LedConfigPage from './LedConfigPage';
+import BootModeMapping from './BootModeMapping';
 
 export default {
+	LedConfigPage,
 	Common,
 	HomePage,
 	Navigation,
@@ -26,8 +31,6 @@ export default {
 	Components,
 	PinMapping,
 	PeripheralMapping,
-	LedConfig,
-	CustomTheme,
 	BackupPage,
 	DisplayConfig,
 	AddonsConfig,
@@ -36,4 +39,9 @@ export default {
 	Rotary,
 	InputMacroAddon,
 	LayoutConfig,
+	PCF8575,
+	ReactiveLED,
+	Proto,
+	HETrigger,
+	BootModeMapping,
 };

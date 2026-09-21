@@ -1,12 +1,15 @@
 export default {
 	'language-selector': {
-		en: 'English (영어)',
+		en: 'English (US)',
 		nl: 'Nederlands (네덜란드어)',
-		'pt-BR': 'Português Brasil (브라질 포르투칼어)',
+		'pt-BR': 'Português Brasil (브라질 포르투갈어)',
 		'zh-CN': '简体中文 (중국어 간체)',
 		'de-DE': 'Deutsch (독일어)',
 		'ja-JP': '日本語 (일본어)',
-        'ko-KR': '한국어 (Korean)',
+		'ko-KR': '한국어',
+		'es-MX': 'Español (멕시코 스페인어)',
+		'tr-TR': 'Türkçe (터키어)',
+		'fr-FR': 'Français (프랑스 국민)',
 	},
 	'color-scheme': {
 		dark: '다크',
@@ -15,7 +18,5 @@ export default {
 	},
 	'keyboard-mapper': {
 		'key-header': '키',
-		'error-conflict': '{{key}}키는 이미 할당되어 있습니다.',
-		'error-invalid': '{{key}}키는 현재 보드에는 사용 할 수 없습니다.',
 	},
 };

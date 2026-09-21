@@ -11,6 +11,11 @@
 
 #define BOARD_CONFIG_LABEL "ESP32S3DevKitC1"
 
+// S3: Pico SDK's NUM_BANK0_GPIOS (30) doesn't exist outside the SDK; the
+// port binds every pin table, 32-bit mask and per-pin array to 30 (see
+// below), so define it identically. functional buttons MUST stay below 30.
+#define NUM_BANK0_GPIOS 30
+
 // Main pin mapping Configuration
 // HARDWARE REALITY (verified vs DevKitC-1 header pinout 2026-09-20): header
 // exposes GPIO 0-21 and 35-48, but 19/20 are native USB D-/D+, 0/3/45/46 are

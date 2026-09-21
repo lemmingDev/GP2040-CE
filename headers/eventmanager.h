@@ -14,8 +14,12 @@
 #include "GPEvent.h"
 #include "GPGamepadEvent.h"
 #include "GPEncoderEvent.h"
+#include "GPMenuNavigateEvent.h"
 #include "GPProfileEvent.h"
 #include "GPRestartEvent.h"
+#include "GPStorageSaveEvent.h"
+#include "GPSystemErrorEvent.h"
+#include "GPSystemRebootEvent.h"
 #include "GPUSBHostEvent.h"
 
 #define EVENTMGR EventManager::getInstance()
@@ -33,12 +37,16 @@ class EventManager {
             return instance;
         }
 
+        void init();
+        void clearEventHandlers();
+
         void registerEventHandler(GPEventType eventType, EventFunction handler);
+        void unregisterEventHandler(GPEventType eventType, EventFunction handler);
         void triggerEvent(GPEvent* event);
     private:
         EventManager(){}
 
-        std::vector<std::pair<GPEventType, std::vector<EventFunction>>> eventList;
+        std::vector<EventEntry> eventList;
 };
 
 #endif

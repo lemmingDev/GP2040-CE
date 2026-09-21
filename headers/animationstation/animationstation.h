@@ -1,0 +1,183 @@
+#ifndef _ANIMATION_STATION_H_
+#define _ANIMATION_STATION_H_
+
+#include <algorithm>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <vector>
+#include <string>
+#include "hardware/clocks.h"
+
+#if defined(PICO_BOARD)
+#include "NeoPico.h"
+#elif defined(ESP_PLATFORM)
+// S3 RMT backend, identical method set (hal_esp32s3/hal_ws2812_s3.h).
+#include "hal_ws2812_s3.h"
+// S3: NUM_BANK0_GPIOS normally comes from the board header (S3 BoardConfig
+// defines 30), but this header can precede it in the include order, so keep
+// a fallback. Values must match (per-pin static-color arrays).
+#ifndef NUM_BANK0_GPIOS
+#define NUM_BANK0_GPIOS 30
+#endif
+#endif
+#include "animation.h"
+
+#include "config.pb.h"
+
+#define MAX_ANIMATION_PROFILES 4
+#define MAX_ANIMATION_PROFILES_INCLUDING_TEST (MAX_ANIMATION_PROFILES+1)
+#define MAX_NON_BUTTON_LIGHT_COLOR_INDEXES 32          //Total of color indexs in animation.h + Max custom colours (then increased to be a multiple of 4)
+
+#define CYCLE_STEPS 10
+
+typedef enum
+{
+  AnimationStation_TestModeDisableTestMode,
+  AnimationStation_TestModeOff,
+	AnimationStation_TestModeButtons,
+	AnimationStation_TestModeLayout,
+	AnimationStation_TestModeProfilePreview
+} AnimationStationTestMode;
+
+struct __attribute__ ((__packed__)) AnimationProfile_Unpacked
+{
+    bool bEnabled = false;
+
+  	AnimationNonPressedEffects baseNonPressedEffect;
+  	AnimationPressedEffects basePressedEffect;
+    AnimationNonPressedEffects baseCaseEffect;
+
+    int32_t nonPressedEffectContextParam;
+    int32_t pressedEffectContextParam;
+    int32_t caseEffectContextParam;
+
+    int16_t baseCycleTime;
+    int16_t basePressedCycleTime;
+    int16_t baseCaseCycleTime;
+
+    uint32_t notPressedStaticColors[NUM_BANK0_GPIOS + 3]; //since we pack 4 into each. Adding 3 ensures we have space for extra pading
+    uint32_t pressedStaticColors[NUM_BANK0_GPIOS + 3]; //since we pack 4 into each. Adding 3 ensures we have space for extra pading
+
+    uint32_t nonButtonStaticColors[MAX_NON_BUTTON_LIGHT_COLOR_INDEXES];
+
+    uint32_t buttonPressHoldTimeInMs;
+    uint32_t buttonPressFadeOutTimeInMs;
+
+    uint32_t nonPressedSpecialColor;
+    uint32_t pressedSpecialColor;
+    uint32_t caseSpecialColor;
+
+    bool bNonPressedSpecialColorIsRainbow;
+    bool bPressedSpecialColorIsRainbow;
+    bool bCaseSpecialColorIsRainbow;
+
+    bool bUseCaseLightsInPressedAnimations;
+};
+
+struct __attribute__ ((__packed__)) AnimationOptions_Unpacked
+{
+  uint32_t checksum;
+  uint8_t NumValidProfiles;
+  AnimationProfile_Unpacked profiles[MAX_ANIMATION_PROFILES_INCLUDING_TEST];
+  uint8_t brightness;
+  int8_t baseProfileIndex;
+  uint32_t autoDisableTime;
+};
+
+class AnimationStation
+{
+public:
+  AnimationStation();
+
+  void Animate();
+  void HandleEvent(GamepadHotkey action);
+  void Clear();
+  void ApplyBrightness(uint32_t *frameValue);
+
+  //Change profiles
+  void ChangeProfile(int changeSize);
+  uint16_t AdjustIndex(int changeSize);
+
+  //What buttons (physical gpio pins) are pressed this frame
+  void HandlePressedPins(std::vector<int32_t> pressedPins);
+
+  //What buttons (logical ones) are pressed this frame
+  void HandlePressedButtons(uint32_t pressedButtons);
+
+  int8_t GetMode();
+  void SetMode(int8_t mode);
+  void SetLights(Lights InRGBLights);
+
+  //Brightness settings
+  static void SetMaxBrightness(uint8_t max);
+  static float GetNormalisedBrightness();
+  static uint8_t GetBrightnessStepValue();
+  static void SetBrightnessStepValue(uint8_t brightness);
+  static void ApplyBrightnessStepValue();
+  static void DecreaseBrightnessByStep();
+  static void IncreaseBrightnessByStep();
+  static void DimBrightnessTo0();
+
+  static void DecompressProfile(int ProfileIndex, const AnimationProfile* ProfileToDecompress);
+  void DecompressSettings();
+  void CheckForOptionsUpdate();
+ 
+  //Testing/webconfig
+  static void SetTestMode(AnimationStationTestMode TestType, const AnimationProfile* TestProfile, uint8_t overrideBrightness, uint8_t overrideMaxBrightness);
+  static void SetTestPinState(int PinOrNonButtonIndex, bool IsNonButtonLight);
+  static void ClearTestMode();
+
+  //Running non-pressed animation
+  Animation* baseAnimation;
+
+  //Running case animation
+  Animation* caseAnimation;
+
+  //Running pressed animation
+  Animation* buttonAnimation;
+
+  //Buttons pressed (physical gipo pins) last frame, used when changing button theme so starts initialised
+  std::vector<int32_t> lastPressed;
+
+  static AnimationOptions_Unpacked options;
+
+  static absolute_time_t nextChange;
+
+  //Color of all lights this frame
+  RGB frame[FRAME_MAX];
+
+  static uint8_t brightnessSteps; 
+
+  //Testing/webconfig
+  static AnimationStationTestMode TestMode;
+  static bool bTestModeChangeRequested;
+  static int TestModePinOrNonButtonIndex;
+  static bool TestModeLightIsNonButton;
+
+protected:
+  inline static uint8_t getBrightnessStepSize() { return (brightnessMax / brightnessSteps); }
+  static uint8_t brightnessMax; //0-255
+  static uint8_t brightnessStepValue; //0-10
+  static float normalisedBrightness; //0-1
+
+  Animation* GetNonPressedEffectForEffectType(AnimationNonPressedEffects EffectType, EButtonCaseEffectType InButtonCaseEffectType);
+
+  //webconfig test mode
+  void UpdateTestMode();
+
+  void UpdateTimeout();
+
+  //Light data
+  Lights RGBLights;
+
+  //options/save
+  absolute_time_t timeAnimationSaveSet;
+  bool bAnimConfigSaveNeeded = false;
+
+  //idletimeout
+  absolute_time_t timeLastButtonPressed;
+  bool bIsInIdleTimeout = false;
+};
+
+#endif

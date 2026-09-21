@@ -7,12 +7,21 @@ class StatsScreen : public GPScreen {
     public:
         StatsScreen() {}
         StatsScreen(GPGFX* renderer) { setRenderer(renderer); }
+        virtual ~StatsScreen(){}
         virtual int8_t update();
         virtual void init();
         virtual void shutdown();
     protected:
         virtual void drawScreen();
         uint16_t prevButtonState = 0;
+
+        GPLabel* header = nullptr;
+        GPLabel* version = nullptr;
+        GPLabel* build = nullptr;
+        GPLabel* board = nullptr;
+        GPLabel* boardType = nullptr;
+        GPLabel* arch = nullptr;
+        GPLabel* exit = nullptr;
 };
 
 #endif

@@ -22,22 +22,31 @@
 // BoardLed Module Name
 #define OnBoardLedName "OnBoardLed"
 
+#ifndef BOARD_LED_PIN
+#ifdef PICO_DEFAULT_LED_PIN
+#define BOARD_LED_PIN PICO_DEFAULT_LED_PIN
+#else
 #define BOARD_LED_PIN 25
+#endif
+#endif
+
 #define BLINK_INTERVAL_USB_UNMOUNTED 200
 #define BLINK_INTERVAL_CONFIG_MODE 1000
 
 class BoardLedAddon : public GPAddon {
 public:
-	virtual bool available();
-	virtual void setup();       // BoardLed Setup
-	virtual void process();     // BoardLed Process
-	virtual void preprocess() {}
-	virtual std::string name() { return OnBoardLedName; }
+    virtual bool available();
+    virtual void setup();       // BoardLed Setup
+    virtual void process();     // BoardLed Process
+    virtual void preprocess() {}
+    virtual void postprocess(bool sent) {}
+    virtual void reinit() {}
+    virtual std::string name() { return OnBoardLedName; }
 private:
-	OnBoardLedMode onBoardLedMode;
-	bool isConfigMode;
-	bool prevState;
-	uint32_t timeSinceBlink;
+    OnBoardLedMode onBoardLedMode;
+    bool isConfigMode;
+    bool prevState;
+    uint32_t timeSinceBlink;
 };
 
 #endif  // _BoardLed_H_

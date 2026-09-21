@@ -1,10 +1,10 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import * as yup from 'yup';
 
 import Section from '../Components/Section';
 import FormSelect from '../Components/FormSelect';
 import { FormCheck } from 'react-bootstrap';
+import { AddonPropTypes } from '../Pages/AddonsConfigPage';
 
 const ON_BOARD_LED_MODES = [
 	{ label: 'Off', value: 0 },
@@ -29,11 +29,26 @@ export const onBoardLedState = {
 	BoardLedAddonEnabled: 0,
 };
 
-const OnBoardLed = ({ values, errors, handleChange, handleCheckbox }) => {
+const OnBoardLed = ({
+	values,
+	errors,
+	handleChange,
+	handleCheckbox,
+}: AddonPropTypes) => {
 	const { t } = useTranslation();
 
 	return (
-		<Section title={t('AddonsConfig:on-board-led-configuration-label')}>
+		<Section
+			title={
+				<a
+					href="https://gp2040-ce.info/add-ons/on-board-led"
+					target="_blank"
+					className="text-reset text-decoration-none"
+				>
+					{t('AddonsConfig:on-board-led-configuration-label')}
+				</a>
+			}
+		>
 			<div
 				id="BoardLedAddonEnabledOptions"
 				hidden={!values.BoardLedAddonEnabled}
@@ -45,7 +60,7 @@ const OnBoardLed = ({ values, errors, handleChange, handleCheckbox }) => {
 					groupClassName="col-sm-4 mb-3"
 					value={values.onBoardLedMode}
 					error={errors.onBoardLedMode}
-					isInvalid={errors.onBoardLedMode}
+					isInvalid={Boolean(errors.onBoardLedMode)}
 					onChange={handleChange}
 				>
 					{ON_BOARD_LED_MODES.map((o, i) => (
@@ -63,7 +78,7 @@ const OnBoardLed = ({ values, errors, handleChange, handleCheckbox }) => {
 				isInvalid={false}
 				checked={Boolean(values.BoardLedAddonEnabled)}
 				onChange={(e) => {
-					handleCheckbox('BoardLedAddonEnabled', values);
+					handleCheckbox('BoardLedAddonEnabled');
 					handleChange(e);
 				}}
 			/>

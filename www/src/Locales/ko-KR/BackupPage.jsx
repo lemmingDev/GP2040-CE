@@ -8,11 +8,11 @@ export default {
 	'load-export-option-label': '{{api}} 옵션 가져오기',
 	'api-display-text': '디스플레이',
 	'api-gamepad-text': '게임패드',
-	'api-led-text': 'LED',
-	'api-ledTheme-text': '커스텀 LED 테마',
+	'api-leds-text': 'LED',
 	'api-macros-text': '매크로 매핑',
 	'api-pins-text': '핀 매핑',
 	'api-profiles-text': '프로필 매핑',
 	'api-addons-text': '애드온',
+	'api-heTrigger-text': '홀 이펙트 트리거',
 	'api-splash-text': '스플래시 이미지',
 };

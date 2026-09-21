@@ -35,7 +35,7 @@ void HIDDriver::initialize() {
 }
 
 // Generate HID report from gamepad and send to TUSB Device
-void HIDDriver::process(Gamepad * gamepad) {
+bool HIDDriver::process(Gamepad * gamepad) {
 	switch (gamepad->state.dpad & GAMEPAD_MASK_DPAD)
 	{
 		case GAMEPAD_MASK_UP:                        hidReport.direction = HID_HAT_UP;        break;
@@ -92,6 +92,14 @@ void HIDDriver::process(Gamepad * gamepad) {
 		| (gamepad->pressedE11()   ? GAMEPAD_MASK_E11    : 0)
 		| (gamepad->pressedE12()   ? GAMEPAD_MASK_E12    : 0)
 	;
+	if (gamepad->hasAnalogTriggers || gamepad->hasLeftAnalogStick) {
+		if (gamepad->state.lt > 0)
+			hidReport.buttons |= GAMEPAD_MASK_L2;
+	}
+	if (gamepad->hasAnalogTriggers || gamepad->hasRightAnalogStick) {
+		if (gamepad->state.rt > 0)
+			hidReport.buttons |= GAMEPAD_MASK_R2;
+	}
 
 	// Wake up TinyUSB device
 	if (tud_suspended())
@@ -104,8 +112,11 @@ void HIDDriver::process(Gamepad * gamepad) {
 		// HID ready + report sent, copy previous report
 		if (tud_hid_ready() && tud_hid_report(0, report, report_size) == true ) {
 			memcpy(last_report, report, report_size);
+			return true;
 		}
 	}
+	
+	return false;
 }
 
 // tud_hid_get_report_cb
@@ -136,6 +147,7 @@ const uint16_t * HIDDriver::get_descriptor_string_cb(uint8_t index, uint16_t lan
                 break;
             case 3:
                 value = gamepadOptions.usbDescVersion;
+                break;
             default:
                 value = (char *)hid_string_descriptors[index];
                 break;

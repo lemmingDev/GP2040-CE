@@ -6,6 +6,12 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
+PB_BIND(InputModeMapping, InputModeMapping, AUTO)
+
+
+PB_BIND(BootModeOptions, BootModeOptions, AUTO)
+
+
 PB_BIND(GamepadOptions, GamepadOptions, 2)
 
 
@@ -57,16 +63,22 @@ PB_BIND(GpioMappings, GpioMappings, 2)
 PB_BIND(AlternativePinMappings, AlternativePinMappings, AUTO)
 
 
-PB_BIND(ProfileOptions, ProfileOptions, 2)
+PB_BIND(ProfileOptions, ProfileOptions, 4)
 
 
 PB_BIND(DisplayOptions, DisplayOptions, 2)
 
 
+PB_BIND(LightCluster, LightCluster, AUTO)
+
+
 PB_BIND(LEDOptions, LEDOptions, 2)
 
 
-PB_BIND(AnimationOptions_Proto, AnimationOptions_Proto, 2)
+PB_BIND(AnimationProfile, AnimationProfile, 2)
+
+
+PB_BIND(AnimationOptions, AnimationOptions, 2)
 
 
 PB_BIND(BootselButtonOptions, BootselButtonOptions, AUTO)
@@ -87,7 +99,13 @@ PB_BIND(SliderOptions, SliderOptions, AUTO)
 PB_BIND(SOCDSliderOptions, SOCDSliderOptions, AUTO)
 
 
+PB_BIND(ProfileSliderOptions, ProfileSliderOptions, AUTO)
+
+
 PB_BIND(ReverseOptions, ReverseOptions, AUTO)
+
+
+PB_BIND(AnalogADS1115Options, AnalogADS1115Options, AUTO)
 
 
 PB_BIND(AnalogADS1219Options, AnalogADS1219Options, AUTO)
@@ -153,6 +171,9 @@ PB_BIND(WiiOptions_ControllerOptions, WiiOptions_ControllerOptions, 2)
 PB_BIND(SNESOptions, SNESOptions, AUTO)
 
 
+PB_BIND(TG16Options, TG16Options, AUTO)
+
+
 PB_BIND(KeyboardHostOptions, KeyboardHostOptions, 2)
 
 
@@ -190,6 +211,12 @@ PB_BIND(ReactiveLEDInfo, ReactiveLEDInfo, AUTO)
 
 
 PB_BIND(ReactiveLEDOptions, ReactiveLEDOptions, 2)
+
+
+PB_BIND(HETriggerInfo, HETriggerInfo, AUTO)
+
+
+PB_BIND(HETriggerOptions, HETriggerOptions, 2)
 
 
 PB_BIND(AddonOptions, AddonOptions, 4)

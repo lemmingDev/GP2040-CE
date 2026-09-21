@@ -35,6 +35,10 @@ static inline uint64_t to_us_since_boot(absolute_time_t t) {
     return (uint64_t)t;
 }
 
+static inline uint32_t to_ms_since_boot(absolute_time_t t) {
+    return (uint32_t)((uint64_t)t / 1000ULL);
+}
+
 static inline bool is_nil_time(absolute_time_t t) {
     return t == 0;
 }
@@ -58,6 +62,12 @@ static inline absolute_time_t make_timeout_time_us(uint64_t us) {
 static inline bool time_reached(absolute_time_t t) {
     return esp_timer_get_time() >= t;
 }
+
+static inline uint32_t time_us_32(void) {
+    return (uint32_t)esp_timer_get_time();
+}
+
+static inline void tight_loop_contents(void) {}
 
 // Implemented in hal_esp32s3/hal_pico_shim_s3.cpp (need FreeRTOS/ROM calls).
 void sleep_ms(uint32_t ms);

@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { Nav, NavDropdown, Navbar, Button, Modal } from 'react-bootstrap';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -77,10 +77,18 @@ const Navigation = () => {
 						<NavDropdown.Item
 							as={NavLink}
 							eventKey={eventKey++}
+							to="/boot-mode-mapping"
+						>
+							{t('Navigation:boot-mode-mapping-label')}
+						</NavDropdown.Item>
+						<NavDropdown.Item
+							as={NavLink}
+							eventKey={eventKey++}
 							to="/peripheral-mapping"
 						>
 							{t('Navigation:peripheral-mapping-label')}
 						</NavDropdown.Item>
+
 						<NavDropdown.Item
 							as={NavLink}
 							eventKey={eventKey++}
@@ -88,13 +96,7 @@ const Navigation = () => {
 						>
 							{t('Navigation:led-config-label')}
 						</NavDropdown.Item>
-						<NavDropdown.Item
-							as={NavLink}
-							eventKey={eventKey++}
-							to="/custom-theme"
-						>
-							{t('Navigation:custom-theme-label')}
-						</NavDropdown.Item>
+
 						<NavDropdown.Item
 							as={NavLink}
 							eventKey={eventKey++}

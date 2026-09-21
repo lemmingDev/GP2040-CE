@@ -11,6 +11,7 @@
 
 #include "drivers/xbone/XBOneAuth.h"
 #include "drivers/ps4/PS4Auth.h"
+#include "drivers/p5general/P5GeneralAuthUSBListener.h"
 
 #if defined(ESP_PLATFORM)
 
@@ -54,5 +55,24 @@ bool PS4Auth::available() { return false; }
 void PS4Auth::initialize() {}
 void PS4Auth::process() {}
 void PS4Auth::resetAuth() {}
+
+// ---- P5GeneralAuthUSBListener link stubs (merge: P5GENERAL device parity)
+// P5GeneralAuth.cpp (device-side, in S3 SRCS) news P5GeneralAuthUSBListener
+// and calls setup()/process(), whose definitions live in
+// src/drivers/p5general/P5GeneralAuthUSBListener.cpp — a USB-HOST-side TU
+// (host/usbh.h, hid_host) parked with USB host/auth (Phase 2), NOT in SRCS.
+// Same available()->false contract as XBOne/PS4 above: P5GeneralAuth::
+// available() reads PeripheralManager::isUSBEnabled(0), false on S3 (USB
+// host never starts), so the driver never arms auth data — silently
+// no-auth, exactly like Pico with USB host disabled.
+// DELETE when the real USB-host backend lands (Phase 2).
+void P5GeneralAuthUSBListener::setup() {}
+void P5GeneralAuthUSBListener::mount(uint8_t, uint8_t, uint8_t const*, uint16_t) {}
+void P5GeneralAuthUSBListener::unmount(uint8_t) {}
+void P5GeneralAuthUSBListener::report_received(uint8_t, uint8_t, uint8_t const*, uint16_t) {}
+void P5GeneralAuthUSBListener::set_report_complete(uint8_t, uint8_t, uint8_t, uint8_t, uint16_t) {}
+void P5GeneralAuthUSBListener::get_report_complete(uint8_t, uint8_t, uint8_t, uint8_t, uint16_t) {}
+void P5GeneralAuthUSBListener::process() {}
+void P5GeneralAuthUSBListener::resetHostData() {}
 
 #endif // defined(ESP_PLATFORM)

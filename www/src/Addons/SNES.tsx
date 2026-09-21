@@ -1,10 +1,16 @@
-import React from 'react';
-import { Trans, useTranslation } from 'react-i18next';
+import { useContext } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FormCheck, Row } from 'react-bootstrap';
+
+import { AppContext } from '../Contexts/AppContext';
 
 import Section from '../Components/Section';
 
 import FormControl from '../Components/FormControl';
+import ContextualHelpOverlay from '../Components/ContextualHelpOverlay';
+import { AddonPropTypes } from '../Pages/AddonsConfigPage';
+
+import useBoardDefinition from '../Store/useBoardDefinitionStore';
 
 // TODO: add scheme for validation
 export const snesScheme = {};
@@ -16,25 +22,77 @@ export const snesState = {
 	snesPadDataPin: -1,
 };
 
-const SNES = ({ values, errors, handleChange, handleCheckbox }) => {
+const SNES_MAPPING_TABLE = [
+	{ gp: 'Up', nes: 'Up', snes: 'Up', mouse: '' },
+	{ gp: 'Down', nes: 'Down', snes: 'Down', mouse: '' },
+	{ gp: 'Left', nes: 'Left', snes: 'Left', mouse: '' },
+	{ gp: 'Right', nes: 'Right', snes: 'Right', mouse: '' },
+	{ gp: 'B1', nes: 'B', snes: 'B', mouse: 'Left Click' },
+	{ gp: 'B2', nes: 'A', snes: 'A', mouse: 'Right Click' },
+	{ gp: 'B3', nes: '', snes: 'Y', mouse: '' },
+	{ gp: 'B4', nes: '', snes: 'X', mouse: '' },
+	{ gp: 'L1', nes: '', snes: 'L', mouse: '' },
+	{ gp: 'R1', nes: '', snes: 'R', mouse: '' },
+	{ gp: 'S1', nes: 'Select', snes: 'Select', mouse: '' },
+	{ gp: 'S2', nes: 'Start', snes: 'Start', mouse: '' },
+	{ gp: 'Analog', nes: '', snes: '', mouse: 'Mouse Movement' },
+];
+
+const SNES = ({
+	values,
+	errors,
+	handleChange,
+	handleCheckbox,
+}: AddonPropTypes) => {
+	const { usedPins } = useContext(AppContext);
+	const { boardDefinition } = useBoardDefinition();
 	const { t } = useTranslation();
 	return (
-		<Section title={t('AddonsConfig:snes-extension-header-text')}>
+		<Section
+			title={
+				<a
+					href="https://gp2040-ce.info/add-ons/snes-input"
+					target="_blank"
+					className="text-reset text-decoration-none"
+				>
+					{t('AddonsConfig:snes-extension-header-text')}
+				</a>
+			}
+		>
 			<div id="SNESpadAddonOptions" hidden={!values.SNESpadAddonEnabled}>
-				<Row>
-					<Trans ns="AddonsConfig" i18nKey="snes-extension-sub-header-text">
-						<h3>Currently Supported Controllers</h3>
-						<p>
-							SNES pad: D-Pad Supported. B = B1, A = B2, Y = B3, X = B4, L = L1,
-							R = R1, Select = S1, Start = S2
-						</p>
-						<p>
-							SNES mouse: Analog Stick Supported. Left Click = B1, Right Click =
-							B2
-						</p>
-						<p>NES: D-Pad Supported. B = B1, A = B2, Select = S1, Start = S2</p>
-					</Trans>
-				</Row>
+				<div className="alert alert-info" role="alert">
+					{t('AddonsConfig:snes-extension-sub-header-text')}
+				</div>
+				<div className="alert alert-info" role="alert">
+					{t('AddonsConfig:snes-extension-desc-header')}
+					<ContextualHelpOverlay
+						title={t('AddonsConfig:snes-extension-desc-header')}
+						body={
+							<table className="caption-top table table-dark table-sm table-striped-columns table-bordered table-hover">
+								<thead>
+									<tr>
+										<th>GP2040</th>
+										<th>NES</th>
+										<th>SNES</th>
+										<th>Super NES Mouse</th>
+									</tr>
+								</thead>
+								<tbody>
+									{SNES_MAPPING_TABLE.map(({ gp, nes, snes, mouse }, i) => (
+										<tr key={i}>
+											<td>
+												<code>{gp}</code>
+											</td>
+											<td>{nes}</td>
+											<td>{snes}</td>
+											<td>{mouse}</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						}
+					/>
+				</div>
 				<Row className="mb-3">
 					<FormControl
 						type="number"
@@ -44,10 +102,10 @@ const SNES = ({ values, errors, handleChange, handleCheckbox }) => {
 						groupClassName="col-sm-3 mb-3"
 						value={values.snesPadClockPin}
 						error={errors.snesPadClockPin}
-						isInvalid={errors.snesPadClockPin}
+						isInvalid={Boolean(errors.snesPadClockPin)}
 						onChange={handleChange}
 						min={-1}
-						max={29}
+						max={boardDefinition.maxPin}
 					/>
 					<FormControl
 						type="number"
@@ -57,10 +115,10 @@ const SNES = ({ values, errors, handleChange, handleCheckbox }) => {
 						groupClassName="col-sm-3 mb-3"
 						value={values.snesPadLatchPin}
 						error={errors.snesPadLatchPin}
-						isInvalid={errors.snesPadLatchPin}
+						isInvalid={Boolean(errors.snesPadLatchPin)}
 						onChange={handleChange}
 						min={-1}
-						max={29}
+						max={boardDefinition.maxPin}
 					/>
 					<FormControl
 						type="number"
@@ -70,10 +128,10 @@ const SNES = ({ values, errors, handleChange, handleCheckbox }) => {
 						groupClassName="col-sm-3 mb-3"
 						value={values.snesPadDataPin}
 						error={errors.snesPadDataPin}
-						isInvalid={errors.snesPadDataPin}
+						isInvalid={Boolean(errors.snesPadDataPin)}
 						onChange={handleChange}
 						min={-1}
-						max={29}
+						max={boardDefinition.maxPin}
 					/>
 				</Row>
 			</div>
@@ -85,7 +143,7 @@ const SNES = ({ values, errors, handleChange, handleCheckbox }) => {
 				isInvalid={false}
 				checked={Boolean(values.SNESpadAddonEnabled)}
 				onChange={(e) => {
-					handleCheckbox('SNESpadAddonEnabled', values);
+					handleCheckbox('SNESpadAddonEnabled');
 					handleChange(e);
 				}}
 			/>

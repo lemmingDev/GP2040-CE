@@ -10,13 +10,15 @@
 class GPGFX_DisplayBase : public I2CDeviceBase {
     public:
         GPGFX_DisplayBase() {}
-        ~GPGFX_DisplayBase() {}
+        virtual ~GPGFX_DisplayBase() {}
 
         virtual void init(GPGFX_DisplayTypeOptions options) {}
 
         virtual void setPower(bool isPowered) {}
 
         virtual void clear() {}
+
+        virtual uint32_t getPixel(uint8_t x, uint8_t y) { return 0; }
 
         virtual void drawPixel(uint8_t x, uint8_t y, uint32_t color) {}
 
@@ -32,7 +34,9 @@ class GPGFX_DisplayBase : public I2CDeviceBase {
 
         virtual void drawPolygon(uint16_t x, uint16_t y, uint16_t radius, uint16_t sides, uint32_t color, uint8_t filled, double rotation = 0) {}
 
-        virtual void drawSprite(uint8_t* spriteData, uint16_t width, uint16_t height, uint16_t pitch, uint16_t x, uint16_t y, uint8_t priority) {}
+        virtual void drawPill(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint32_t color, uint8_t filled, double rotationAngle = 0) {}
+
+        virtual void drawSprite(uint8_t* spriteData, uint16_t width, uint16_t height, uint16_t pitch, uint16_t x, uint16_t y, uint8_t priority, double scale) {}
 
         virtual void drawBuffer(uint8_t *pBuffer) {}
 
@@ -46,7 +50,7 @@ class GPGFX_DisplayBase : public I2CDeviceBase {
         virtual bool isSPI() { return false; }
         virtual bool isI2C() { return false; }
     private:
-        GPGFX_DisplayMetrics* _metrics;
+        GPGFX_DisplayMetrics* _metrics = nullptr;
 };
 
 #endif

@@ -8,29 +8,26 @@
 
 #include "BoardConfig.h"
 #include <stdint.h>
-#if defined(PICO_BOARD)
-// S3: AnimationStation/NeoPico stack is Task 5 (display/NeoPixel backends);
-// only the PWM player-LED path below compiles on S3.
-#include "AnimationStation.hpp"
-#endif
+#include "animationstation.h"
 #include "storagemanager.h"
-#include "PlayerLEDs.h"
+#include "playerleds.h"
 #include "gpaddon.h"
 #include "helper.h"
 
 #include "enums.pb.h"
 
 // This needs to be moved to storage if we're going to share between modules
-#if defined(PICO_BOARD)
+// (merge: unguarded like upstream — NeoPico (RMT backend) and
+// AnimationStation exist on S3 too; their globals are defined in the LED
+// addon TUs on both platforms.)
 extern NeoPico *neopico;
 extern AnimationStation as;
-#endif
 
 class PWMPlayerLEDs : public PlayerLEDs
 {
 public:
-	void setup();
-	void display();
+    void setup();
+    void display();
 };
 
 // Player LED Module
@@ -40,23 +37,25 @@ public:
 class PlayerLEDAddon : public GPAddon
 {
 public:
-	virtual bool available();
-	virtual void setup();
-	virtual void preprocess() {}
-	virtual void process();
-	virtual std::string name() { return PLEDName; }
-	PlayerLEDAddon() {
-		type = static_cast<PLEDType>(Storage::getInstance().getLedOptions().pledType);
-	}
-	PlayerLEDAddon(PLEDType type) : type(type) {}
+    virtual bool available();
+    virtual void setup();
+    virtual void preprocess() {}
+    virtual void process();
+    virtual void postprocess(bool sent) {}
+    virtual void reinit() {}
+    virtual std::string name() { return PLEDName; }
+    PlayerLEDAddon() {
+        type = static_cast<PLEDType>(Storage::getInstance().getLedOptions().pledType);
+    }
+    PlayerLEDAddon(PLEDType type) : type(type) {}
 
 protected:
-	PLEDType type;
-	PWMPlayerLEDs *pwmLEDs = nullptr;
-	PLEDAnimationState animationState;
+    PLEDType type;
+    PWMPlayerLEDs *pwmLEDs = nullptr;
+    PLEDAnimationState animationState;
 
 private:
-	bool turnOffWhenSuspended;
+    bool turnOffWhenSuspended;
 };
 
 #endif

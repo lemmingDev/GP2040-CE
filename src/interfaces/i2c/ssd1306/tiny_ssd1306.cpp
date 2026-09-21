@@ -9,6 +9,7 @@ void GPGFX_TinySSD1306::init(GPGFX_DisplayTypeOptions options) {
     _options.orientation = options.orientation;
     _options.inverted = options.inverted;
     _options.font = options.font;
+    _options.contrast = options.contrast;
 
     _options.i2c->readRegister(_options.address, 0x00, &this->screenType, 1);
     this->screenType &= 0x0F;
@@ -28,7 +29,7 @@ void GPGFX_TinySSD1306::init(GPGFX_DisplayTypeOptions options) {
 		0x00,
 
 		CommandOps::SET_CONTRAST,
-		0xFF,
+		_options.contrast,
 
 		(!_options.inverted ? CommandOps::NORMAL_DISPLAY : CommandOps::INVERT_DISPLAY),
 
@@ -112,6 +113,27 @@ void GPGFX_TinySSD1306::setPower(bool isPowered) {
 
 void GPGFX_TinySSD1306::clear() {
 	memset(frameBuffer, 0, MAX_SCREEN_SIZE);
+}
+
+uint32_t GPGFX_TinySSD1306::getPixel(uint8_t x, uint8_t y) {
+	uint16_t row, bitIndex;
+    uint32_t result = 0;
+
+	if ((x<MAX_SCREEN_WIDTH) and (y<MAX_SCREEN_HEIGHT))
+	{
+        if (this->screenType == ScreenAlternatives::SCREEN_132x64) {
+            x+=2;
+        }
+
+        if (x>=MAX_SCREEN_WIDTH) return result;
+
+		row=((y/8)*MAX_SCREEN_WIDTH)+x;
+		bitIndex=y % 8;
+
+        result = (frameBuffer[row] >> bitIndex) & 0x01;
+	}
+
+    return result;
 }
 
 void GPGFX_TinySSD1306::drawPixel(uint8_t x, uint8_t y, uint32_t color) {
@@ -239,7 +261,8 @@ void GPGFX_TinySSD1306::drawEllipse(uint16_t x, uint16_t y, uint32_t radiusX, ui
 	long x1 = -radiusX, y1 = 0;
 	long e2 = radiusY, dx = (1 + 2 * x1) * e2 * e2;
 	long dy = x1 * x1, err = dx + dy;
-	long diff = 0;
+    long rx = static_cast<long>(radiusX);
+    long ry = static_cast<long>(radiusY);
 
 	while (x1 <= 0) {
 		drawPixel(x - x1, y + y1, color);
@@ -261,16 +284,16 @@ void GPGFX_TinySSD1306::drawEllipse(uint16_t x, uint16_t y, uint32_t radiusX, ui
 
 		if (e2 >= dx) {
 			x1++;
-			err += dx += 2 * (long)radiusY * radiusY;
+			err += dx += 2 * ry * ry;
 		}
 
 		if (e2 <= dy) {
 			y1++;
-			err += dy += 2 * (long)radiusX * radiusX;
+			err += dy += 2 * rx * rx;
 		}
 	};
 
-	while (y1++ < radiusY) {
+	while (y1++ < ry) {
 		drawPixel(x, y + y1, color);
 		drawPixel(x, y - y1, color);
 	}
@@ -395,20 +418,128 @@ void GPGFX_TinySSD1306::drawPolygon(uint16_t x, uint16_t y, uint16_t radius, uin
     }
 }
 
-void GPGFX_TinySSD1306::drawSprite(uint8_t* image, uint16_t width, uint16_t height, uint16_t pitch, uint16_t x, uint16_t y, uint8_t priority) {
+void GPGFX_TinySSD1306::drawPill(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint32_t color, uint8_t filled, double rotationAngle) {
+    bool horizontal = (width - x) >= (height - y);
+
+    // Center of the rectangle
+    double centerX = (x + width) / 2.0;
+    double centerY = (y + height) / 2.0;
+
+    // Half dimensions
+    double halfWidth  = (width - x) / 2.0;
+    double halfHeight = (height - y) / 2.0;
+
+    // Pill radius = half of the short axis
+    double radius = horizontal ? halfHeight : halfWidth;
+
+    // Rectangle half-lengths along long and short axes
+    double rectHalfLong  = (horizontal ? halfWidth : halfHeight) - radius;
+    double rectHalfShort = horizontal ? halfHeight : halfWidth;
+
+    // Rotation
+    double angleRad = rotationAngle * M_PI / 180.0;
+    double cosA = cos(angleRad);
+    double sinA = sin(angleRad);
+
+    // Long and short axis vectors
+    double longX = horizontal ? 1.0 : 0.0;
+    double longY = horizontal ? 0.0 : 1.0;
+    double shortX = -longY; // perpendicular to long axis
+    double shortY = longX;
+
+    // Rectangle corners
+    double corners[4][2] = {
+        {-rectHalfLong * longX - rectHalfShort * shortX, -rectHalfLong * longY - rectHalfShort * shortY},
+        { rectHalfLong * longX - rectHalfShort * shortX,  rectHalfLong * longY - rectHalfShort * shortY},
+        { rectHalfLong * longX + rectHalfShort * shortX,  rectHalfLong * longY + rectHalfShort * shortY},
+        {-rectHalfLong * longX + rectHalfShort * shortX, -rectHalfLong * longY + rectHalfShort * shortY}
+    };
+
+    // Rotate rectangle corners
+    uint16_t rx[4], ry[4];
+    for(int i=0; i<4; i++){
+        double xr = centerX + cosA * corners[i][0] - sinA * corners[i][1];
+        double yr = centerY + sinA * corners[i][0] + cosA * corners[i][1];
+        rx[i] = (uint16_t)round(xr);
+        ry[i] = (uint16_t)round(yr);
+    }
+
+    drawLine(rx[0], ry[0], rx[1], ry[1], color, filled); // top
+    drawLine(rx[2], ry[2], rx[3], ry[3], color, filled); // bottom
+
+    if (filled) {
+        double longVecX = cosA * longX - sinA * longY;
+        double longVecY = sinA * longX + cosA * longY;
+        double shortVecX = cosA * shortX - sinA * shortY;
+        double shortVecY = sinA * shortX + cosA * shortY;
+
+        int steps = (int)ceil(2.0 * rectHalfLong * 8.0);
+        if (steps < 1) steps = 1;
+
+        double shortExtra = 0.5;
+
+        for (int k = -steps; k <= steps; k++) {
+            double t = (double)k / steps;
+
+            double baseX = centerX + t * rectHalfLong * longVecX;
+            double baseY = centerY + t * rectHalfLong * longVecY;
+
+            double sx = rectHalfShort * shortVecX + shortExtra * (shortVecX >= 0 ? 1 : -1);
+            double sy = rectHalfShort * shortVecY + shortExtra * (shortVecY >= 0 ? 1 : -1);
+
+            drawLine((uint16_t)round(baseX - sx), (uint16_t)round(baseY - sy), (uint16_t)round(baseX + sx), (uint16_t)round(baseY + sy), color, 1);
+        }
+    }
+
+    int steps = 32;
+    for(int side=-1; side<=1; side+=2){
+        double cx = side * rectHalfLong * longX;
+        double cy = side * rectHalfLong * longY;
+
+        double prevX = 0, prevY = 0;
+        for(int i=0; i<=steps; i++){
+            double t = (double)i / steps;
+            double theta = -M_PI/2 + t * M_PI;
+            if(side == -1) theta = M_PI/2 + t * M_PI;
+
+            double thetaOffset = horizontal ? -M_PI/2 : M_PI/2;
+            double arcLocalX = cx + radius * cos(theta + thetaOffset) * shortX + radius * sin(theta + thetaOffset) * longX;
+            double arcLocalY = cy + radius * cos(theta + thetaOffset) * shortY + radius * sin(theta + thetaOffset) * longY;
+
+            double rotatedX = centerX + cosA * arcLocalX - sinA * arcLocalY;
+            double rotatedY = centerY + sinA * arcLocalX + cosA * arcLocalY;
+
+            if(i>0){
+                drawLine((uint16_t)round(rotatedX), (uint16_t)round(rotatedY), (uint16_t)round(prevX), (uint16_t)round(prevY), color, filled);
+
+                if (filled) {
+                    double capCenterX = centerX + cosA * cx - sinA * cy;
+                    double capCenterY = centerY + sinA * cx + cosA * cy;
+                    drawLine((uint16_t)round(rotatedX), (uint16_t)round(rotatedY), (uint16_t)round(capCenterX), (uint16_t)round(capCenterY), color, 1);
+                }
+            }
+            prevX = rotatedX;
+            prevY = rotatedY;
+        }
+    }
+}
+
+void GPGFX_TinySSD1306::drawSprite(uint8_t* image, uint16_t width, uint16_t height, uint16_t pitch, uint16_t x, uint16_t y, uint8_t priority, double scale) {
 	uint8_t spriteByte;
 	uint8_t spriteBit;
 	uint8_t spriteX, spriteY;
 	uint8_t color;
 
-	for (spriteY = 0; spriteY < height; spriteY++) {
-		for (spriteX = 0; spriteX < width; spriteX++) {
+	for (uint16_t scaledY = 0; scaledY < height * scale; ++scaledY) {
+		for (uint16_t scaledX = 0; scaledX < width * scale; ++scaledX) {
+			spriteX = scaledX / scale;
+			spriteY = scaledY / scale;
+			
 			spriteBit = spriteX % 8;
-			//spriteByte = image[(spriteY * (width / 8)) + (spriteX / 8)];
 			spriteByte = image[(spriteY * ((width + 7) / 8)) + (spriteX / 8)];
 			color = ((spriteByte >> (7 - spriteBit)) & 0x01);
-
-			drawPixel(x+spriteX, y+spriteY, color);
+			
+			drawPixel(x + scaledX, y + scaledY, color);
 		}
 	}
 }
@@ -417,9 +548,7 @@ void GPGFX_TinySSD1306::drawBuffer(uint8_t* pBuffer) {
 	uint16_t bufferSize = MAX_SCREEN_SIZE;
 	uint8_t buffer[bufferSize+1] = {SET_START_LINE};
 
-	int result = -1;
-	
-    if (this->screenType == ScreenAlternatives::SCREEN_132x64) {
+	if (this->screenType == ScreenAlternatives::SCREEN_132x64) {
         uint16_t x = 0;
         uint16_t y = 0;
         for (y = 0; y < (MAX_SCREEN_HEIGHT/8); y++) {
@@ -433,7 +562,7 @@ void GPGFX_TinySSD1306::drawBuffer(uint8_t* pBuffer) {
                 memcpy(&buffer[1],&pBuffer[y*MAX_SCREEN_WIDTH],MAX_SCREEN_WIDTH);
             }
         
-            result = _options.i2c->write(_options.address, buffer, MAX_SCREEN_WIDTH+3, false);
+            _options.i2c->write(_options.address, buffer, MAX_SCREEN_WIDTH+3, false);
         }
     } else {
         sendCommand(CommandOps::PAGE_ADDRESS);
@@ -448,7 +577,7 @@ void GPGFX_TinySSD1306::drawBuffer(uint8_t* pBuffer) {
         } else {
             memcpy(&buffer[1],pBuffer,bufferSize);
         }
-        result = _options.i2c->write(_options.address, buffer, sizeof(buffer), false);
+        _options.i2c->write(_options.address, buffer, sizeof(buffer), false);
     }
 
 	if (framePage < MAX_SCREEN_HEIGHT/8) {
@@ -458,11 +587,18 @@ void GPGFX_TinySSD1306::drawBuffer(uint8_t* pBuffer) {
 	}
 }
 
+void GPGFX_TinySSD1306::rotatePoint(double cx, double cy, double &x, double &y, double angle) {
+    double xr = cx + x * std::cos(angle) - y * std::sin(angle);
+    double yr = cy + x * std::sin(angle) + y * std::cos(angle);
+    x = xr;
+    y = yr;
+}
+
 void GPGFX_TinySSD1306::sendCommand(uint8_t command){ 
 	uint8_t commandData[] = {0x00, command};
 	sendCommands(commandData, 2);
 }
 
 void GPGFX_TinySSD1306::sendCommands(uint8_t* commands, uint16_t length){ 
-	int result = _options.i2c->write(_options.address, commands, length, false);
+	_options.i2c->write(_options.address, commands, length, false);
 }

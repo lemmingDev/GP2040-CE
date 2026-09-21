@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormCheck } from 'react-bootstrap';
 import * as yup from 'yup';
@@ -6,6 +5,7 @@ import * as yup from 'yup';
 import Section from '../Components/Section';
 import FormSelect from '../Components/FormSelect';
 import { BUTTON_MASKS_OPTIONS } from '../Data/Buttons';
+import { AddonPropTypes } from '../Pages/AddonsConfigPage';
 
 export const bootselScheme = {
 	BootselButtonAddonEnabled: yup
@@ -26,15 +26,32 @@ export const bootselState = {
 	BootselButtonAddonEnabled: 0,
 };
 
-const Bootsel = ({ values, errors, handleChange, handleCheckbox }) => {
+const Bootsel = ({
+	values,
+	errors,
+	handleChange,
+	handleCheckbox,
+}: AddonPropTypes) => {
 	const { t } = useTranslation();
 	return (
-		<Section title={t('AddonsConfig:bootsel-header-text')}>
+		<Section
+			title={
+				<a
+					href="https://gp2040-ce.info/add-ons/bootsel-button"
+					target="_blank"
+					className="text-reset text-decoration-none"
+				>
+					{t('AddonsConfig:bootsel-header-text')}
+				</a>
+			}
+		>
 			<div
 				id="BootselButtonAddonOptions"
 				hidden={!values.BootselButtonAddonEnabled}
 			>
-				<p>{t('AddonsConfig:bootsel-sub-header-text')}</p>
+				<div className="alert alert-info" role="alert">
+					{t('AddonsConfig:bootsel-sub-header-text')}
+				</div>
 				<FormSelect
 					label={t('AddonsConfig:bootsel-button-pin-label')}
 					name="bootselButtonMap"
@@ -42,7 +59,7 @@ const Bootsel = ({ values, errors, handleChange, handleCheckbox }) => {
 					groupClassName="col-sm-3 mb-3"
 					value={values.bootselButtonMap}
 					error={errors.bootselButtonMap}
-					isInvalid={errors.bootselButtonMap}
+					isInvalid={Boolean(errors.bootselButtonMap)}
 					onChange={handleChange}
 				>
 					{BUTTON_MASKS_OPTIONS.map((o, i) => (
@@ -60,7 +77,7 @@ const Bootsel = ({ values, errors, handleChange, handleCheckbox }) => {
 				isInvalid={false}
 				checked={Boolean(values.BootselButtonAddonEnabled)}
 				onChange={(e) => {
-					handleCheckbox('BootselButtonAddonEnabled', values);
+					handleCheckbox('BootselButtonAddonEnabled');
 					handleChange(e);
 				}}
 			/>
