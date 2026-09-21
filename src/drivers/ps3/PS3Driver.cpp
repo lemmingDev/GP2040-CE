@@ -469,7 +469,12 @@ bool PS3Driver::process(Gamepad * gamepad) {
     if (memcmp(last_report, report, report_size) != 0)
     {
         // HID ready + report sent, copy previous report
-        if (tud_hid_ready() && tud_hid_report(0, report, report_size) == true ) {
+        // NOTE: send exactly PS3_INPUT_REPORT_LEN (49), not sizeof(PS3Report)
+        // (51): the HID descriptor declares 49 input bytes for Report ID 1
+        // and the struct's trailing reserved4 overflows it. 51-byte interrupt
+        // transfers stall the IN endpoint on S3 (completions never arrive)
+        // and Windows drops the excess; 49 verified on hardware 2026-09-21.
+        if (tud_hid_ready() && tud_hid_report(0, report, PS3_INPUT_REPORT_LEN) == true ) {
             memcpy(last_report, report, report_size);
             reportSent = true;
         }

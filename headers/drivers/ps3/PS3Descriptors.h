@@ -38,6 +38,12 @@
 #define GAMEPAD_ENDPOINT	1
 #define GAMEPAD_SIZE		64
 
+// Declared Report ID 1 input length: 1 ID byte + 1 reserved + 4 button
+// bytes + 4 sticks + 39 trailing = 49. NOTE sizeof(PS3Report) is 51 (its
+// trailing reserved4 is not described); interrupt transfers must use this
+// length, not sizeof (verified on hardware 2026-09-21).
+#define PS3_INPUT_REPORT_LEN	49
+
 #ifndef LSB
 #define LSB(n) ((n) & 255)
 #endif
