@@ -271,9 +271,7 @@ void GP2040::deinitializeStandardGpio() {
  */
 void GP2040::debounceGpioGetAll() {
 #if defined(PICO_BOARD)
-	// NOTE (merge): upstream uses gpio_get_all64() here, which needs Pico
-	// SDK 2.x; this branch pins SDK 1.5.1, so the 32-bit call stays.
-	Mask_t pressedGpios = ~gpio_get_all() & buttonGpios;
+	Mask_t pressedGpios = ~gpio_get_all64() & buttonGpios;
 #elif defined(ESP_PLATFORM)
 	// S3: no gpio_get_all() — sample each button pin per-pin (active-low,
 	// matching the Pico ~gpio_get_all() polarity: bit = 1 means pressed).
@@ -583,10 +581,7 @@ GP2040::BootAction GP2040::getGpioMappedBootAction() {
 			break;
 	}
 #if defined(PICO_BOARD)
-	// NOTE (merge): upstream uses gpio_get_all64() here, which needs Pico
-	// SDK 2.x; this branch pins SDK 1.5.1, so the 32-bit call stays (the
-	// 30 button GPIOs fit; same as debounceGpioGetAll above).
-	Mask_t gpio = ~gpio_get_all() & buttonGpios;
+	Mask_t gpio = ~gpio_get_all64() & buttonGpios;
 #elif defined(ESP_PLATFORM)
 	// S3: no gpio_get_all(); per-pin poll, active-low, same polarity as
 	// ~gpio_get_all() (bit = 1 means pressed). Pins are input+pullup from
