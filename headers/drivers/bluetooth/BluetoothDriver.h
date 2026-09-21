@@ -8,7 +8,9 @@ class BluetoothDriver : public GPDriver {
 public:
     void initialize() override;
     void initializeAux() override {}
-    void process(Gamepad * gamepad) override;
+    // NOTE (merge): upstream GPDriver::process now returns bool (true =
+    // report sent/handled, gates PostprocessAddons); mirror HIDDriver.
+    bool process(Gamepad * gamepad) override;
     void processAux() override {}
     uint16_t get_report(uint8_t report_id, hid_report_type_t report_type, uint8_t *buffer, uint16_t reqlen) override;
     void set_report(uint8_t report_id, hid_report_type_t report_type, uint8_t const *buffer, uint16_t bufsize) override {}
@@ -22,7 +24,7 @@ public:
     USBListener * get_usb_auth_listener() override { return nullptr; }
     bool usesUSB() override { return false; }
 protected:
-    void pushReport(const BleGamepadReport & report);
+    bool pushReport(const BleGamepadReport & report);
     BleGamepadReport lastReport = {};
     bool bleConnected = false;
     BleGamepadReport lastSent = {};

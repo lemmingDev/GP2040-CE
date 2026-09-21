@@ -246,14 +246,14 @@ void BluetoothDriver::initialize() {
 #endif
 }
 
-void BluetoothDriver::process(Gamepad * gamepad) {
+bool BluetoothDriver::process(Gamepad * gamepad) {
     BleGamepadReport r = buildBleGamepadReport(
         static_cast<uint16_t>(gamepad->state.buttons & 0x07FFu),
         gamepad->state.lt, gamepad->state.rt,
         bleAxisFromRaw(gamepad->state.lx), bleAxisFromRaw(gamepad->state.ly),
         bleAxisFromRaw(gamepad->state.rx), bleAxisFromRaw(gamepad->state.ry));
     lastReport = r;
-    pushReport(r);
+    return pushReport(r);
 }
 
 uint16_t BluetoothDriver::get_report(uint8_t report_id, hid_report_type_t report_type,
@@ -262,7 +262,7 @@ uint16_t BluetoothDriver::get_report(uint8_t report_id, hid_report_type_t report
     return 0;
 }
 
-void BluetoothDriver::pushReport(const BleGamepadReport & report) {
+bool BluetoothDriver::pushReport(const BleGamepadReport & report) {
 #if defined(ESP_PLATFORM)
     // TBD-Task8-verify: `ble_gatts_notify_custom` server-notify signature and
     // the `ble_hs_mbuf_from_flat` mbuf pattern on ESP-IDF 5.x NimBLE.
@@ -270,17 +270,19 @@ void BluetoothDriver::pushReport(const BleGamepadReport & report) {
     // handler cannot reach this member); mirror it here so `bleConnected`
     // stays a truthful connection flag for callers/debuggers.
     bleConnected = (bleConnHandle != 0xFFFF);
-    if (!bleConnected || !bleInputNotify) { return; } // no peer / CCCD off: stay silent
-    if (memcmp(&report, &lastSent, sizeof(report)) == 0) { return; } // change-only: ~133 Hz BLE ceiling
+    if (!bleConnected || !bleInputNotify) { return false; } // no peer / CCCD off: stay silent
+    if (memcmp(&report, &lastSent, sizeof(report)) == 0) { return false; } // change-only: ~133 Hz BLE ceiling
     lastSent = report;
     struct os_mbuf *om = ble_hs_mbuf_from_flat(&report, sizeof(report)); // TBD-Task8-verify
-    if (om == NULL) { return; }
+    if (om == NULL) { return false; }
     int rc = ble_gatts_notify_custom(bleConnHandle, bleInputReportHandle, om); // TBD-Task8-verify
     (void)rc;
     // Note: lastSent is updated before notify; a failed notify drops that
     // delta (next input change re-syncs). Accepted for Phase 0.
+    return true;
 #else
-    if (memcmp(&report, &lastSent, sizeof(report)) == 0) { return; }
+    if (memcmp(&report, &lastSent, sizeof(report)) == 0) { return false; }
     lastSent = report;
+    return true;
 #endif
 }
