@@ -74,6 +74,10 @@ idf_component_register(
         "../../src/storagemanager.cpp"
         "../../src/system.cpp"
         "../../src/system_bootword.cpp"
+        # S3 webconfig HTTP backend core (s3-webconfig Task 4: skeleton +
+        # static serving + firmware-version/getConfig/setConfig/reboot/
+        # resetSettings; Tasks 5-6 append endpoint groups to this TU).
+        "../../src/webconfig_s3.cpp"
         "../../src/config_utils.cpp"
         "../../src/config_legacy.cpp"
         "../../src/gp2040aux.cpp"
@@ -171,7 +175,7 @@ idf_component_register(
         "../../lib/ADS1256"
         "../../lib/WiiExtension"
         "../../lib/SNESpad"
-    REQUIRES tinyusb esp_timer esp_adc esp_driver_ledc esp_driver_gpio esp_partition esp_driver_i2c spiffs led_strip mbedtls arduinojson usb)
+    REQUIRES tinyusb esp_timer esp_adc esp_driver_ledc esp_driver_gpio esp_partition esp_driver_i2c spiffs esp_http_server log led_strip mbedtls arduinojson usb)
 # SPIFFS www partition image (s3-webconfig Task 3): bundles the React web UI
 # from WSL-build-side staging (esp32-s3/spiffs_root, populated from the web
 # UI build output before idf.py build; never commit staged bundle files).
