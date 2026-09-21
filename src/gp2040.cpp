@@ -373,18 +373,6 @@ void GP2040::run() {
 
 		checkRawState(prevState, gamepad->state);
 
-		// Config Loop (Web-Config does not require gamepad)
-		if (configMode == true) {
-#if defined(PICO_BOARD)
-			ConfigManager::getInstance().loop();
-			rebootHotkeys.process(gamepad, configMode);
-			continue;
-#elif defined(ESP_PLATFORM)
-			// S3: no webconfig until Phase 3 (configMode is never set);
-			// fall through to the gamepad path.
-#endif
-		}
-
 		// Process USB Host on Core0
 #if defined(PICO_BOARD)
 		USBHostManager::getInstance().process();
