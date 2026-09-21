@@ -376,7 +376,7 @@ static const uint8_t switch_pro_hid_descriptor[] =
     0x00,        // bCountryCode
     0x01,        // bNumDescriptors
     0x22,        // bDescriptorType[0] (HID)
-    0xCB, 0x00,  // wDescriptorLength[0] 86
+    0x9C, 0x00,  // wDescriptorLength[0] 156
 };
 
 static const uint8_t switch_pro_configuration_descriptor[] =
@@ -406,7 +406,7 @@ static const uint8_t switch_pro_configuration_descriptor[] =
     0x00,        // bCountryCode
     0x01,        // bNumDescriptors
     0x22,        // bDescriptorType[0] (HID)
-    0xCB, 0x00,  // wDescriptorLength[0] 203
+    0x9C, 0x00,  // wDescriptorLength[0] 156
 
     0x07,        // bLength
     0x05,        // bDescriptorType (Endpoint)
@@ -431,57 +431,48 @@ static const uint8_t switch_pro_report_descriptor[] =
     0xA1, 0x01,        // Collection (Application)
 
     0x85, 0x30,        //   Report ID (48)
-    0x05, 0x01,        //   Usage Page (Generic Desktop Ctrls)
-    0x05, 0x09,        //   Usage Page (Button)
-    0x19, 0x01,        //   Usage Minimum (0x01)
-    0x29, 0x0A,        //   Usage Maximum (0x0A)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x01,        //   Logical Maximum (1)
-    0x75, 0x01,        //   Report Size (1)
-    0x95, 0x0A,        //   Report Count (10)
-    0x55, 0x00,        //   Unit Exponent (0)
-    0x65, 0x00,        //   Unit (None)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x05, 0x09,        //   Usage Page (Button)
-    0x19, 0x0B,        //   Usage Minimum (0x0B)
-    0x29, 0x0E,        //   Usage Maximum (0x0E)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x01,        //   Logical Maximum (1)
-    0x75, 0x01,        //   Report Size (1)
-    0x95, 0x04,        //   Report Count (4)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x75, 0x01,        //   Report Size (1)
+    // Wire bytes 1-2 are the running timestamp and connection/battery
+    // status (struct timestamp + connectionInfo/batteryLevel). They are
+    // NOT controls: declaring them const keeps the cycling counter from
+    // parsing as buttons 1-8 (hardware-proven 2026-09: buttons cycled in
+    // binary with nothing touched).
+    0x75, 0x08,        //   Report Size (8)
     0x95, 0x02,        //   Report Count (2)
     0x81, 0x03,        //   Input (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x0B, 0x01, 0x00, 0x01, 0x00,  //   Usage (0x010001)
-    0xA1, 0x00,        //   Collection (Physical)
-    0x0B, 0x30, 0x00, 0x01, 0x00,  //     Usage (0x010030)
-    0x0B, 0x31, 0x00, 0x01, 0x00,  //     Usage (0x010031)
-    0x0B, 0x32, 0x00, 0x01, 0x00,  //     Usage (0x010032)
-    0x0B, 0x35, 0x00, 0x01, 0x00,  //     Usage (0x010035)
-    0x15, 0x00,        //     Logical Minimum (0)
-    0x27, 0xFF, 0xFF, 0x00, 0x00,  //     Logical Maximum (65534)
-    0x75, 0x10,        //     Report Size (16)
-    0x95, 0x04,        //     Report Count (4)
-    0x81, 0x02,        //     Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0xC0,              //   End Collection
-    0x0B, 0x39, 0x00, 0x01, 0x00,  //   Usage (0x010039)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x07,        //   Logical Maximum (7)
-    0x35, 0x00,        //   Physical Minimum (0)
-    0x46, 0x3B, 0x01,  //   Physical Maximum (315)
-    0x65, 0x14,        //   Unit (System: English Rotation, Length: Centimeter)
-    0x75, 0x04,        //   Report Size (4)
-    0x95, 0x01,        //   Report Count (1)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    // Buttons byte 0 (wire byte 3): Y,X,B,A,RightSR,RightSL,R,ZR
     0x05, 0x09,        //   Usage Page (Button)
-    0x19, 0x0F,        //   Usage Minimum (0x0F)
-    0x29, 0x12,        //   Usage Maximum (0x12)
+    0x19, 0x01,        //   Usage Minimum (0x01)
+    0x29, 0x08,        //   Usage Maximum (0x08)
     0x15, 0x00,        //   Logical Minimum (0)
     0x25, 0x01,        //   Logical Maximum (1)
     0x75, 0x01,        //   Report Size (1)
+    0x95, 0x08,        //   Report Count (8)
+    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    // Buttons byte 1 (wire byte 4): Minus,Plus,ThumbR,ThumbL,Home,Capture
+    0x19, 0x09,        //   Usage Minimum (0x09)
+    0x29, 0x0E,        //   Usage Maximum (0x0E)
+    0x95, 0x06,        //   Report Count (6)
+    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    // (bits 6-7: dummy, chargingGrip — const, never a phantom button)
+    0x95, 0x02,        //   Report Count (2)
+    0x81, 0x03,        //   Input (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    // Buttons byte 2 (wire byte 5): Down,Up,Right,Left,LeftSL,LeftSR,L,ZL
+    0x19, 0x0F,        //   Usage Minimum (0x0F)
+    0x29, 0x16,        //   Usage Maximum (0x16)
+    0x95, 0x08,        //   Report Count (8)
+    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    // Sticks (wire bytes 6-11): 12-bit X/Y per stick (SwitchAnalog packing)
+    0x05, 0x01,        //   Usage Page (Generic Desktop Ctrls)
+    0x0B, 0x30, 0x00, 0x01, 0x00,  //   Usage (0x010030)
+    0x0B, 0x31, 0x00, 0x01, 0x00,  //   Usage (0x010031)
+    0x0B, 0x32, 0x00, 0x01, 0x00,  //   Usage (0x010032)
+    0x0B, 0x35, 0x00, 0x01, 0x00,  //   Usage (0x010035)
+    0x16, 0x00, 0x00,  //   Logical Minimum (0)
+    0x26, 0xFF, 0x0F,  //   Logical Maximum (4095)
+    0x75, 0x0C,        //   Report Size (12)
     0x95, 0x04,        //   Report Count (4)
     0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    // rumble+IMU+pad (wire bytes 12-63): 52 const bytes
     0x75, 0x08,        //   Report Size (8)
     0x95, 0x34,        //   Report Count (52)
     0x81, 0x03,        //   Input (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)

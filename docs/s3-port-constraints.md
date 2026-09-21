@@ -103,6 +103,15 @@ read the matching section here before touching the code.
   validated via a temporary L1 mapping, reverted after.
 - Button-hold mode switching works both directions and persists across
   reboot (exercises input path + config save).
+- SwitchPro (`VID_057E:2009`): enumerated but inputs "cycled in binary"
+  with nothing touched — the running timestamp byte was parsed as buttons
+  1-8 (descriptor omitted the timer + conn/batt bytes, shifting every
+  field). Fixed by declaring those 2 bytes const and shrinking trailing
+  pad 52→50 (array 203→156 bytes, both `wDescriptorLength`s updated);
+  dpad stays buttons (no hat nibble — joy.cpl POV reads const-pad zero).
+- P5General (`VID_28B1:0101`): enumerates, no inputs — by design on S3
+  (input path requires USB-host auth dongle, Phase 2; stubs force
+  available()->false).
 
 ## Open items (observed, not guard-enforced)
 - **PS3 Feature 0x01 response over-read (upstream bug, not ours).**
