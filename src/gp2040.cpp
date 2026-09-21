@@ -57,7 +57,6 @@
 #include "hal_time.h"
 #include "driver/gpio.h"
 #include "esp_private/usb_phy.h"
-#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #endif
@@ -333,16 +332,10 @@ void GP2040::run() {
 	Gamepad * processedGamepad = Storage::getInstance().GetProcessedGamepad();
 	bool configMode = Storage::getInstance().GetConfigMode();
     GamepadState prevState;
-#if defined(ESP_PLATFORM)
-	// TEMP hardware probe (revert): prove run() is reached and which driver.
-	ESP_LOGI("loop_diag", "run() driver=%p usesUSB=%d cfgMode=%d",
-		(const void*)inputDriver, (int)(inputDriver ? inputDriver->usesUSB() : -1), (int)configMode);
-#endif
     
     // Start the TinyUSB Device functionality
     if (DriverManager::getInstance().getDriver()->usesUSB()) {
 #if defined(ESP_PLATFORM)
-        ESP_LOGI("loop_diag", "pre-phy");
         // S3: raw TinyUSB does not enable the USB OTG peripheral itself
         // (no clocks, no internal PHY, no GPIO19/20 mux) — without this the
         // device silently never enumerates and USB-Serial/JTAG keeps the pins.
@@ -359,25 +352,10 @@ void GP2040::run() {
             ESP_ERROR_CHECK(usb_new_phy(&phy_config, &s_usb_phy));
         }
 #endif
-#if defined(ESP_PLATFORM)
-        ESP_LOGI("loop_diag", "pre-tud");
-#endif
         tud_init(TUD_OPT_RHPORT);
-#if defined(ESP_PLATFORM)
-        ESP_LOGI("loop_diag", "post-tud");
-#endif
     }
     
 	while (1) { // LOOP
-#if defined(ESP_PLATFORM)
-	// TEMP hardware probe (revert): loop-liveness + time-source witness.
-	// If iters climbs but millis is frozen, hal::millis() is stuck (kills
-	// debounce, heartbeat, and every deadline in one stroke).
-	static uint32_t s_loopIters = 0;
-	if ((++s_loopIters % 1000) == 0) {
-		ESP_LOGI("loop_diag", "iters=%lu millis=%lu", (unsigned long)s_loopIters, (unsigned long)hal::millis());
-	}
-#endif
 		this->getReinitGamepad(gamepad);
 
 		memcpy(&prevState, &gamepad->state, sizeof(GamepadState));
@@ -495,15 +473,6 @@ GP2040::BootAction GP2040::getBootAction() {
 				addons.PreprocessAddons(ADDON_PROCESS::CORE0_INPUT);
 				
 		gamepad->process(); // process through MPGS
-#if defined(ESP_PLATFORM)
-		// TEMP hardware probe (revert): bisect loop-hang location. Prints
-		// every 1000th MPGS pass; if absent while run() printed, the hang is
-		// above (reinit/saves/debounce/read/hotkey/MPGS), else below.
-		static uint32_t s_mpgsCount = 0;
-		if ((++s_mpgsCount % 100) == 0) {
-			ESP_LOGI("loop_diag", "mpgs-pass=%lu", (unsigned long)s_mpgsCount);
-		}
-#endif
 
 				// (Post) Process for add-ons
 				addons.ProcessAddons(ADDON_PROCESS::CORE0_INPUT);
