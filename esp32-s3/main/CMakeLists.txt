@@ -73,6 +73,7 @@ idf_component_register(
         "../../src/usbdriver.cpp"
         "../../src/storagemanager.cpp"
         "../../src/system.cpp"
+        "../../src/system_bootword.cpp"
         "../../src/config_utils.cpp"
         "../../src/config_legacy.cpp"
         "../../src/gp2040aux.cpp"

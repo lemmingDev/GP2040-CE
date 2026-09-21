@@ -18,6 +18,10 @@ extern char __StackTop;
 #elif defined(ESP_PLATFORM)
 #include "esp_system.h"
 #include "esp_heap_caps.h"
+#include "esp_attr.h"
+#include "system_bootword.h"
+
+RTC_DATA_ATTR static uint32_t s3_boot_word = 0;
 #endif
 
 uint32_t System::getTotalFlash() {
@@ -112,10 +116,9 @@ void System::reboot(BootMode bootMode) {
 	}
 #elif defined(ESP_PLATFORM)
     // S3: no USB host to shut down (Phase 2), no multicore lockout
-    // (single-core bring-up). Boot-mode word has no watchdog scratch
-    // equivalent yet — Phase 3 webconfig boot-mode: RTC-retain replacement.
-    // Default to gamepad mode.
-    (void)bootMode;
+    // (single-core bring-up). Persist the requested boot mode in RTC
+    // slow memory so takeBootMode() can recover it after esp_restart().
+    s3_boot_word = packBootWord(bootMode);
     esp_restart();
     for (;;) {
     }
@@ -140,8 +143,10 @@ System::BootMode System::takeBootMode() {
 
     return bootMode;
 #elif defined(ESP_PLATFORM)
-    // Phase 3 webconfig boot-mode: RTC-retain replacement. Default to
-    // gamepad mode until then.
-    return BootMode::DEFAULT;
+    // RTC-retained boot word written by reboot(); read, clear, decode.
+    // Subsequent boots revert to BootMode::DEFAULT.
+    uint32_t w = s3_boot_word;
+    s3_boot_word = 0;
+    return unpackBootWord(w);
 #endif
 }
