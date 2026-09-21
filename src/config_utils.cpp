@@ -84,7 +84,7 @@
     } \
 
 #ifndef DEFAULT_INPUT_MODE
-    #define DEFAULT_INPUT_MODE INPUT_MODE_GENERIC // TEMP hardware probe (revert): Generic HID validation
+    #define DEFAULT_INPUT_MODE INPUT_MODE_XINPUT
 #endif
 #ifndef DEFAULT_INPUT_MODE_B1
     #define DEFAULT_INPUT_MODE_B1 INPUT_MODE_SWITCH
