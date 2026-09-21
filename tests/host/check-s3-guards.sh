@@ -127,6 +127,55 @@ else
     failmsg "FreeRTOS tick pinned to 1000 Hz"
 fi
 
+# 9. Partition fit: flash layout must fit 8 MB variants. Sum the Size
+#    column of esp32-s3/partitions.csv (hex) and fail above 0x800000.
+#    (Current: nvs 0x6000 + phy 0x1000 + factory 0x1E0000 + gpconfig
+#    0x8000 + www 0x400000 = 0x5F8000.)
+part_total=0
+while IFS=, read -r part_name part_type part_subtype part_offset part_size part_flags; do
+    case "$part_name" in \#*|"") continue ;; esac
+    part_size="$(echo "$part_size" | tr -d '[:space:]')"
+    case "$part_size" in 0x*|"") ;; *) continue ;; esac
+    [ -n "$part_size" ] || continue
+    part_total=$((part_total + part_size))
+done < esp32-s3/partitions.csv
+if [ "$part_total" -le $((0x800000)) ]; then
+    pass "partitions fit 8 MB flash (total $part_total bytes)"
+else
+    failmsg "partitions exceed 8 MB flash (total $part_total bytes)"
+fi
+
+# 10. Transport default pinned: S2-hold boots USB-config by design.
+if grep -q "DEFAULT_WEBCONFIG_TRANSPORT WEBCONFIG_TRANSPORT_USB" src/config_utils.cpp; then
+    pass "webconfig transport default pinned to USB"
+else
+    failmsg "webconfig transport default pinned to USB"
+fi
+
+# 11. No credentials in code or logs: the documented default passphrase
+#     lives ONLY in the DEFAULT_AP_PASSPHRASE define; fail if the literal
+#     passphrase string appears in any other tracked first-party file,
+#     and fail if webconfig_s3.cpp printf/ESP_LOG lines reference
+#     apPassphrase (lengths-only logging rule).
+cred_hits=""
+for f in $CODE; do
+    [ -f "$f" ] || continue
+    [ "$f" = "src/config_utils.cpp" ] && continue
+    if grep -q "gp2040config" "$f"; then
+        cred_hits="$cred_hits $f"
+    fi
+done
+if [ -z "$cred_hits" ] && grep -q 'define DEFAULT_AP_PASSPHRASE "gp2040config"' src/config_utils.cpp; then
+    pass "default passphrase lives only in DEFAULT_AP_PASSPHRASE"
+else
+    failmsg "default passphrase lives only in DEFAULT_AP_PASSPHRASE:$cred_hits"
+fi
+if grep -E "printf|ESP_LOG" src/webconfig_s3.cpp | grep -q "apPassphrase"; then
+    failmsg "no apPassphrase in webconfig_s3.cpp log lines"
+else
+    pass "no apPassphrase in webconfig_s3.cpp log lines"
+fi
+
 if [ "$fail" -ne 0 ]; then
     echo "s3-guards: FAILURES present (see docs/s3-port-constraints.md)"
     exit 1

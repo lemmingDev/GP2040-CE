@@ -128,6 +128,62 @@ read the matching section here before touching the code.
   (input path requires USB-host auth dongle, Phase 2; stubs force
   available()->false).
 
+## 9. S3 flash layout must fit 8 MB variants
+
+- **Symptom:** firmware flashes but the `www` (web UI) mount or OTA
+  region silently overlaps/truncates on 8 MB modules; config and web
+  assets corrupt each other with no build error.
+- **Root cause:** the custom partition table (`esp32-s3/partitions.csv`,
+  §3) is hand-sized; adding entries (e.g. the 4 MB `www` SPIFFS region)
+  can push the layout past the smallest supported flash without any
+  build-time complaint.
+- **Rule:** the Size column of `esp32-s3/partitions.csv` must sum to at
+  most `0x800000` (current: nvs `0x6000` + phy `0x1000` + factory
+  `0x1E0000` + gpconfig `0x8000` + www `0x400000` = `0x5F8000`).
+- **Verify:** guard check 9 sums the table in CI; hardware: AP serves the
+  full web UI and save → reboot → setting persists (§3).
+
+## 10. Webconfig transport defaults to USB; S2-hold boots USB-config
+
+- **Symptom:** a CONFIG-booted board unexpectedly joins/starts WiFi (or a
+  host-side script finds no AP when it expected one) after a default
+  change.
+- **Root cause:** the AP + HTTP server only start when the transport
+  preference selects WiFi (L1-hold session, saved `apEnabled`, or CONFIG
+  boot with the WiFi pref). USB-config is the later phase that will park
+  gameplay like Pico; until then the safe default keeps radio off.
+- **Rule:** `DEFAULT_WEBCONFIG_TRANSPORT` stays `WEBCONFIG_TRANSPORT_USB`
+  in `src/config_utils.cpp`. S2-hold (and RTC-WEBCONFIG with the default
+  pref) therefore boots USB-config by design — currently the saved
+  gamepad mode stays live with no AP/server, never WiFi.
+- **Verify:** guard check 10; hardware: S2-hold boot shows no AP and the
+  gamepad enumerates in the saved mode.
+
+## 11. Webconfig bring-up: AP + server live under WiFi, gamepad stays live
+
+- **Symptom:** AP appears but the UI never loads, or inputs die while the
+  AP session runs; alternatively the passphrase leaks into USB/serial
+  logs captured during bring-up.
+- **Root cause:** the S3 AP lifecycle needs the exact IDF sequence
+  (`nvs_flash_init` + erase-retry, `esp_netif_init`,
+  `esp_event_loop_create_default` tolerating `ESP_ERR_INVALID_STATE`,
+  default-AP netif with DHCP, `esp_wifi_init`, bounded SSID/passphrase
+  copies, WPA2/open select, `set_mode`/`set_config`/`esp_wifi_start`) —
+  and, unlike Pico's USB-config which parks the gamepad, WiFi-config
+  keeps the normal input loop running (no NetDriver on S3 to park).
+- **Rule:** credentials come from `WebConfigOptions` (`apSSID` default
+  `"GP2040-CE"`, empty SSID falls back to it; empty passphrase = OPEN,
+  1–7 chars fail `set_config` loudly, never silently downgraded); the
+  documented default passphrase literal lives ONLY in the
+  `DEFAULT_AP_PASSPHRASE` define; log lines carry lengths only, never
+  `apPassphrase`. L1-hold forces a session-only WiFi-config boot;
+  gamepad inputs stay live under WiFi-config and will park only under
+  the future USB-config.
+- **Verify:** guard checks 11 (passphrase confined to the define; no
+  `apPassphrase` in `webconfig_s3.cpp` printf/`ESP_LOG` lines); hardware:
+  L1-boot → AP `GP2040-CE` appears → UI at `http://192.168.4.1/` →
+  save → reboot → persists → inputs live during the AP session.
+
 ## Open items (observed, not guard-enforced)
 - **PS3 Feature 0x01 response over-read (upstream bug, not ours).**
   `PS3Driver::get_report`, `PS3_FEATURE_01` case: copies a 48-byte host

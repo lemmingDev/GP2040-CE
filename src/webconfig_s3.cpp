@@ -3760,7 +3760,7 @@ static esp_err_t s3_handle_setPS4Options(httpd_req_t *req)
 // ---- WiFi AP lifecycle (Task 7) ----
 //
 // Credentials come from the Task-1 WebConfigOptions settings (apSSID default
-// "GP2040-CE", apPassphrase default "gp2040config", both applied by
+// "GP2040-CE", apPassphrase default DEFAULT_AP_PASSPHRASE, both applied by
 // ConfigUtils::initUnsetPropertiesWithDefaults). Bring-up follows the brief's
 // exact IDF sequence; the default AP netif runs DHCP (clients lease
 // 192.168.4.x). Called once from GP2040::setup() when the AP is requested
