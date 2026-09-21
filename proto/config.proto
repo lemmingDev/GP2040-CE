@@ -990,6 +990,18 @@ message MigrationHistory
     optional bool profileEnabledFlagsMigrated = 4 [default = false];
 }
 
+enum WebconfigTransport {
+    option (nanopb_enumopt).long_names = false;
+    WEBCONFIG_TRANSPORT_USB = 0;
+    WEBCONFIG_TRANSPORT_WIFI = 1;
+}
+message WebConfigOptions {
+    optional bool apEnabled = 1;
+    optional string apSSID = 2 [(nanopb).max_length = 32];
+    optional string apPassphrase = 3 [(nanopb).max_length = 64];
+    optional WebconfigTransport webconfigTransport = 4;
+}
+
 message Config
 {
     optional string boardVersion = 1 [(nanopb).max_length = 31];
@@ -1011,4 +1023,5 @@ message Config
     optional PeripheralOptions peripheralOptions = 15;
 
 	optional BootModeOptions bootModeOptions = 16;
+    optional WebConfigOptions webConfigOptions = 17;
 }

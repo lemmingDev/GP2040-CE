@@ -10,6 +10,12 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
+/* Enum definitions */
+typedef enum _WebconfigTransport {
+    WEBCONFIG_TRANSPORT_USB = 0,
+    WEBCONFIG_TRANSPORT_WIFI = 1
+} WebconfigTransport;
+
 /* Struct definitions */
 typedef struct _InputModeMapping {
     /* negative if mapping disabled */
@@ -1521,6 +1527,17 @@ typedef struct _MigrationHistory {
     bool profileEnabledFlagsMigrated;
 } MigrationHistory;
 
+typedef struct _WebConfigOptions {
+    bool has_apEnabled;
+    bool apEnabled;
+    bool has_apSSID;
+    char apSSID[33];
+    bool has_apPassphrase;
+    char apPassphrase[65];
+    bool has_webconfigTransport;
+    WebconfigTransport webconfigTransport;
+} WebConfigOptions;
+
 typedef struct _Config {
     bool has_boardVersion;
     char boardVersion[32];
@@ -1554,12 +1571,28 @@ typedef struct _Config {
     PeripheralOptions peripheralOptions;
     bool has_bootModeOptions;
     BootModeOptions bootModeOptions;
+    bool has_webConfigOptions;
+    WebConfigOptions webConfigOptions;
 } Config;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Helper constants for enums */
+#define _WebconfigTransport_MIN WEBCONFIG_TRANSPORT_USB
+#define _WebconfigTransport_MAX WEBCONFIG_TRANSPORT_WIFI
+#define _WebconfigTransport_ARRAYSIZE ((WebconfigTransport)(WEBCONFIG_TRANSPORT_WIFI+1))
+#define WebconfigTransport_WEBCONFIG_TRANSPORT_USB WEBCONFIG_TRANSPORT_USB
+#define WebconfigTransport_WEBCONFIG_TRANSPORT_WIFI WEBCONFIG_TRANSPORT_WIFI
+
+
+/* Enum values (GP2040-CE extension) */
+#define WebconfigTransport_VALUELIST(X) \
+X(WEBCONFIG_TRANSPORT_USB, 0) \
+X(WEBCONFIG_TRANSPORT_WIFI, 1)
+
 
 /* Defines to allow user code to refer to enum type of a specific field */
 #define InputModeMapping_inputMode_ENUMTYPE InputMode
@@ -1614,6 +1647,7 @@ extern "C" {
 #define ReactiveLEDInfo_modeDown_ENUMTYPE ReactiveLEDMode
 #define ReactiveLEDInfo_modeUp_ENUMTYPE ReactiveLEDMode
 #define HETriggerInfo_action_ENUMTYPE GpioAction
+#define WebConfigOptions_webconfigTransport_ENUMTYPE WebconfigTransport
 
 /* Initializer values for message structs */
 #define InputModeMapping_init_default            {false, 0, false, _InputMode_MIN, false, 0}
@@ -1689,7 +1723,8 @@ extern "C" {
 #define HETriggerOptions_init_default            {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, 0, {HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default}, false, 0, false, 0}
 #define AddonOptions_init_default                {false, BootselButtonOptions_init_default, false, OnBoardLedOptions_init_default, false, AnalogOptions_init_default, false, TurboOptions_init_default, false, SliderOptions_init_default, false, ReverseOptions_init_default, false, AnalogADS1219Options_init_default, false, DualDirectionalOptions_init_default, false, BuzzerOptions_init_default, false, ExtraButtonOptions_init_default, false, PlayerNumberOptions_init_default, false, PS4Options_init_default, false, WiiOptions_init_default, false, SOCDSliderOptions_init_default, false, SNESOptions_init_default, false, FocusModeOptions_init_default, false, KeyboardHostOptions_init_default, false, TiltOptions_init_default, false, PSPassthroughOptions_init_default, false, MacroOptions_init_default, false, InputHistoryOptions_init_default, false, XBOnePassthroughOptions_init_default, false, AnalogADS1256Options_init_default, false, RotaryOptions_init_default, false, PCF8575Options_init_default, false, DRV8833RumbleOptions_init_default, false, ReactiveLEDOptions_init_default, false, GamepadUSBHostOptions_init_default, false, TG16Options_init_default, false, HETriggerOptions_init_default, false, ProfileSliderOptions_init_default, false, AnalogADS1115Options_init_default}
 #define MigrationHistory_init_default            {false, false, false, false, false, false, false, false}
-#define Config_init_default                      {false, "", false, GamepadOptions_init_default, false, HotkeyOptions_init_default, false, PinMappings_init_default, false, KeyboardMapping_init_default, false, DisplayOptions_init_default, false, LEDOptions_init_default, false, AnimationOptions_init_default, false, AddonOptions_init_default, false, ForcedSetupOptions_init_default, false, ProfileOptions_init_default, false, "", false, GpioMappings_init_default, false, MigrationHistory_init_default, false, PeripheralOptions_init_default, false, BootModeOptions_init_default}
+#define WebConfigOptions_init_default            {false, 0, false, "", false, "", false, _WebconfigTransport_MIN}
+#define Config_init_default                      {false, "", false, GamepadOptions_init_default, false, HotkeyOptions_init_default, false, PinMappings_init_default, false, KeyboardMapping_init_default, false, DisplayOptions_init_default, false, LEDOptions_init_default, false, AnimationOptions_init_default, false, AddonOptions_init_default, false, ForcedSetupOptions_init_default, false, ProfileOptions_init_default, false, "", false, GpioMappings_init_default, false, MigrationHistory_init_default, false, PeripheralOptions_init_default, false, BootModeOptions_init_default, false, WebConfigOptions_init_default}
 #define InputModeMapping_init_zero               {false, 0, false, _InputMode_MIN, false, 0}
 #define BootModeOptions_init_zero                {false, 0, false, 0, false, 0, 0, {InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero}}
 #define GamepadOptions_init_zero                 {false, _InputMode_MIN, false, _DpadMode_MIN, false, _SOCDMode_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _PS4ControllerType_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _InputModeAuthType_MIN, false, _InputModeAuthType_MIN, false, _InputModeAuthType_MIN, false, _PS4ControllerIDMode_MIN, false, 0, false, "", false, "", false, "", false, 0, false, 0, false, 0, false, 0, false, _InputModeDeviceType_MIN}
@@ -1763,7 +1798,8 @@ extern "C" {
 #define HETriggerOptions_init_zero               {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, 0, {HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero}, false, 0, false, 0}
 #define AddonOptions_init_zero                   {false, BootselButtonOptions_init_zero, false, OnBoardLedOptions_init_zero, false, AnalogOptions_init_zero, false, TurboOptions_init_zero, false, SliderOptions_init_zero, false, ReverseOptions_init_zero, false, AnalogADS1219Options_init_zero, false, DualDirectionalOptions_init_zero, false, BuzzerOptions_init_zero, false, ExtraButtonOptions_init_zero, false, PlayerNumberOptions_init_zero, false, PS4Options_init_zero, false, WiiOptions_init_zero, false, SOCDSliderOptions_init_zero, false, SNESOptions_init_zero, false, FocusModeOptions_init_zero, false, KeyboardHostOptions_init_zero, false, TiltOptions_init_zero, false, PSPassthroughOptions_init_zero, false, MacroOptions_init_zero, false, InputHistoryOptions_init_zero, false, XBOnePassthroughOptions_init_zero, false, AnalogADS1256Options_init_zero, false, RotaryOptions_init_zero, false, PCF8575Options_init_zero, false, DRV8833RumbleOptions_init_zero, false, ReactiveLEDOptions_init_zero, false, GamepadUSBHostOptions_init_zero, false, TG16Options_init_zero, false, HETriggerOptions_init_zero, false, ProfileSliderOptions_init_zero, false, AnalogADS1115Options_init_zero}
 #define MigrationHistory_init_zero               {false, 0, false, 0, false, 0, false, 0}
-#define Config_init_zero                         {false, "", false, GamepadOptions_init_zero, false, HotkeyOptions_init_zero, false, PinMappings_init_zero, false, KeyboardMapping_init_zero, false, DisplayOptions_init_zero, false, LEDOptions_init_zero, false, AnimationOptions_init_zero, false, AddonOptions_init_zero, false, ForcedSetupOptions_init_zero, false, ProfileOptions_init_zero, false, "", false, GpioMappings_init_zero, false, MigrationHistory_init_zero, false, PeripheralOptions_init_zero, false, BootModeOptions_init_zero}
+#define WebConfigOptions_init_zero               {false, 0, false, "", false, "", false, _WebconfigTransport_MIN}
+#define Config_init_zero                         {false, "", false, GamepadOptions_init_zero, false, HotkeyOptions_init_zero, false, PinMappings_init_zero, false, KeyboardMapping_init_zero, false, DisplayOptions_init_zero, false, LEDOptions_init_zero, false, AnimationOptions_init_zero, false, AddonOptions_init_zero, false, ForcedSetupOptions_init_zero, false, ProfileOptions_init_zero, false, "", false, GpioMappings_init_zero, false, MigrationHistory_init_zero, false, PeripheralOptions_init_zero, false, BootModeOptions_init_zero, false, WebConfigOptions_init_zero}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define InputModeMapping_pinMask_tag             1
@@ -2404,6 +2440,10 @@ extern "C" {
 #define MigrationHistory_gpioMappingsMigrated_tag 2
 #define MigrationHistory_buttonProfilesMigrated_tag 3
 #define MigrationHistory_profileEnabledFlagsMigrated_tag 4
+#define WebConfigOptions_apEnabled_tag           1
+#define WebConfigOptions_apSSID_tag              2
+#define WebConfigOptions_apPassphrase_tag        3
+#define WebConfigOptions_webconfigTransport_tag  4
 #define Config_boardVersion_tag                  1
 #define Config_gamepadOptions_tag                2
 #define Config_hotkeyOptions_tag                 3
@@ -2420,6 +2460,7 @@ extern "C" {
 #define Config_migrations_tag                    14
 #define Config_peripheralOptions_tag             15
 #define Config_bootModeOptions_tag               16
+#define Config_webConfigOptions_tag              17
 
 /* Struct field encoding specification for nanopb */
 #define InputModeMapping_FIELDLIST(X, a) \
@@ -3446,6 +3487,14 @@ X(a, STATIC,   OPTIONAL, BOOL,     profileEnabledFlagsMigrated,      4, 0)
 #define MigrationHistory_CALLBACK NULL
 #define MigrationHistory_DEFAULT (const pb_byte_t*)"\x08\x00\x10\x00\x18\x00\x20\x00\x00"
 
+#define WebConfigOptions_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, BOOL,     apEnabled,                        1, 0) \
+X(a, STATIC,   OPTIONAL, STRING,   apSSID,                           2, 0) \
+X(a, STATIC,   OPTIONAL, STRING,   apPassphrase,                     3, 0) \
+X(a, STATIC,   OPTIONAL, UENUM,    webconfigTransport,               4, 0)
+#define WebConfigOptions_CALLBACK NULL
+#define WebConfigOptions_DEFAULT NULL
+
 #define Config_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, STRING,   boardVersion,                     1, 0) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  gamepadOptions,                   2, 0) \
@@ -3462,7 +3511,8 @@ X(a, STATIC,   OPTIONAL, STRING,   boardConfig,                     12, 0) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  gpioMappings,                    13, 0) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  migrations,                      14, 0) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  peripheralOptions,               15, 0) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  bootModeOptions,                 16, 0)
+X(a, STATIC,   OPTIONAL, MESSAGE,  bootModeOptions,                 16, 0) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  webConfigOptions,                17, 0)
 #define Config_CALLBACK NULL
 #define Config_DEFAULT NULL
 #define Config_gamepadOptions_MSGTYPE GamepadOptions
@@ -3479,6 +3529,7 @@ X(a, STATIC,   OPTIONAL, MESSAGE,  bootModeOptions,                 16, 0)
 #define Config_migrations_MSGTYPE MigrationHistory
 #define Config_peripheralOptions_MSGTYPE PeripheralOptions
 #define Config_bootModeOptions_MSGTYPE BootModeOptions
+#define Config_webConfigOptions_MSGTYPE WebConfigOptions
 
 extern const pb_msgdesc_t InputModeMapping_msg;
 extern const pb_msgdesc_t BootModeOptions_msg;
@@ -3553,6 +3604,7 @@ extern const pb_msgdesc_t HETriggerInfo_msg;
 extern const pb_msgdesc_t HETriggerOptions_msg;
 extern const pb_msgdesc_t AddonOptions_msg;
 extern const pb_msgdesc_t MigrationHistory_msg;
+extern const pb_msgdesc_t WebConfigOptions_msg;
 extern const pb_msgdesc_t Config_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
@@ -3629,6 +3681,7 @@ extern const pb_msgdesc_t Config_msg;
 #define HETriggerOptions_fields &HETriggerOptions_msg
 #define AddonOptions_fields &AddonOptions_msg
 #define MigrationHistory_fields &MigrationHistory_msg
+#define WebConfigOptions_fields &WebConfigOptions_msg
 #define Config_fields &Config_msg
 
 /* Maximum encoded size of messages (where known) */
@@ -3647,7 +3700,7 @@ extern const pb_msgdesc_t Config_msg;
 #define ButtonLayoutParamsLeft_size              48
 #define ButtonLayoutParamsRight_size             48
 #define BuzzerOptions_size                       30
-#define Config_size                              26795
+#define Config_size                              26902
 #define DRV8833RumbleOptions_size                51
 #define DisplayOptions_size                      1300
 #define DualDirectionalOptions_size              52
@@ -3695,6 +3748,7 @@ extern const pb_msgdesc_t Config_msg;
 #define TG16Options_size                         68
 #define TiltOptions_size                         219
 #define TurboOptions_size                        172
+#define WebConfigOptions_size                    104
 #define WiiOptions_AnalogAxis_size               33
 #define WiiOptions_ClassicOptions_size           383
 #define WiiOptions_ControllerOptions_size        1225
@@ -3782,7 +3836,12 @@ X(HETriggerInfo) \
 X(HETriggerOptions) \
 X(AddonOptions) \
 X(MigrationHistory) \
+X(WebConfigOptions) \
 X(Config) \
+
+/* List of all enums (GP2040-CE extension) */
+#define CONFIG_ENUMS_GP2040(X) \
+X(WebconfigTransport) \
 
 #ifdef __cplusplus
 } /* extern "C" */

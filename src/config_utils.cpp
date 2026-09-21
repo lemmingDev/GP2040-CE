@@ -186,6 +186,16 @@
    #define MINI_MENU_GAMEPAD_INPUT 0
 #endif
 
+#ifndef DEFAULT_AP_SSID
+#define DEFAULT_AP_SSID "GP2040-CE"
+#endif
+#ifndef DEFAULT_AP_PASSPHRASE
+#define DEFAULT_AP_PASSPHRASE "gp2040config"
+#endif
+#ifndef DEFAULT_WEBCONFIG_TRANSPORT
+#define DEFAULT_WEBCONFIG_TRANSPORT WEBCONFIG_TRANSPORT_USB
+#endif
+
 #ifndef GPIO_PIN_00
     #define GPIO_PIN_00 GpioAction::NONE
 #endif
@@ -568,6 +578,12 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(peripheralOptions.blockUSB0, dp, USB_PERIPHERAL_PIN_DPLUS);
     INIT_UNSET_PROPERTY(peripheralOptions.blockUSB0, order, USB_PERIPHERAL_PIN_ORDER);
     INIT_UNSET_PROPERTY(peripheralOptions.blockUSB0, enable5v, USB_PERIPHERAL_PIN_5V);
+
+    WebConfigOptions & webConfigOptions = config.webConfigOptions;
+    INIT_UNSET_PROPERTY(config.webConfigOptions, apEnabled, false);
+    INIT_UNSET_PROPERTY_STR(config.webConfigOptions, apSSID, DEFAULT_AP_SSID);
+    INIT_UNSET_PROPERTY_STR(config.webConfigOptions, apPassphrase, DEFAULT_AP_PASSPHRASE);
+    INIT_UNSET_PROPERTY(config.webConfigOptions, webconfigTransport, DEFAULT_WEBCONFIG_TRANSPORT);
 
     // ledOptions
     INIT_UNSET_PROPERTY(config.ledOptions, dataPin, BOARD_LEDS_PIN);
