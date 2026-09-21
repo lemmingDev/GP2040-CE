@@ -566,29 +566,37 @@ GP2040::BootAction GP2040::getButtonMappedBootAction() {
 	bootActions.insert({GAMEPAD_MASK_R2, gamepadOptions.inputModeR2});
 
 	if (!modeSwitchLocked) {
+#if defined(ESP_PLATFORM)
+		// S3 boot-action guards (checked BEFORE the generic lookup: an
+		// unmapped (-1) hold matches its map entry below and would return
+		// the placeholder as a mode, poisoning the stored input mode
+		// (found on hardware 2026-09: L1-hold stored -1, WiFi never came
+		// up). L1-unmapped boots WiFi-config (session-only, never saved);
+		// L2/R1-unmapped holds are ignored (normal boot) — L2 is reserved
+		// for the USB-config phase.
+		if (!webConfigLocked && gamepad->state.buttons == GAMEPAD_MASK_L1 &&
+				gamepadOptions.inputModeL1 < 0) {
+			bootAction.inputMode = InputMode::INPUT_MODE_CONFIG;
+			s3WifiConfigSession = true;
+			return bootAction;
+		}
+		if (gamepad->state.buttons == GAMEPAD_MASK_L2 && gamepadOptions.inputModeL2 < 0) {
+			return bootAction;
+		}
+		if (gamepad->state.buttons == GAMEPAD_MASK_R1 && gamepadOptions.inputModeR1 < 0) {
+			return bootAction;
+		}
+#endif
 		if (auto search = bootActions.find(gamepad->state.buttons); search != bootActions.end()) {
 			bootAction.inputMode = static_cast<InputMode>(search->second);
 			return bootAction;
 		}
 	}
 #if defined(ESP_PLATFORM)
-	// S3 WiFi-config boot actions: L1-hold with no stored mapping boots
-	// WiFi-config (session-only override, never saved); L2-hold is reserved
-	// for the USB-config phase and boots normally. Exact-match on
-	// state.buttons mirrors the bootActions lookup above (bare holds only),
-	// so a valid stored L1 mapping is still honored via the lookup's early
-	// return and never reaches this block.
-	if (!modeSwitchLocked) {
-		if (!webConfigLocked && gamepad->state.buttons == GAMEPAD_MASK_L1 &&
-				gamepadOptions.inputModeL1 < 0) {
-			bootAction.inputMode = InputMode::INPUT_MODE_CONFIG;
-			s3WifiConfigSession = true;
-		} else if (gamepad->state.buttons == GAMEPAD_MASK_L2) {
-			bootAction.inputMode = gamepadOptions.inputMode;
-			bootAction.profileNumber = gamepadOptions.profileNumber;
-			bootAction.type = BootActionType::SET_INPUT_MODE;
-		}
-	}
+	// S3: L2-hold with a VALID stored mapping falls through to the lookup
+	// above (honored); reaching here means no hold matched or switching is
+	// locked — nothing S3-specific left to do (L1/L2/R1-unmapped handled
+	// before the lookup).
 #endif
 	return bootAction;
 }
