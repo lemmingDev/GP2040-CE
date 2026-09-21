@@ -139,7 +139,7 @@ read the matching section here before touching the code.
   build-time complaint.
 - **Rule:** the Size column of `esp32-s3/partitions.csv` must sum to at
   most `0x800000` (current: nvs `0x6000` + phy `0x1000` + factory
-  `0x1E0000` + gpconfig `0x8000` + www `0x400000` = `0x5F8000`).
+  `0x1E0000` + gpconfig `0x8000` + www `0x400000` = `0x5EF000`).
 - **Verify:** guard check 9 sums the table in CI; hardware: AP serves the
   full web UI and save → reboot → setting persists (§3).
 

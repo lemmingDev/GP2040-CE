@@ -130,7 +130,7 @@ fi
 # 9. Partition fit: flash layout must fit 8 MB variants. Sum the Size
 #    column of esp32-s3/partitions.csv (hex) and fail above 0x800000.
 #    (Current: nvs 0x6000 + phy 0x1000 + factory 0x1E0000 + gpconfig
-#    0x8000 + www 0x400000 = 0x5F8000.)
+#    0x8000 + www 0x400000 = 0x5EF000.)
 part_total=0
 while IFS=, read -r part_name part_type part_subtype part_offset part_size part_flags; do
     case "$part_name" in \#*|"") continue ;; esac
