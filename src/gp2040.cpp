@@ -70,6 +70,17 @@
 #include "rndis.h"
 #endif
 
+#if defined(ESP_PLATFORM)
+// S3 webconfig bring-up (src/webconfig_s3.cpp, S3-only TU): WiFi AP + HTTP
+// server lifecycle, called from GP2040::setup().
+bool startWifiAP();
+void startWebconfigServer();
+
+// L1-hold WiFi-config session flag: set by getButtonMappedBootAction(),
+// consumed once by GP2040::setup(). Session-only, never saved.
+static bool s3WifiConfigSession = false;
+#endif
+
 // TinyUSB
 #include "tusb.h"
 
@@ -177,6 +188,14 @@ void GP2040::setup() {
 		bootAction = altBootAction;
 	}
 
+#if defined(ESP_PLATFORM)
+	// Consume the L1-hold WiFi-config session flag (set inside
+	// getButtonMappedBootAction above; only meaningful on the button path —
+	// the GPIO-mapped path has its own pin masks).
+	bool s3WifiSession = s3WifiConfigSession && !bootModeOptions.enabled;
+	s3WifiConfigSession = false; // consume once
+#endif
+
 	// Initialize last reinit profile to current so we don't reinit on first loop
 	gamepad->lastReinitProfileNumber = bootAction.profileNumber;
 
@@ -191,11 +210,25 @@ void GP2040::setup() {
 
 	InputMode inputMode = bootAction.inputMode;
 #if defined(ESP_PLATFORM)
-	// S3: no webconfig (NetDriver) until Phase 3 — boot as HID gamepad
-	// instead of CONFIG (the S3 driver switch would also fall back to HID,
-	// but keep the saved value clean).
-	if (inputMode == INPUT_MODE_CONFIG) {
-		inputMode = INPUT_MODE_GENERIC;
+	// S3 webconfig bring-up: CONFIG is served over WiFi-AP (the
+	// INPUT_MODE_CONFIG→GENERIC demotion is gone). The AP comes up when
+	// requested — L1-hold WiFi-config session, saved apEnabled toggle, or a
+	// CONFIG boot with the WIFI transport pref — followed by the HTTP server.
+	// There is no CONFIG-mode (NetDriver-equivalent) USB driver on S3, so a
+	// CONFIG boot keeps the saved gamepad mode live instead: WiFi-config
+	// never parks gameplay. (Contrast: the later USB-config phase will mirror
+	// Pico and park the gamepad while in CONFIG mode — spec §4 note. A CONFIG
+	// boot with the USB pref therefore comes up as the saved gamepad with no
+	// AP/server until that phase lands.)
+	WebConfigOptions &webConfigOptions = Storage::getInstance().getConfig().webConfigOptions;
+	bool s3ConfigBoot = (bootAction.inputMode == INPUT_MODE_CONFIG);
+	bool s3ApRequested = webConfigOptions.apEnabled || s3WifiSession ||
+		(s3ConfigBoot && webConfigOptions.webconfigTransport == WEBCONFIG_TRANSPORT_WIFI);
+	if (s3ApRequested && startWifiAP()) {
+		startWebconfigServer();
+	}
+	if (s3ConfigBoot) {
+		inputMode = gamepadOptions.inputMode;
 	}
 #endif
 
@@ -538,6 +571,25 @@ GP2040::BootAction GP2040::getButtonMappedBootAction() {
 			return bootAction;
 		}
 	}
+#if defined(ESP_PLATFORM)
+	// S3 WiFi-config boot actions: L1-hold with no stored mapping boots
+	// WiFi-config (session-only override, never saved); L2-hold is reserved
+	// for the USB-config phase and boots normally. Exact-match on
+	// state.buttons mirrors the bootActions lookup above (bare holds only),
+	// so a valid stored L1 mapping is still honored via the lookup's early
+	// return and never reaches this block.
+	if (!modeSwitchLocked) {
+		if (!webConfigLocked && gamepad->state.buttons == GAMEPAD_MASK_L1 &&
+				gamepadOptions.inputModeL1 < 0) {
+			bootAction.inputMode = InputMode::INPUT_MODE_CONFIG;
+			s3WifiConfigSession = true;
+		} else if (gamepad->state.buttons == GAMEPAD_MASK_L2) {
+			bootAction.inputMode = gamepadOptions.inputMode;
+			bootAction.profileNumber = gamepadOptions.profileNumber;
+			bootAction.type = BootActionType::SET_INPUT_MODE;
+		}
+	}
+#endif
 	return bootAction;
 }
 

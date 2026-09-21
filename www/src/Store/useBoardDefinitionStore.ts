@@ -39,7 +39,9 @@ const useBoardDefinition = create<State & Actions>()((set) => ({
 				fetch(`${baseUrl}/api/getBoardDefinition`).then((res) => res.json()),
 			]);
 
-			set({ boardDefinition: definition.pico });
+			// Pico wraps the definition in a "pico" object; the S3 port serves
+			// the flat shape (no wrapper) — branch on the key, not the board.
+			set({ boardDefinition: definition.pico ?? definition });
 		} catch (error) {
 			set({ error: true, loading: false });
 		}

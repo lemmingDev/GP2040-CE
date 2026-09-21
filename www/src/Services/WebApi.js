@@ -690,7 +690,9 @@ async function abortGetHeldPins() {
 async function getBoardDefinition() {
 	try {
 		const response = await Http.get(`${baseUrl}/api/getBoardDefinition`);
-		return response.data.pico;
+		// Pico wraps the definition in a "pico" object; the S3 port serves
+		// the flat shape (no wrapper) — branch on the key, not the board.
+		return response.data.pico ?? response.data;
 	} catch (error) {
 		console.error(error);
 	}

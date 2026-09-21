@@ -68,6 +68,12 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_adc/adc_oneshot.h"
+// Task 7 WiFi-AP bring-up (S3 main REQUIRES gains esp_wifi nvs_flash
+// esp_netif in this task, so these includes resolve).
+#include "nvs_flash.h"
+#include "esp_netif.h"
+#include "esp_event.h"
+#include "esp_wifi.h"
 
 // spi_flash_get_chip_size() (IDF spi_flash, always linked) forward-declared
 // instead of #including "esp_flash.h": the S3 main component does not list
@@ -459,6 +465,33 @@ static std::string s3_setGamepadOptions(const char *body, size_t len)
     s3_readDoc(gamepadOptions.usbVendorID, doc, "usbVendorID");
     s3_readDoc(gamepadOptions.usbProductID, doc, "usbProductID");
 
+    // Task 7: S3-only WebConfig AP/transport keys (no Pico equivalent — Pico's
+    // setGamepadOptions() reads known keys individually (src/webconfig.cpp),
+    // so unknown keys in the shared React bundle's POST are ignored there and
+    // Pico behavior is untouched). Assign-only-when-set so partial POSTs keep
+    // stored values. Same GPStorageSaveEvent(true) save semantics as above.
+    WebConfigOptions& webConfigOptions = Storage::getInstance().getConfig().webConfigOptions;
+    // (s3_docToValue is defined further down this TU, so the assign-only-
+    // when-set is spelled out explicitly here.)
+    if (doc["apEnabled"] != nullptr)
+    {
+        webConfigOptions.apEnabled = doc["apEnabled"];
+    }
+    if (doc["apSSID"] != nullptr)
+    {
+        strncpy(webConfigOptions.apSSID, doc["apSSID"], sizeof(webConfigOptions.apSSID) - 1);
+        webConfigOptions.apSSID[sizeof(webConfigOptions.apSSID) - 1] = '\0';
+    }
+    if (doc["apPassphrase"] != nullptr)
+    {
+        strncpy(webConfigOptions.apPassphrase, doc["apPassphrase"], sizeof(webConfigOptions.apPassphrase) - 1);
+        webConfigOptions.apPassphrase[sizeof(webConfigOptions.apPassphrase) - 1] = '\0';
+    }
+    if (doc["webconfigTransport"] != nullptr)
+    {
+        webConfigOptions.webconfigTransport = (WebconfigTransport)doc["webconfigTransport"].as<int>();
+    }
+
     HotkeyOptions& hotkeyOptions = Storage::getInstance().getHotkeyOptions();
     s3_save_hotkey(&hotkeyOptions.hotkey01, doc, "hotkey01");
     s3_save_hotkey(&hotkeyOptions.hotkey02, doc, "hotkey02");
@@ -526,6 +559,13 @@ static std::string s3_getGamepadOptions()
     char usbProductStr[5];
     snprintf(usbProductStr, 5, "%04X", (unsigned int)gamepadOptions.usbProductID);
     s3_writeDoc(doc, "usbProductID", usbProductStr);
+    // Task 7: S3-only WebConfig AP/transport keys (no Pico equivalent — Pico's
+    // GET simply omits them and the shared React bundle falls back to defaults).
+    WebConfigOptions& webConfigOptions = Storage::getInstance().getConfig().webConfigOptions;
+    s3_writeDoc(doc, "apEnabled", webConfigOptions.apEnabled);
+    s3_writeDoc(doc, "apSSID", webConfigOptions.apSSID);
+    s3_writeDoc(doc, "apPassphrase", webConfigOptions.apPassphrase);
+    s3_writeDoc(doc, "webconfigTransport", webConfigOptions.webconfigTransport);
     s3_writeDoc(doc, "fnButtonPin", -1);
     GpioMappingInfo* gpioMappings = Storage::getInstance().getGpioMappings().pins;
     for (unsigned int pin = 0; pin < NUM_BANK0_GPIOS; pin++) {
@@ -3054,6 +3094,10 @@ static bool s3_abortGetHeldPinsFlag = false;
 // invisible to the mask, same window the core loop iterates) with
 // hal::millis() timing; unassigned pins get input+pullup like Pico's
 // gpio_init/pull_up; no deinit exists in the S3 HAL so pins stay inputs.
+// P3 (accepted for POC): the S3 HAL has no direction query, so a pin driven
+// LOW as an output during the scan (e.g. by an addon peripheral) reads LOW
+// and false-positives as held — Pico's SIO-input-only guard could not be
+// ported.
 static std::string s3_getHeldPins()
 {
     s3_abortGetHeldPinsFlag = false;
@@ -3713,7 +3757,117 @@ static esp_err_t s3_handle_setPS4Options(httpd_req_t *req)
     return s3_json_post(req, s3_setPS4Options);
 }
 
-// ---- Server lifecycle (Task 7 wires the start/stop calls) ----
+// ---- WiFi AP lifecycle (Task 7) ----
+//
+// Credentials come from the Task-1 WebConfigOptions settings (apSSID default
+// "GP2040-CE", apPassphrase default "gp2040config", both applied by
+// ConfigUtils::initUnsetPropertiesWithDefaults). Bring-up follows the brief's
+// exact IDF sequence; the default AP netif runs DHCP (clients lease
+// 192.168.4.x). Called once from GP2040::setup() when the AP is requested
+// (L1-hold WiFi-config session, saved apEnabled toggle, or CONFIG boot with
+// the WIFI transport pref).
+//
+// Security notes: an empty passphrase means an OPEN network (WPA2 needs
+// 8+ chars; a shorter non-empty passphrase fails esp_wifi_set_config and is
+// logged, never silently downgraded). The passphrase is NEVER logged (Task 8
+// guard: no creds in logs). Bounded copies (not raw strcpy): apSSID is up to
+// 32 chars + NUL and ap.ap.ssid is 32 bytes, so strcpy would overrun by one.
+
+static bool s3_ap_started = false;
+
+bool startWifiAP()
+{
+    if (s3_ap_started)
+    {
+        return true;
+    }
+    WebConfigOptions &webConfigOptions = Storage::getInstance().getConfig().webConfigOptions;
+    const char *ssid = webConfigOptions.apSSID[0] != '\0' ? webConfigOptions.apSSID : "GP2040-CE";
+    const char *pass = webConfigOptions.apPassphrase;
+    size_t passLen = strlen(pass);
+
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(S3_WEBCONFIG_TAG, "nvs_flash_init failed: %s", esp_err_to_name(ret));
+        return false;
+    }
+    ret = esp_netif_init();
+    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE)
+    {
+        ESP_LOGE(S3_WEBCONFIG_TAG, "esp_netif_init failed: %s", esp_err_to_name(ret));
+        return false;
+    }
+    ret = esp_event_loop_create_default();
+    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE)
+    {
+        ESP_LOGE(S3_WEBCONFIG_TAG, "esp_event_loop_create_default failed: %s", esp_err_to_name(ret));
+        return false;
+    }
+    esp_netif_create_default_wifi_ap();
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    if (esp_wifi_init(&cfg) != ESP_OK)
+    {
+        ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_init failed");
+        return false;
+    }
+    wifi_config_t ap = {};
+    strncpy((char *)ap.ap.ssid, ssid, sizeof(ap.ap.ssid) - 1);
+    ap.ap.ssid[sizeof(ap.ap.ssid) - 1] = '\0';
+    strncpy((char *)ap.ap.password, pass, sizeof(ap.ap.password) - 1);
+    ap.ap.password[sizeof(ap.ap.password) - 1] = '\0';
+    if (passLen == 0)
+    {
+        ap.ap.authmode = WIFI_AUTH_OPEN;
+    }
+    else
+    {
+        ap.ap.authmode = WIFI_AUTH_WPA2_PSK;
+    }
+    ap.ap.max_connection = 4;
+    // Explicit channel 1 (IDF softAP example default): the brief's snippet
+    // leaves the zero-init channel unset, but channel-0 AP behavior is
+    // undocumented in the precompiled WiFi lib, so pin it instead of
+    // risking an ESP_ERR_INVALID_ARG at first boot.
+    ap.ap.channel = 1;
+    if (esp_wifi_set_mode(WIFI_MODE_AP) != ESP_OK)
+    {
+        ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_set_mode AP failed");
+        return false;
+    }
+    if (esp_wifi_set_config(WIFI_IF_AP, &ap) != ESP_OK)
+    {
+        ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_set_config AP failed (SSID len %u, passphrase len %u)",
+            (unsigned int)strlen(ssid), (unsigned int)passLen);
+        return false;
+    }
+    if (esp_wifi_start() != ESP_OK)
+    {
+        ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_start failed");
+        return false;
+    }
+    s3_ap_started = true;
+    ESP_LOGI(S3_WEBCONFIG_TAG, "WiFi AP started (SSID len %u, %s)",
+        (unsigned int)strlen(ssid), passLen == 0 ? "open" : "WPA2");
+    return true;
+}
+
+void stopWifiAP()
+{
+    if (!s3_ap_started)
+    {
+        return;
+    }
+    esp_wifi_stop();
+    s3_ap_started = false;
+}
+
+// ---- Server lifecycle (started from GP2040::setup() in Task 7) ----
 
 void startWebconfigServer()
 {

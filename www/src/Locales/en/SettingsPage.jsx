@@ -187,4 +187,17 @@ export default {
 		'vendor-id': 'Vendor ID',
 	},
 	'input-mode-device-type-label': 'Input Mode Controller Type',
+	'wifi-config-header-text': 'WiFi Config',
+	'ap-s3-note':
+		'These settings apply to the ESP32-S3 WiFi access point and are ignored on other boards. Changes take effect after reboot.',
+	'ap-enabled-label': 'Enable WiFi Access Point',
+	'ap-ssid-label': 'Access Point SSID',
+	'ap-passphrase-label': 'Access Point Passphrase',
+	'ap-passphrase-help':
+		'Empty means an open network. Otherwise 8–64 characters (WPA2).',
+	'webconfig-transport-label': 'Webconfig Transport',
+	'webconfig-transport-options': {
+		usb: 'USB',
+		wifi: 'WiFi',
+	},
 };

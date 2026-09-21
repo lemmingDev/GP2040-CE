@@ -295,6 +295,14 @@ const FORCED_SETUP_MODES = [
 	{ labelKey: 'forced-setup-mode-options.disable-both', value: 3 },
 ];
 
+// S3 webconfig transport pref (WebConfigOptions.webconfigTransport):
+// 0 = USB (Pico parity default), 1 = WiFi. Kept as a local table (not
+// @proto/enums — build-proto only processes enums.proto).
+const WEBCONFIG_TRANSPORTS = [
+	{ labelKey: 'webconfig-transport-options.usb', value: 0 },
+	{ labelKey: 'webconfig-transport-options.wifi', value: 1 },
+];
+
 const INPUT_MODES_BINDS = [
 	{ value: 'B1' },
 	{ value: 'B2' },
@@ -454,6 +462,25 @@ const schema = yup.object().shape({
 	usbDescVersion: yup.string().label('USB Description: Version'),
 	usbVendorID: yup.string().label('USB Vendor ID').validateUSBHexID(),
 	usbProductID: yup.string().label('USB Product ID').validateUSBHexID(),
+	// S3 WiFi webconfig fields (WebConfigOptions, served via the
+	// get/setGamepadOptions pair — Pico's GET omits them and its setter
+	// ignores unknown keys, so all four stay optional here: required()
+	// would block Pico saves when the keys are absent).
+	apEnabled: yup.number().label('AP Enabled'),
+	apSSID: yup.string().max(32).label('AP SSID'),
+	apPassphrase: yup
+		.string()
+		.max(64)
+		.test(
+			'wifi-pass-length',
+			'Passphrase must be empty (open network) or at least 8 characters (WPA2)',
+			(value) => !value || value.length === 0 || value.length >= 8,
+		)
+		.label('AP Passphrase'),
+	webconfigTransport: yup
+		.number()
+		.oneOf(WEBCONFIG_TRANSPORTS.map((o) => o.value))
+		.label('Webconfig Transport'),
 });
 
 const FormContext = ({ setButtonLabels, setKeyMappings }) => {
@@ -463,7 +490,16 @@ const FormContext = ({ setButtonLabels, setKeyMappings }) => {
 	useEffect(() => {
 		async function fetchData() {
 			const options = await WebApi.getGamepadOptions(setLoading);
-			setValues(options);
+			// S3 AP fields ride along in the same payload; Pico's GET omits
+			// them, so merge firmware values over local defaults (keeps the
+			// new inputs controlled on both boards).
+			setValues({
+				apEnabled: 0,
+				apSSID: 'GP2040-CE',
+				apPassphrase: '',
+				webconfigTransport: 0,
+				...options,
+			});
 			setButtonLabels({
 				swapTpShareLabels:
 					options.switchTpShareForDs4 === 1 && options.inputMode === 4,
@@ -493,6 +529,13 @@ const FormContext = ({ setButtonLabels, setKeyMappings }) => {
 			values.ps4ControllerIDMode = parseInt(values.ps4ControllerIDMode);
 		if (!!values.inputDeviceType)
 			values.inputDeviceType = parseInt(values.inputDeviceType);
+		if (values.apEnabled !== undefined && values.apEnabled !== '')
+			values.apEnabled = parseInt(values.apEnabled);
+		if (
+			values.webconfigTransport !== undefined &&
+			values.webconfigTransport !== ''
+		)
+			values.webconfigTransport = parseInt(values.webconfigTransport);
 
 		setButtonLabels({
 			swapTpShareLabels:
@@ -1455,6 +1498,7 @@ export default function SettingsPage() {
 	const translatedSocdModes = translateArray(SOCD_MODES);
 	const translatedHotkeyActions = translateArray(HOTKEY_ACTIONS);
 	const translatedForcedSetupModes = translateArray(FORCED_SETUP_MODES);
+	const translatedWebconfigTransports = translateArray(WEBCONFIG_TRANSPORTS);
 	// Not currently used but we might add the option at a later date (wheel type, etc.)
 	const translatedPS4ControllerTypeModes = translateArray(PS4_MODES);
 	const translatedInputModeAuthentications =
@@ -1488,6 +1532,11 @@ export default function SettingsPage() {
 											<Nav.Item>
 												<Nav.Link eventKey="hotkey">
 													{t('SettingsPage:hotkey-settings-label')}
+												</Nav.Link>
+											</Nav.Item>
+											<Nav.Item>
+												<Nav.Link eventKey="webconfig">
+													{t('SettingsPage:wifi-config-header-text')}
 												</Nav.Link>
 											</Nav.Item>
 										</Nav>
@@ -2014,6 +2063,101 @@ export default function SettingsPage() {
 															);
 														}}
 													/>
+													<Button type="submit">
+														{t('Common:button-save-label')}
+													</Button>
+													{saveMessage ? (
+														<span className="alert">{saveMessage}</span>
+													) : null}
+												</Section>
+											</Tab.Pane>
+											<Tab.Pane eventKey="webconfig">
+												<Section
+													title={t('SettingsPage:wifi-config-header-text')}
+												>
+													<p>{t('SettingsPage:ap-s3-note')}</p>
+													<Form.Group className="row mb-3">
+														<Col sm={5}>
+															<Form.Check
+																label={t('SettingsPage:ap-enabled-label')}
+																type="switch"
+																id="apEnabled"
+																isInvalid={false}
+																checked={Boolean(values.apEnabled)}
+																onChange={(e) => {
+																	setFieldValue(
+																		'apEnabled',
+																		e.target.checked ? 1 : 0,
+																	);
+																}}
+															/>
+														</Col>
+													</Form.Group>
+													<Form.Group className="row mb-3">
+														<Col sm={4}>
+															<Form.Label>
+																{t('SettingsPage:ap-ssid-label')}
+															</Form.Label>
+															<Form.Control
+																size="sm"
+																type="text"
+																name="apSSID"
+																value={values.apSSID ?? ''}
+																error={errors?.apSSID}
+																isInvalid={errors?.apSSID}
+																onChange={handleChange}
+																maxLength={32}
+															/>
+															<Form.Control.Feedback type="invalid">
+																{errors.apSSID}
+															</Form.Control.Feedback>
+														</Col>
+														<Col sm={4}>
+															<Form.Label>
+																{t('SettingsPage:ap-passphrase-label')}
+															</Form.Label>
+															<Form.Control
+																size="sm"
+																type="password"
+																name="apPassphrase"
+																value={values.apPassphrase ?? ''}
+																error={errors?.apPassphrase}
+																isInvalid={errors?.apPassphrase}
+																onChange={handleChange}
+																maxLength={64}
+															/>
+															<Form.Control.Feedback type="invalid">
+																{errors.apPassphrase}
+															</Form.Control.Feedback>
+														</Col>
+													</Form.Group>
+													<p>{t('SettingsPage:ap-passphrase-help')}</p>
+													<Form.Group className="row mb-3">
+														<Col sm={3}>
+															<Form.Label>
+																{t('SettingsPage:webconfig-transport-label')}
+															</Form.Label>
+															<Form.Select
+																name="webconfigTransport"
+																className="form-select-sm"
+																value={values.webconfigTransport}
+																onChange={handleChange}
+																isInvalid={errors.webconfigTransport}
+															>
+																{translatedWebconfigTransports.map((o, i) => (
+																	<option
+																		key={`button-webconfigTransport-option-${i}`}
+																		value={o.value}
+																	>
+																		{o.label}
+																	</option>
+																))}
+															</Form.Select>
+															<Form.Control.Feedback type="invalid">
+																{errors.webconfigTransport}
+															</Form.Control.Feedback>
+														</Col>
+													</Form.Group>
 													<Button type="submit">
 														{t('Common:button-save-label')}
 													</Button>

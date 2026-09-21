@@ -146,7 +146,9 @@ export const useBootModeStore = create<State & { actions: Actions }>()(
 					fetch(`${baseUrl}/api/getBoardDefinition`).then((res) => res.json()),
 				]);
 
-				const NUM_PINS = boardDefinition.maxPin + 1;
+				// Pico wraps the definition in a "pico" object; the S3 port
+				// serves the flat shape — branch on the key, not the board.
+				const NUM_PINS = (boardDefinition.pico ?? boardDefinition).maxPin + 1;
 				try {
 					let { data } = await WebApi.getBootModeOptions();
 					response = data;

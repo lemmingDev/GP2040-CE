@@ -175,7 +175,7 @@ idf_component_register(
         "../../lib/ADS1256"
         "../../lib/WiiExtension"
         "../../lib/SNESpad"
-    REQUIRES tinyusb esp_timer esp_adc esp_driver_ledc esp_driver_gpio esp_partition esp_driver_i2c spiffs esp_http_server log led_strip mbedtls arduinojson usb)
+    REQUIRES tinyusb esp_timer esp_adc esp_driver_ledc esp_driver_gpio esp_partition esp_driver_i2c spiffs esp_http_server log led_strip mbedtls arduinojson usb esp_wifi nvs_flash esp_netif)
 # SPIFFS www partition image (s3-webconfig Task 3): bundles the React web UI
 # from WSL-build-side staging (esp32-s3/spiffs_root, populated from the web
 # UI build output before idf.py build; never commit staged bundle files).
