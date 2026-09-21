@@ -92,8 +92,19 @@ read the matching section here before touching the code.
   test passed (shared HID path healthy, bug is PS3-specific); 32-byte
   sends completed without registering; 49-byte sends fixed inputs.
 
-## Open items (observed, not guard-enforced)
+## Validated USB modes on S3 hardware (post-merge, Sept 2026)
 
+- XInput (`VID_045E:028E`), Pokken (`VID_0F0D:0092`), PS4, PS3 (`VID_054C`,
+  needs §7 fix), SInput (`VID_2E8A:10C6`, struct is exactly the declared
+  64 bytes — no PS3-style mismatch). Keyboard validated pre-merge.
+- Boot-select defaults: B1=Switch (GPIO6), B2=XInput (GPIO7), B3=PS3
+  (GPIO10), B4=PS4 (GPIO11), R2=Keyboard; L1/L2/R1 unmapped (`-1`).
+  No default button selects SInput/SwitchPro/P5General/minis — SInput was
+  validated via a temporary L1 mapping, reverted after.
+- Button-hold mode switching works both directions and persists across
+  reboot (exercises input path + config save).
+
+## Open items (observed, not guard-enforced)
 - **PS3 Feature 0x01 response over-read (upstream bug, not ours).**
   `PS3Driver::get_report`, `PS3_FEATURE_01` case: copies a 48-byte host
   request from the 8-byte `output_ps3_alt_0x01` table (31 bytes past the
