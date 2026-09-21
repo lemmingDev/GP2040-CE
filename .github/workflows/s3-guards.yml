@@ -1,0 +1,14 @@
+name: s3-guards
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  s3-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ESP32-S3 regression guards (no toolchain needed)
+        run: bash tests/host/check-s3-guards.sh
