@@ -64,3 +64,24 @@ no STA passphrase in logs); host tests untouched. Hardware: configure
 via AP UI → reboot → joins home network (serial shows IP) → UI
 reachable via LAN IP → AP-router down → backoff retries, AP
 unaffected → clear creds → clean boot with no STA.
+
+## §1b Network-state provider (screens depend on this)
+
+Small helper in the S3 TU plus `GET /api/getNetworkStatus` returning
+`{apEnabled, apIP, staConnected, staSSID, staIP}`. Verifiable over curl
+with no display attached. Consumed by the UI status line and §6.
+
+## §6 Display (hardware-gated: SSD1306 must be wired to verify)
+
+- **§6a boot screen:** WiFi-config boots show a dedicated text screen
+  (AP SSID + AP IP, plus STA IP when connected) instead of the splash;
+  any button press exits to normal screens.
+- **§6b mark:** new `showWifiIndicator` bool in `DisplayOptions`
+  (default off; full proto/defaults/UI-field treatment).
+  `ButtonLayoutScreen` draws a small WiFi glyph whenever AP or STA is
+  up, gamepad mode only.
+- **§6c combo readout:** holding S1+S2 during gameplay shows the network
+  screen momentarily, dismissed on release. Fixed combo (no config;
+  boot-only combos don't collide with gameplay).
+- Order: §1b with the core bring-up; §6 after, and anything unprovable
+  without the screen stays flagged, not fudged.
