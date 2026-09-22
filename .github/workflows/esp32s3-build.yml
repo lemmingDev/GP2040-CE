@@ -1,0 +1,54 @@
+name: ESP32-S3 build
+
+# Fork-only CI: produces flashable ESP32-S3 binaries (firmware + web UI)
+# for the S3 port branch. Pico boards stay on upstream's cmake.yml matrix.
+on:
+  push:
+    branches: ["feature/esp32s3-poc"]
+  pull_request:
+    branches: ["feature/esp32s3-poc"]
+  workflow_dispatch:
+
+jobs:
+  build-s3:
+    runs-on: ubuntu-latest
+    container:
+      image: espressif/idf:v5.4
+    steps:
+      - name: Checkout (with submodules for lib/tinyusb)
+        uses: actions/checkout@v6.0.1
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6.1.0
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: www/package-lock.json
+
+      - name: Build web UI
+        working-directory: www
+        run: CI=false npm ci && CI=false npm run build
+
+      - name: Host unit tests (no toolchain needed)
+        run: make -C tests/host test
+
+      - name: Stage web UI into the SPIFFS source tree
+        run: rm -rf esp32-s3/spiffs_root && cp -r www/build esp32-s3/spiffs_root
+
+      - name: ESP-IDF firmware build
+        working-directory: esp32-s3
+        run: idf.py build
+
+      - name: Upload S3 flashables
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: GP2040-CE-ESP32S3
+          path: |
+            esp32-s3/build/bootloader/bootloader.bin
+            esp32-s3/build/partition_table/partition-table.bin
+            esp32-s3/build/gp2040-ce-s3.bin
+            esp32-s3/build/www.bin
+          if-no-files-found: error
