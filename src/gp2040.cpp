@@ -74,6 +74,8 @@
 // S3 webconfig bring-up (src/webconfig_s3.cpp, S3-only TU): WiFi AP + HTTP
 // server lifecycle, called from GP2040::setup().
 bool startWifiAP();
+bool startWifiS3(bool apWanted, bool webconfigSessionActive);
+bool s3_sta_wanted(bool webconfigSessionActive);
 void startWebconfigServer();
 
 // L1-hold WiFi-config session flag: set by getButtonMappedBootAction(),
@@ -216,7 +218,9 @@ void GP2040::setup() {
 	// INPUT_MODE_CONFIG→GENERIC demotion is gone). The AP comes up when
 	// requested — L1-hold WiFi-config session, saved apEnabled toggle, or a
 	// CONFIG boot with the WIFI transport pref — followed by the HTTP server.
-	// There is no CONFIG-mode (NetDriver-equivalent) USB driver on S3, so a
+	// The STA client joins through the same bring-up (startWifiS3 mode
+	// matrix) per staMode. There is no CONFIG-mode (NetDriver-equivalent)
+	// USB driver on S3, so a
 	// CONFIG boot keeps the saved gamepad mode live instead: WiFi-config
 	// never parks gameplay. (Contrast: the later USB-config phase will mirror
 	// Pico and park the gamepad while in CONFIG mode — spec §4 note. A CONFIG
@@ -226,7 +230,13 @@ void GP2040::setup() {
 	bool s3ConfigBoot = (bootAction.inputMode == INPUT_MODE_CONFIG);
 	bool s3ApRequested = webConfigOptions.apEnabled || s3WifiSession ||
 		(s3ConfigBoot && webConfigOptions.webconfigTransport == WEBCONFIG_TRANSPORT_WIFI);
-	if (s3ApRequested && startWifiAP()) {
+	// STA-Task 2: STA joins at boot when Always-on, or in any webconfig
+	// session (L1-hold, toggle, CONFIG+WiFi-pref — exactly s3ApRequested)
+	// when Webconfig-only; Off (or empty SSID) never joins. The server
+	// follows WiFi up on any interface (AP and/or STA) so the LAN UI works
+	// over STA too (live join verified in STA-Task 4 end-to-end).
+	bool s3StaWanted = s3_sta_wanted(s3ApRequested);
+	if ((s3ApRequested || s3StaWanted) && startWifiS3(s3ApRequested, s3ApRequested)) {
 		startWebconfigServer();
 	}
 	if (s3ConfigBoot) {

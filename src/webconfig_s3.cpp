@@ -77,6 +77,7 @@
 #include "esp_netif.h"
 #include "esp_event.h"
 #include "esp_wifi.h"
+#include "esp_timer.h"
 #include "esp_partition.h"
 
 // spi_flash_get_chip_size() (IDF spi_flash, always linked) forward-declared
@@ -3858,15 +3859,28 @@ static esp_err_t s3_handle_getButtonLayouts(httpd_req_t *req)
     return s3_json_get(req, s3_getButtonLayouts);
 }
 
-// ---- WiFi AP lifecycle (Task 7) ----
+// ---- WiFi lifecycle: AP (Task 7) + STA client (STA-Task 2) ----
 //
-// Credentials come from the Task-1 WebConfigOptions settings (apSSID default
-// "GP2040-CE", apPassphrase default DEFAULT_AP_PASSPHRASE, both applied by
-// ConfigUtils::initUnsetPropertiesWithDefaults). Bring-up follows the brief's
-// exact IDF sequence; the default AP netif runs DHCP (clients lease
-// 192.168.4.x). Called once from GP2040::setup() when the AP is requested
-// (L1-hold WiFi-config session, saved apEnabled toggle, or CONFIG boot with
-// the WIFI transport pref).
+// AP credentials come from the Task-1 WebConfigOptions settings (apSSID
+// default "GP2040-CE", apPassphrase default DEFAULT_AP_PASSPHRASE, both
+// applied by ConfigUtils::initUnsetPropertiesWithDefaults). Bring-up follows
+// the brief's exact IDF sequence; the default AP netif runs DHCP (clients
+// lease 192.168.4.x). Called once from GP2040::setup() via startWifiS3()
+// when the AP is requested (L1-hold WiFi-config session, saved apEnabled
+// toggle, or CONFIG boot with the WIFI transport pref) and/or the STA
+// client is wanted.
+//
+// STA client (STA-Task 2): joins the saved staSSID/staPassphrase network per
+// staMode (STA_OFF=0 / STA_WEBCONFIG_ONLY=1 / STA_ALWAYS_ON=2, default OFF).
+// WiFi mode matrix: AP+STA -> WIFI_MODE_APSTA, AP-only -> WIFI_MODE_AP
+// (Task-7 behavior-identical), STA-only -> WIFI_MODE_STA, neither -> no WiFi
+// at all. One esp_wifi_set_mode() + one esp_wifi_start() per boot; the
+// NVS/netif/event-loop init is hoisted into s3_wifi_base_init() so STA-only
+// works without the AP path. Reconnects are event-driven (no extra task):
+// WIFI_EVENT_STA_DISCONNECTED arms an esp_timer one-shot with backoff
+// {5,10,20,40,80,160,300,...} seconds (cap 300, reset to 5 on
+// IP_EVENT_STA_GOT_IP); the callback re-calls esp_wifi_connect(). AP
+// lifecycle stays independent — STA paths never touch AP state.
 //
 // Security notes: an empty passphrase means an OPEN network (WPA2 needs
 // 8+ chars; a shorter non-empty passphrase fails esp_wifi_set_config and is
@@ -3876,17 +3890,25 @@ static esp_err_t s3_handle_getButtonLayouts(httpd_req_t *req)
 
 static bool s3_ap_started = false;
 
-bool startWifiAP()
-{
-    if (s3_ap_started)
-    {
-        return true;
-    }
-    WebConfigOptions &webConfigOptions = Storage::getInstance().getConfig().webConfigOptions;
-    const char *ssid = webConfigOptions.apSSID[0] != '\0' ? webConfigOptions.apSSID : "GP2040-CE";
-    const char *pass = webConfigOptions.apPassphrase;
-    size_t passLen = strlen(pass);
+// ---- STA client state (file-statics; the AP lifecycle never touches these) ----
+static bool s3_sta_started = false;
+static bool s3_sta_connected_flag = false;
+static char s3_sta_ip_str[16] = "";
+static uint8_t s3_sta_last_reason = 0;
+static uint32_t s3_sta_fail_count = 0;
+static bool s3_sta_wanted_cache = false;
+static esp_timer_handle_t s3_sta_retry_timer = nullptr;
+static bool s3_sta_handlers_registered = false;
+static esp_event_handler_instance_t s3_sta_wifi_evt = nullptr;
+static esp_event_handler_instance_t s3_sta_ip_evt = nullptr;
 
+// ---- Shared WiFi base init (NVS/netif/event-loop/wifi_init, idempotent) ----
+static bool s3_ap_netif_done = false;
+static bool s3_sta_netif_done = false;
+static bool s3_wifi_inited = false;
+
+static bool s3_wifi_base_init(bool wantApNetif, bool wantStaNetif)
+{
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
     {
@@ -3910,13 +3932,134 @@ bool startWifiAP()
         ESP_LOGE(S3_WEBCONFIG_TAG, "esp_event_loop_create_default failed: %s", esp_err_to_name(ret));
         return false;
     }
-    esp_netif_create_default_wifi_ap();
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    if (esp_wifi_init(&cfg) != ESP_OK)
+    if (wantApNetif && !s3_ap_netif_done)
     {
-        ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_init failed");
+        esp_netif_create_default_wifi_ap();
+        s3_ap_netif_done = true;
+    }
+    if (wantStaNetif && !s3_sta_netif_done)
+    {
+        esp_netif_create_default_wifi_sta();
+        s3_sta_netif_done = true;
+    }
+    if (!s3_wifi_inited)
+    {
+        wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+        if (esp_wifi_init(&cfg) != ESP_OK)
+        {
+            ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_init failed");
+            return false;
+        }
+        s3_wifi_inited = true;
+    }
+    return true;
+}
+
+// STA is wanted when mode is Always-on, or in a webconfig session when
+// Webconfig-only. Empty SSID -> STA never attempted (treated like Off).
+// Non-static (the brief sketched file-static): GP2040::setup() calls this
+// for the boot matrix, and Task 3 reads the accessors below.
+bool s3_sta_wanted(bool webconfigSessionActive)
+{
+    const WebConfigOptions &opts = Storage::getInstance().getConfig().webConfigOptions;
+    if (opts.staSSID[0] == '\0')
+    {
         return false;
     }
+    if (opts.staMode == STA_ALWAYS_ON)
+    {
+        return true;
+    }
+    if (opts.staMode == STA_WEBCONFIG_ONLY && webconfigSessionActive)
+    {
+        return true;
+    }
+    return false;
+}
+
+// Task 3 contract (exact names, reported verbatim): STA link-state accessors.
+bool s3_sta_connected()
+{
+    return s3_sta_connected_flag;
+}
+
+const char *s3_sta_ip()
+{
+    return s3_sta_ip_str;
+}
+
+// Last WIFI_EVENT_STA_DISCONNECTED reason (0 = none yet / cleared on GOT_IP).
+int s3_sta_last_failure()
+{
+    return (int)s3_sta_last_reason;
+}
+
+static uint32_t s3_sta_backoff_delay(uint32_t failCount)
+{
+    static const uint32_t kDelays[] = { 5, 10, 20, 40, 80, 160, 300 };
+    static const uint32_t kCount = sizeof(kDelays) / sizeof(kDelays[0]);
+    if (failCount >= kCount)
+    {
+        return 300;
+    }
+    return kDelays[failCount] > 300 ? 300 : kDelays[failCount];
+}
+
+static void s3_sta_retry_cb(void *arg)
+{
+    (void)arg;
+    // Guard: skip if STA no longer wanted or already connected.
+    if (!s3_sta_wanted_cache || s3_sta_connected_flag)
+    {
+        return;
+    }
+    if (esp_wifi_connect() != ESP_OK)
+    {
+        // No DISCONNECTED event follows an immediate failure: re-arm at cap.
+        esp_timer_stop(s3_sta_retry_timer);
+        esp_timer_start_once(s3_sta_retry_timer, (uint64_t)300 * 1000000ULL);
+    }
+}
+
+static void s3_wifi_handler(void *arg, esp_event_base_t eventBase, int32_t eventId, void *eventData)
+{
+    (void)arg;
+    if (eventBase == IP_EVENT && eventId == IP_EVENT_STA_GOT_IP)
+    {
+        ip_event_got_ip_t *event = (ip_event_got_ip_t *)eventData;
+        esp_ip4addr_ntoa(&event->ip_info.ip, s3_sta_ip_str, sizeof(s3_sta_ip_str));
+        s3_sta_connected_flag = true;
+        s3_sta_fail_count = 0; // backoff resets to 5 s
+        s3_sta_last_reason = 0;
+        ESP_LOGI(S3_WEBCONFIG_TAG, "STA connected (%s)", s3_sta_ip_str);
+    }
+    else if (eventBase == WIFI_EVENT && eventId == WIFI_EVENT_STA_DISCONNECTED)
+    {
+        wifi_event_sta_disconnected_t *event = (wifi_event_sta_disconnected_t *)eventData;
+        s3_sta_connected_flag = false;
+        s3_sta_last_reason = event->reason;
+        uint32_t delaySec = s3_sta_backoff_delay(s3_sta_fail_count);
+        if (s3_sta_fail_count < 1000000u)
+        {
+            s3_sta_fail_count++;
+        }
+        if (s3_sta_retry_timer != nullptr)
+        {
+            esp_timer_stop(s3_sta_retry_timer);
+            esp_timer_start_once(s3_sta_retry_timer, (uint64_t)delaySec * 1000000ULL);
+        }
+        ESP_LOGI(S3_WEBCONFIG_TAG, "STA disconnected (reason %d), retry in %us",
+            (int)s3_sta_last_reason, (unsigned int)delaySec);
+    }
+}
+
+// AP config exactly as Task 7 (bounded copies; open vs WPA2; channel 1).
+static bool s3_configure_ap()
+{
+    WebConfigOptions &webConfigOptions = Storage::getInstance().getConfig().webConfigOptions;
+    const char *ssid = webConfigOptions.apSSID[0] != '\0' ? webConfigOptions.apSSID : "GP2040-CE";
+    const char *pass = webConfigOptions.apPassphrase;
+    size_t passLen = strlen(pass);
     wifi_config_t ap = {};
     strncpy((char *)ap.ap.ssid, ssid, sizeof(ap.ap.ssid) - 1);
     ap.ap.ssid[sizeof(ap.ap.ssid) - 1] = '\0';
@@ -3936,21 +4079,160 @@ bool startWifiAP()
     // undocumented in the precompiled WiFi lib, so pin it instead of
     // risking an ESP_ERR_INVALID_ARG at first boot.
     ap.ap.channel = 1;
-    if (esp_wifi_set_mode(WIFI_MODE_AP) != ESP_OK)
-    {
-        ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_set_mode AP failed");
-        return false;
-    }
     if (esp_wifi_set_config(WIFI_IF_AP, &ap) != ESP_OK)
     {
         ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_set_config AP failed (SSID len %u, passphrase len %u)",
             (unsigned int)strlen(ssid), (unsigned int)passLen);
         return false;
     }
-    if (esp_wifi_start() != ESP_OK)
+    return true;
+}
+
+// Full WiFi bring-up matrix (called once from GP2040::setup()):
+//   AP wanted + STA wanted -> WIFI_MODE_APSTA (AP config + STA config)
+//   AP only               -> WIFI_MODE_AP (Task-7 path, behavior-identical)
+//   STA only              -> WIFI_MODE_STA
+//   neither               -> no WiFi at all (false).
+// The HTTP-server decision stays with the caller.
+bool startWifiS3(bool apWanted, bool webconfigSessionActive)
+{
+    bool staWanted = s3_sta_wanted(webconfigSessionActive);
+    if (!apWanted && !staWanted)
     {
-        ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_start failed");
         return false;
+    }
+    if (!s3_wifi_base_init(apWanted, staWanted))
+    {
+        return false;
+    }
+    wifi_mode_t mode = WIFI_MODE_NULL;
+    if (apWanted && staWanted)
+    {
+        mode = WIFI_MODE_APSTA;
+    }
+    else if (apWanted)
+    {
+        mode = WIFI_MODE_AP;
+    }
+    else
+    {
+        mode = WIFI_MODE_STA;
+    }
+    if (esp_wifi_set_mode(mode) != ESP_OK)
+    {
+        ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_set_mode failed (%d)", (int)mode);
+        return false;
+    }
+    if (apWanted && !s3_configure_ap())
+    {
+        return false;
+    }
+    if (staWanted)
+    {
+        const WebConfigOptions &opts = Storage::getInstance().getConfig().webConfigOptions;
+        wifi_config_t sta = {};
+        strncpy((char *)sta.sta.ssid, opts.staSSID, sizeof(sta.sta.ssid) - 1);
+        sta.sta.ssid[sizeof(sta.sta.ssid) - 1] = '\0';
+        strncpy((char *)sta.sta.password, opts.staPassphrase, sizeof(sta.sta.password) - 1);
+        sta.sta.password[sizeof(sta.sta.password) - 1] = '\0';
+        if (esp_wifi_set_config(WIFI_IF_STA, &sta) != ESP_OK)
+        {
+            ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_set_config STA failed (SSID len %u)",
+                (unsigned int)strlen(opts.staSSID));
+            return false;
+        }
+        if (!s3_sta_handlers_registered)
+        {
+            if (esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
+                    &s3_wifi_handler, nullptr, &s3_sta_wifi_evt) != ESP_OK ||
+                esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
+                    &s3_wifi_handler, nullptr, &s3_sta_ip_evt) != ESP_OK)
+            {
+                ESP_LOGE(S3_WEBCONFIG_TAG, "STA event handler register failed");
+                return false;
+            }
+            s3_sta_handlers_registered = true;
+        }
+        if (s3_sta_retry_timer == nullptr)
+        {
+            esp_timer_create_args_t retryArgs;
+            memset(&retryArgs, 0, sizeof(retryArgs));
+            retryArgs.callback = &s3_sta_retry_cb;
+            retryArgs.name = "s3_sta_retry";
+            if (esp_timer_create(&retryArgs, &s3_sta_retry_timer) != ESP_OK)
+            {
+                ESP_LOGE(S3_WEBCONFIG_TAG, "STA retry timer create failed");
+                return false;
+            }
+        }
+        s3_sta_wanted_cache = true;
+    }
+    // The AP path already starts; start once if either side is wanted.
+    if (!s3_ap_started && !s3_sta_started)
+    {
+        if (esp_wifi_start() != ESP_OK)
+        {
+            ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_start failed");
+            return false;
+        }
+    }
+    if (apWanted)
+    {
+        s3_ap_started = true;
+    }
+    if (staWanted)
+    {
+        s3_sta_started = true;
+        // Initial attempt; further attempts driven by events/backoff.
+        if (esp_wifi_connect() != ESP_OK)
+        {
+            ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_connect failed (SSID len %u), retry via backoff",
+                (unsigned int)strlen(Storage::getInstance().getConfig().webConfigOptions.staSSID));
+            esp_timer_stop(s3_sta_retry_timer);
+            esp_timer_start_once(s3_sta_retry_timer, (uint64_t)5 * 1000000ULL);
+        }
+    }
+    WebConfigOptions &wco = Storage::getInstance().getConfig().webConfigOptions;
+    ESP_LOGI(S3_WEBCONFIG_TAG, "WiFi started (mode %d, AP %d len %u, STA %d len %u)",
+        (int)mode, apWanted ? 1 : 0,
+        apWanted ? (unsigned int)strlen(wco.apSSID[0] != '\0' ? wco.apSSID : "GP2040-CE") : 0u,
+        staWanted ? 1 : 0,
+        staWanted ? (unsigned int)strlen(wco.staSSID) : 0u);
+    return true;
+}
+
+bool startWifiAP()
+{
+    if (s3_ap_started)
+    {
+        return true;
+    }
+    // Legacy AP-only entry: same effective config as Task 7 (AP mode, same
+    // credentials/auth/channel), now on the shared base init so behavior is
+    // identical. Boot uses startWifiS3(); this stays for compat.
+    if (!s3_wifi_base_init(true, false))
+    {
+        return false;
+    }
+    if (esp_wifi_set_mode(WIFI_MODE_AP) != ESP_OK)
+    {
+        ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_set_mode AP failed");
+        return false;
+    }
+    if (!s3_configure_ap())
+    {
+        return false;
+    }
+    WebConfigOptions &webConfigOptions = Storage::getInstance().getConfig().webConfigOptions;
+    const char *ssid = webConfigOptions.apSSID[0] != '\0' ? webConfigOptions.apSSID : "GP2040-CE";
+    size_t passLen = strlen(webConfigOptions.apPassphrase);
+    if (!s3_ap_started && !s3_sta_started)
+    {
+        if (esp_wifi_start() != ESP_OK)
+        {
+            ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_start failed");
+            return false;
+        }
     }
     s3_ap_started = true;
     ESP_LOGI(S3_WEBCONFIG_TAG, "WiFi AP started (SSID len %u, %s)",
@@ -3964,6 +4246,8 @@ void stopWifiAP()
     {
         return;
     }
+    // NOTE (STA-Task 2): esp_wifi_stop() also drops an active STA link; no
+    // caller stops the AP today (boot-only bring-up), so this stays simple.
     esp_wifi_stop();
     s3_ap_started = false;
 }
