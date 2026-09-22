@@ -43,6 +43,9 @@
 //   GET  /api/getHeldPins              POST /api/abortGetHeldPins
 //   GET  /api/getJoystickCenter
 //   GET  /api/getJoystickCenter2       POST /api/setPS4Options
+// Task 9: the Display page's missing GETs (same contract as Pico):
+//   GET  /api/getButtonLayoutDefs
+//   GET  /api/getButtonLayouts
 // plus catch-all static GET serving the React bundle from the SPIFFS `www`
 // partition (Task 3) mounted at /www.
 //
@@ -95,6 +98,7 @@ extern "C" uint32_t spi_flash_get_chip_size(void);
 // helper/dependency headers (all S3-clean: they compile into the S3 app).
 #include "base64.h"
 #include "helper.h" // isValidPin() (S3-aware) + animationstation.h/playerleds.h
+#include "layoutmanager.h" // Task 9: button-layout GETs (S3-clean, same as Pico webconfig.cpp)
 #include "peripheralmanager.h"
 #include "addons/neopicoleds.h" // NeoPicoLEDAddon + LIGHT_DATA_* board presets
 #include "addons/input_macro.h" // MAX_MACRO_LIMIT / MAX_MACRO_INPUT_LIMIT
@@ -3086,6 +3090,81 @@ static std::string s3_getUsedPins()
     return s3_serialize(doc);
 }
 
+// Mirrors Pico getButtonLayoutDefs() (src/webconfig.cpp:885-902)
+// field-for-field: doc["buttonLayout"][name] = id, same for buttonLayoutRight.
+static std::string s3_getButtonLayoutDefs()
+{
+    const size_t capacity = JSON_OBJECT_SIZE(500);
+    DynamicJsonDocument doc(capacity);
+    uint16_t layoutCtr = 0;
+
+    for (layoutCtr = _ButtonLayout_MIN; layoutCtr < _ButtonLayout_ARRAYSIZE; layoutCtr++) {
+        LayoutManager::LayoutList leftLayout = LayoutManager::getInstance().getLeftLayout((ButtonLayout)layoutCtr);
+        if ((leftLayout.size() > 0) || (layoutCtr == ButtonLayout::BUTTON_LAYOUT_BLANKA)) s3_writeDoc(doc, "buttonLayout", LayoutManager::getInstance().getButtonLayoutName((ButtonLayout)layoutCtr), layoutCtr);
+    }
+
+    for (layoutCtr = _ButtonLayoutRight_MIN; layoutCtr < _ButtonLayoutRight_ARRAYSIZE; layoutCtr++) {
+        LayoutManager::LayoutList rightLayout = LayoutManager::getInstance().getRightLayout((ButtonLayoutRight)layoutCtr);
+        if ((rightLayout.size() > 0) || (layoutCtr == ButtonLayoutRight::BUTTON_LAYOUT_BLANKB)) s3_writeDoc(doc, "buttonLayoutRight", LayoutManager::getInstance().getButtonLayoutRightName((ButtonLayoutRight)layoutCtr), layoutCtr);
+    }
+
+    return s3_serialize(doc);
+}
+
+// Mirrors Pico getButtonLayouts() (src/webconfig.cpp:904-955) field-for-field.
+static std::string s3_getButtonLayouts()
+{
+    const size_t capacity = JSON_OBJECT_SIZE(500);
+    DynamicJsonDocument doc(capacity);
+    const DisplayOptions& displayOptions = Storage::getInstance().getDisplayOptions();
+    uint16_t elementCtr = 0;
+
+    LayoutManager::LayoutList layoutA = LayoutManager::getInstance().getLayoutA();
+    LayoutManager::LayoutList layoutB = LayoutManager::getInstance().getLayoutB();
+
+    s3_writeDoc(doc, "displayLayouts", "buttonLayoutId", displayOptions.buttonLayout);
+    for (elementCtr = 0; elementCtr < layoutA.size(); elementCtr++) {
+        const size_t elementSize = JSON_OBJECT_SIZE(12);
+        DynamicJsonDocument ele(elementSize);
+
+        s3_writeDoc(ele, "elementType", layoutA[elementCtr].elementType);
+        s3_writeDoc(ele, "parameters", "x1", layoutA[elementCtr].parameters.x1);
+        s3_writeDoc(ele, "parameters", "y1", layoutA[elementCtr].parameters.y1);
+        s3_writeDoc(ele, "parameters", "x2", layoutA[elementCtr].parameters.x2);
+        s3_writeDoc(ele, "parameters", "y2", layoutA[elementCtr].parameters.y2);
+        s3_writeDoc(ele, "parameters", "stroke", layoutA[elementCtr].parameters.stroke);
+        s3_writeDoc(ele, "parameters", "fill", layoutA[elementCtr].parameters.fill);
+        s3_writeDoc(ele, "parameters", "value", layoutA[elementCtr].parameters.value);
+        s3_writeDoc(ele, "parameters", "shape", layoutA[elementCtr].parameters.shape);
+        s3_writeDoc(ele, "parameters", "angleStart", layoutA[elementCtr].parameters.angleStart);
+        s3_writeDoc(ele, "parameters", "angleEnd", layoutA[elementCtr].parameters.angleEnd);
+        s3_writeDoc(ele, "parameters", "closed", layoutA[elementCtr].parameters.closed);
+        s3_writeDoc(doc, "displayLayouts", "buttonLayout", std::to_string(elementCtr), ele);
+    }
+
+    s3_writeDoc(doc, "displayLayouts", "buttonLayoutRightId", displayOptions.buttonLayoutRight);
+    for (elementCtr = 0; elementCtr < layoutB.size(); elementCtr++) {
+        const size_t elementSize = JSON_OBJECT_SIZE(12);
+        DynamicJsonDocument ele(elementSize);
+
+        s3_writeDoc(ele, "elementType", layoutB[elementCtr].elementType);
+        s3_writeDoc(ele, "parameters", "x1", layoutB[elementCtr].parameters.x1);
+        s3_writeDoc(ele, "parameters", "y1", layoutB[elementCtr].parameters.y1);
+        s3_writeDoc(ele, "parameters", "x2", layoutB[elementCtr].parameters.x2);
+        s3_writeDoc(ele, "parameters", "y2", layoutB[elementCtr].parameters.y2);
+        s3_writeDoc(ele, "parameters", "stroke", layoutB[elementCtr].parameters.stroke);
+        s3_writeDoc(ele, "parameters", "fill", layoutB[elementCtr].parameters.fill);
+        s3_writeDoc(ele, "parameters", "value", layoutB[elementCtr].parameters.value);
+        s3_writeDoc(ele, "parameters", "shape", layoutB[elementCtr].parameters.shape);
+        s3_writeDoc(ele, "parameters", "angleStart", layoutB[elementCtr].parameters.angleStart);
+        s3_writeDoc(ele, "parameters", "angleEnd", layoutB[elementCtr].parameters.angleEnd);
+        s3_writeDoc(ele, "parameters", "closed", layoutB[elementCtr].parameters.closed);
+        s3_writeDoc(doc, "displayLayouts", "buttonLayoutRight", std::to_string(elementCtr), ele);
+    }
+
+    return s3_serialize(doc);
+}
+
 static bool s3_abortGetHeldPinsFlag = false;
 
 // Mirrors Pico getHeldPins() (src/webconfig.cpp:2953-3011): up to 5 s GPIO
@@ -3757,6 +3836,16 @@ static esp_err_t s3_handle_setPS4Options(httpd_req_t *req)
     return s3_json_post(req, s3_setPS4Options);
 }
 
+static esp_err_t s3_handle_getButtonLayoutDefs(httpd_req_t *req)
+{
+    return s3_json_get(req, s3_getButtonLayoutDefs);
+}
+
+static esp_err_t s3_handle_getButtonLayouts(httpd_req_t *req)
+{
+    return s3_json_get(req, s3_getButtonLayouts);
+}
+
 // ---- WiFi AP lifecycle (Task 7) ----
 //
 // Credentials come from the Task-1 WebConfigOptions settings (apSSID default
@@ -3892,8 +3981,12 @@ void startWebconfigServer()
     // 4096-byte httpd default.
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 12288;
-    // 15 core+Task-5 URIs + 49 Task-6 URIs + catch-all = 65; the IDF default
-    // max_uri_handlers (8) would reject registration with
+    // The catch-all static handler is registered as "/*": the default
+    // exact-match comparator never matches wildcards (every non-API URI
+    // 404s), so select the wildcard matcher (found on hardware 2026-09).
+    config.uri_match_fn = httpd_uri_match_wildcard;
+    // 15 core+Task-5 URIs + 49 Task-6 URIs + 2 Task-9 URIs + catch-all = 67;
+    // the IDF default max_uri_handlers (8) would reject registration with
     // ESP_ERR_HTTPD_HANDLERS_FULL at server start, so raise it with margin.
     config.max_uri_handlers = 96;
     if (httpd_start(&s3_httpd, &config) != ESP_OK)
@@ -3970,6 +4063,9 @@ void startWebconfigServer()
         { .uri = "/api/getJoystickCenter", .method = HTTP_GET, .handler = s3_handle_getJoystickCenter, .user_ctx = nullptr },
         { .uri = "/api/getJoystickCenter2", .method = HTTP_GET, .handler = s3_handle_getJoystickCenter2, .user_ctx = nullptr },
         { .uri = "/api/setPS4Options", .method = HTTP_POST, .handler = s3_handle_setPS4Options, .user_ctx = nullptr },
+        // Task 9: missing Display-page GETs (same contract as Pico).
+        { .uri = "/api/getButtonLayoutDefs", .method = HTTP_GET, .handler = s3_handle_getButtonLayoutDefs, .user_ctx = nullptr },
+        { .uri = "/api/getButtonLayouts", .method = HTTP_GET, .handler = s3_handle_getButtonLayouts, .user_ctx = nullptr },
         // Catch-all static serving LAST: "/*" matches every GET.
         { .uri = "/*", .method = HTTP_GET, .handler = s3_static_get, .user_ctx = nullptr },
     };
