@@ -225,10 +225,11 @@ PB_BIND(AddonOptions, AddonOptions, 4)
 PB_BIND(MigrationHistory, MigrationHistory, AUTO)
 
 
-PB_BIND(WebConfigOptions, WebConfigOptions, AUTO)
+PB_BIND(WebConfigOptions, WebConfigOptions, 2)
 
 
 PB_BIND(Config, Config, 4)
+
 
 
 

@@ -204,6 +204,15 @@
 #ifndef DEFAULT_STA_MODE
 #define DEFAULT_STA_MODE STA_OFF
 #endif
+#ifndef DEFAULT_USB_NETWORK_MODE
+#define DEFAULT_USB_NETWORK_MODE USB_NETWORK_OFF
+#endif
+#ifndef DEFAULT_AP_SUBNET
+#define DEFAULT_AP_SUBNET "192.168.4.0"
+#endif
+#ifndef DEFAULT_USB_SUBNET
+#define DEFAULT_USB_SUBNET "192.168.5.0"
+#endif
 
 #ifndef GPIO_PIN_00
     #define GPIO_PIN_00 GpioAction::NONE
@@ -599,6 +608,9 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY_STR(config.webConfigOptions, staSSID, DEFAULT_STA_SSID);
     INIT_UNSET_PROPERTY_STR(config.webConfigOptions, staPassphrase, DEFAULT_STA_PASSPHRASE);
     INIT_UNSET_PROPERTY(config.webConfigOptions, staMode, DEFAULT_STA_MODE);
+    INIT_UNSET_PROPERTY(config.webConfigOptions, usbNetworkMode, DEFAULT_USB_NETWORK_MODE);
+    INIT_UNSET_PROPERTY_STR(config.webConfigOptions, apSubnet, DEFAULT_AP_SUBNET);
+    INIT_UNSET_PROPERTY_STR(config.webConfigOptions, usbSubnet, DEFAULT_USB_SUBNET);
 
     // ledOptions
     INIT_UNSET_PROPERTY(config.ledOptions, dataPin, BOARD_LEDS_PIN);

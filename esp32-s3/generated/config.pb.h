@@ -22,6 +22,12 @@ typedef enum _StaMode {
     STA_ALWAYS_ON = 2
 } StaMode;
 
+typedef enum _UsbNetworkMode {
+    USB_NETWORK_OFF = 0,
+    USB_NETWORK_ALWAYS_ON = 1,
+    USB_NETWORK_CONFIG_MODE_ONLY = 2
+} UsbNetworkMode;
+
 /* Struct definitions */
 typedef struct _InputModeMapping {
     /* negative if mapping disabled */
@@ -1548,6 +1554,12 @@ typedef struct _WebConfigOptions {
     char staPassphrase[65];
     bool has_staMode;
     StaMode staMode;
+    bool has_usbNetworkMode;
+    UsbNetworkMode usbNetworkMode;
+    bool has_apSubnet;
+    char apSubnet[17];
+    bool has_usbSubnet;
+    char usbSubnet[17];
 } WebConfigOptions;
 
 typedef struct _Config {
@@ -1606,6 +1618,13 @@ extern "C" {
 #define StaMode_STA_WEBCONFIG_ONLY STA_WEBCONFIG_ONLY
 #define StaMode_STA_ALWAYS_ON STA_ALWAYS_ON
 
+#define _UsbNetworkMode_MIN USB_NETWORK_OFF
+#define _UsbNetworkMode_MAX USB_NETWORK_CONFIG_MODE_ONLY
+#define _UsbNetworkMode_ARRAYSIZE ((UsbNetworkMode)(USB_NETWORK_CONFIG_MODE_ONLY+1))
+#define UsbNetworkMode_USB_NETWORK_OFF USB_NETWORK_OFF
+#define UsbNetworkMode_USB_NETWORK_ALWAYS_ON USB_NETWORK_ALWAYS_ON
+#define UsbNetworkMode_USB_NETWORK_CONFIG_MODE_ONLY USB_NETWORK_CONFIG_MODE_ONLY
+
 
 /* Enum values (GP2040-CE extension) */
 #define WebconfigTransport_VALUELIST(X) \
@@ -1616,6 +1635,11 @@ X(WEBCONFIG_TRANSPORT_WIFI, 1)
 X(STA_OFF, 0) \
 X(STA_WEBCONFIG_ONLY, 1) \
 X(STA_ALWAYS_ON, 2)
+
+#define UsbNetworkMode_VALUELIST(X) \
+X(USB_NETWORK_OFF, 0) \
+X(USB_NETWORK_ALWAYS_ON, 1) \
+X(USB_NETWORK_CONFIG_MODE_ONLY, 2)
 
 
 /* Defines to allow user code to refer to enum type of a specific field */
@@ -1673,6 +1697,7 @@ X(STA_ALWAYS_ON, 2)
 #define HETriggerInfo_action_ENUMTYPE GpioAction
 #define WebConfigOptions_webconfigTransport_ENUMTYPE WebconfigTransport
 #define WebConfigOptions_staMode_ENUMTYPE StaMode
+#define WebConfigOptions_usbNetworkMode_ENUMTYPE UsbNetworkMode
 
 /* Initializer values for message structs */
 #define InputModeMapping_init_default            {false, 0, false, _InputMode_MIN, false, 0}
@@ -1748,7 +1773,7 @@ X(STA_ALWAYS_ON, 2)
 #define HETriggerOptions_init_default            {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, 0, {HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default, HETriggerInfo_init_default}, false, 0, false, 0}
 #define AddonOptions_init_default                {false, BootselButtonOptions_init_default, false, OnBoardLedOptions_init_default, false, AnalogOptions_init_default, false, TurboOptions_init_default, false, SliderOptions_init_default, false, ReverseOptions_init_default, false, AnalogADS1219Options_init_default, false, DualDirectionalOptions_init_default, false, BuzzerOptions_init_default, false, ExtraButtonOptions_init_default, false, PlayerNumberOptions_init_default, false, PS4Options_init_default, false, WiiOptions_init_default, false, SOCDSliderOptions_init_default, false, SNESOptions_init_default, false, FocusModeOptions_init_default, false, KeyboardHostOptions_init_default, false, TiltOptions_init_default, false, PSPassthroughOptions_init_default, false, MacroOptions_init_default, false, InputHistoryOptions_init_default, false, XBOnePassthroughOptions_init_default, false, AnalogADS1256Options_init_default, false, RotaryOptions_init_default, false, PCF8575Options_init_default, false, DRV8833RumbleOptions_init_default, false, ReactiveLEDOptions_init_default, false, GamepadUSBHostOptions_init_default, false, TG16Options_init_default, false, HETriggerOptions_init_default, false, ProfileSliderOptions_init_default, false, AnalogADS1115Options_init_default}
 #define MigrationHistory_init_default            {false, false, false, false, false, false, false, false}
-#define WebConfigOptions_init_default            {false, 0, false, "", false, "", false, _WebconfigTransport_MIN, false, "", false, "", false, _StaMode_MIN}
+#define WebConfigOptions_init_default            {false, 0, false, "", false, "", false, _WebconfigTransport_MIN, false, "", false, "", false, _StaMode_MIN, false, _UsbNetworkMode_MIN, false, "", false, ""}
 #define Config_init_default                      {false, "", false, GamepadOptions_init_default, false, HotkeyOptions_init_default, false, PinMappings_init_default, false, KeyboardMapping_init_default, false, DisplayOptions_init_default, false, LEDOptions_init_default, false, AnimationOptions_init_default, false, AddonOptions_init_default, false, ForcedSetupOptions_init_default, false, ProfileOptions_init_default, false, "", false, GpioMappings_init_default, false, MigrationHistory_init_default, false, PeripheralOptions_init_default, false, BootModeOptions_init_default, false, WebConfigOptions_init_default}
 #define InputModeMapping_init_zero               {false, 0, false, _InputMode_MIN, false, 0}
 #define BootModeOptions_init_zero                {false, 0, false, 0, false, 0, 0, {InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero, InputModeMapping_init_zero}}
@@ -1823,7 +1848,7 @@ X(STA_ALWAYS_ON, 2)
 #define HETriggerOptions_init_zero               {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, 0, {HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero, HETriggerInfo_init_zero}, false, 0, false, 0}
 #define AddonOptions_init_zero                   {false, BootselButtonOptions_init_zero, false, OnBoardLedOptions_init_zero, false, AnalogOptions_init_zero, false, TurboOptions_init_zero, false, SliderOptions_init_zero, false, ReverseOptions_init_zero, false, AnalogADS1219Options_init_zero, false, DualDirectionalOptions_init_zero, false, BuzzerOptions_init_zero, false, ExtraButtonOptions_init_zero, false, PlayerNumberOptions_init_zero, false, PS4Options_init_zero, false, WiiOptions_init_zero, false, SOCDSliderOptions_init_zero, false, SNESOptions_init_zero, false, FocusModeOptions_init_zero, false, KeyboardHostOptions_init_zero, false, TiltOptions_init_zero, false, PSPassthroughOptions_init_zero, false, MacroOptions_init_zero, false, InputHistoryOptions_init_zero, false, XBOnePassthroughOptions_init_zero, false, AnalogADS1256Options_init_zero, false, RotaryOptions_init_zero, false, PCF8575Options_init_zero, false, DRV8833RumbleOptions_init_zero, false, ReactiveLEDOptions_init_zero, false, GamepadUSBHostOptions_init_zero, false, TG16Options_init_zero, false, HETriggerOptions_init_zero, false, ProfileSliderOptions_init_zero, false, AnalogADS1115Options_init_zero}
 #define MigrationHistory_init_zero               {false, 0, false, 0, false, 0, false, 0}
-#define WebConfigOptions_init_zero               {false, 0, false, "", false, "", false, _WebconfigTransport_MIN, false, "", false, "", false, _StaMode_MIN}
+#define WebConfigOptions_init_zero               {false, 0, false, "", false, "", false, _WebconfigTransport_MIN, false, "", false, "", false, _StaMode_MIN, false, _UsbNetworkMode_MIN, false, "", false, ""}
 #define Config_init_zero                         {false, "", false, GamepadOptions_init_zero, false, HotkeyOptions_init_zero, false, PinMappings_init_zero, false, KeyboardMapping_init_zero, false, DisplayOptions_init_zero, false, LEDOptions_init_zero, false, AnimationOptions_init_zero, false, AddonOptions_init_zero, false, ForcedSetupOptions_init_zero, false, ProfileOptions_init_zero, false, "", false, GpioMappings_init_zero, false, MigrationHistory_init_zero, false, PeripheralOptions_init_zero, false, BootModeOptions_init_zero, false, WebConfigOptions_init_zero}
 
 /* Field tags (for use in manual encoding/decoding) */
@@ -2472,6 +2497,9 @@ X(STA_ALWAYS_ON, 2)
 #define WebConfigOptions_staSSID_tag             5
 #define WebConfigOptions_staPassphrase_tag       6
 #define WebConfigOptions_staMode_tag             7
+#define WebConfigOptions_usbNetworkMode_tag      8
+#define WebConfigOptions_apSubnet_tag            9
+#define WebConfigOptions_usbSubnet_tag           10
 #define Config_boardVersion_tag                  1
 #define Config_gamepadOptions_tag                2
 #define Config_hotkeyOptions_tag                 3
@@ -3522,7 +3550,10 @@ X(a, STATIC,   OPTIONAL, STRING,   apPassphrase,                     3, 0) \
 X(a, STATIC,   OPTIONAL, UENUM,    webconfigTransport,               4, 0) \
 X(a, STATIC,   OPTIONAL, STRING,   staSSID,                          5, 0) \
 X(a, STATIC,   OPTIONAL, STRING,   staPassphrase,                    6, 0) \
-X(a, STATIC,   OPTIONAL, UENUM,    staMode,                          7, 0)
+X(a, STATIC,   OPTIONAL, UENUM,    staMode,                          7, 0) \
+X(a, STATIC,   OPTIONAL, UENUM,    usbNetworkMode,                   8, 0) \
+X(a, STATIC,   OPTIONAL, STRING,   apSubnet,                         9, 0) \
+X(a, STATIC,   OPTIONAL, STRING,   usbSubnet,                       10, 0)
 #define WebConfigOptions_CALLBACK NULL
 #define WebConfigOptions_DEFAULT NULL
 
@@ -3731,7 +3762,7 @@ extern const pb_msgdesc_t Config_msg;
 #define ButtonLayoutParamsLeft_size              48
 #define ButtonLayoutParamsRight_size             48
 #define BuzzerOptions_size                       30
-#define Config_size                              27225
+#define Config_size                              27263
 #define DRV8833RumbleOptions_size                51
 #define DisplayOptions_size                      1300
 #define DualDirectionalOptions_size              52
@@ -3779,7 +3810,7 @@ extern const pb_msgdesc_t Config_msg;
 #define TG16Options_size                         68
 #define TiltOptions_size                         219
 #define TurboOptions_size                        172
-#define WebConfigOptions_size                    206
+#define WebConfigOptions_size                    244
 #define WiiOptions_AnalogAxis_size               33
 #define WiiOptions_ClassicOptions_size           383
 #define WiiOptions_ControllerOptions_size        1225
@@ -3874,6 +3905,7 @@ X(Config) \
 #define CONFIG_ENUMS_GP2040(X) \
 X(WebconfigTransport) \
 X(StaMode) \
+X(UsbNetworkMode) \
 
 #ifdef __cplusplus
 } /* extern "C" */

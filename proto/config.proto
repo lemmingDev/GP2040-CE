@@ -1001,6 +1001,12 @@ enum StaMode {
     STA_WEBCONFIG_ONLY = 1;
     STA_ALWAYS_ON = 2;
 }
+enum UsbNetworkMode {
+    option (nanopb_enumopt).long_names = false;
+    USB_NETWORK_OFF = 0;
+    USB_NETWORK_ALWAYS_ON = 1;
+    USB_NETWORK_CONFIG_MODE_ONLY = 2;
+}
 message WebConfigOptions {
     optional bool apEnabled = 1;
     optional string apSSID = 2 [(nanopb).max_length = 32];
@@ -1009,6 +1015,9 @@ message WebConfigOptions {
     optional string staSSID = 5 [(nanopb).max_length = 32];
     optional string staPassphrase = 6 [(nanopb).max_length = 64];
     optional StaMode staMode = 7;
+    optional UsbNetworkMode usbNetworkMode = 8;
+    optional string apSubnet = 9 [(nanopb).max_length = 16];
+    optional string usbSubnet = 10 [(nanopb).max_length = 16];
 }
 
 message Config
