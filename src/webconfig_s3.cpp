@@ -3118,9 +3118,8 @@ static std::string s3_setLightsToDefault(const char *body, size_t len)
 // (only non-empty entries; Pico responses lack the key entirely).
 // Pico instead wraps this in a "pico" object (src/webconfig.cpp:3177).
 static std::string s3_getBoardDefinition() {
-    // 49-pin tables + pinNotes strings share this pool, and pinNotes is
-    // written last: 160 slots silently truncated it (notes never reached
-    // the UI). 384 leaves headroom; transient per-request allocation.
+    // 49-pin tables + pinNotes strings share this pool; 384 leaves headroom.
+    // Transient per-request allocation.
     const size_t capacity = JSON_OBJECT_SIZE(384);
     DynamicJsonDocument doc(capacity);
 
@@ -3147,7 +3146,10 @@ static std::string s3_getBoardDefinition() {
         doc["usedPins"][pinName] = gpioMappings.pins[pin].action;
     }
 
-#ifdef PIN_NOTES
+    // NOTE: no #ifdef guard here on purpose. PIN_NOTES is a variable in the
+    // S3 board profile, not a macro, so #ifdef PIN_NOTES is always false
+    // and the notes never reached the UI (found via curl 2026-09-22:
+    // getBoardDefinition had no pinNotes key at all).
     JsonObject pinNotes = doc.createNestedObject("pinNotes");
     char noteKey[4];
     for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
@@ -3157,7 +3159,6 @@ static std::string s3_getBoardDefinition() {
             pinNotes[noteKey] = note;
         }
     }
-#endif
 
     return s3_serialize(doc);
 }
