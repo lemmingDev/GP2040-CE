@@ -619,6 +619,11 @@ export default function SettingsPage() {
 			if (status) setNetworkStatus(status);
 		}
 		fetchNetworkStatus();
+		// Refresh while mounted: link/IP arrive after DHCP, long after
+		// first paint (found on S3 hardware 2026-09: line showed empty
+		// although serial already had the IP).
+		const networkStatusTimer = setInterval(fetchNetworkStatus, 5000);
+		return () => clearInterval(networkStatusTimer);
 	}, []);
 
 	const [saveMessage, setSaveMessage] = useState('');
