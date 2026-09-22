@@ -12,17 +12,17 @@
 #define BOARD_CONFIG_LABEL "ESP32S3DevKitC1"
 
 // S3: Pico SDK's NUM_BANK0_GPIOS (30) doesn't exist outside the SDK; the
-// port binds every pin table, 32-bit mask and per-pin array to 30 (see
-// below), so define it identically. functional buttons MUST stay below 30.
-#define NUM_BANK0_GPIOS 30
+// port sizes every pin table and per-pin array to 49 (see below), so define
+// it identically. 49 pins 0-48 inclusive.
+#define NUM_BANK0_GPIOS 49
 
 // Main pin mapping Configuration
 // HARDWARE REALITY (verified vs DevKitC-1 header pinout 2026-09-20): header
 // exposes GPIO 0-21 and 35-48, but 19/20 are native USB D-/D+, 0/3/45/46 are
 // strapping, 35-37 are module-dependent (octal flash), and 22-34 DO NOT EXIST
-// on this package. The core poll loop and all pin tables are bound to
-// NUM_BANK0_GPIOS (30) with 32-bit `1 << pin` masks, so every functional
-// button MUST live below pin 30. Consequences, all deliberate:
+// on this package. All pin tables are sized to NUM_BANK0_GPIOS (49), so every
+// functional button MUST avoid the RESERVED and invalid pins listed below.
+// Consequences, all deliberate:
 //  - DOWN lives on GPIO 1 (the Pico-template I2C0 slot; S3 I2C0 moved to
 //    41/42, so 1 was a placeholder, not a bus).
 //  - R3 lives on GPIO 15 (was an addon placeholder; TURBO_LED moves to 39).
@@ -53,16 +53,15 @@
 
 // Reserved pins: native USB (19/20) and strapping (3/45/46). Never assign
 // inputs here. GPIO 0 is intentionally NOT reserved (see A1 note above).
-// (GPIO_PIN_30+ macros are not consumed by the 30-pin board table;
-// S3 HAL tasks never extended it — functional buttons must stay below 30.)
+// GPIO 46 is input-only on S3 (no output drive): doubly unsuitable here.
 #define GPIO_PIN_03 GpioAction::RESERVED
 #define GPIO_PIN_19 GpioAction::RESERVED
 #define GPIO_PIN_20 GpioAction::RESERVED
 #define GPIO_PIN_45 GpioAction::RESERVED
 #define GPIO_PIN_46 GpioAction::RESERVED
 
-// Unassigned pins inside the 30-entry table (Phase 1 core loop iterates
-// pins 0-29): NONE so the stock table compiles and maps nothing here.
+// Unassigned/nonexistent pins below 30: NONE so the stock table compiles
+// and maps nothing here.
 #define GPIO_PIN_22 GpioAction::NONE
 #define GPIO_PIN_23 GpioAction::NONE
 #define GPIO_PIN_24 GpioAction::NONE
@@ -78,6 +77,85 @@
 #define GPIO_PIN_28 GpioAction::NONE
 #define GPIO_PIN_41 GpioAction::ASSIGNED_TO_ADDON
 #define GPIO_PIN_42 GpioAction::ASSIGNED_TO_ADDON
+
+// Pins 30-48 policy (49-pin model: NUM_BANK0_GPIOS 49, pins 0-48 inclusive).
+// Package truth (same hardware reality as above): 22-34 are not routable,
+// ever (22-25 unbonded/nonexistent, 26-32 flash/PSRAM bus, 33-34 consumed by
+// octal flash on this module and absent from the header); isValidPin rejects
+// all of 22-34 uniformly. GPIO_PIN_33/34 below double as documentation:
+// invalid by range AND reserved by reason.
+#define GPIO_PIN_30 GpioAction::NONE
+#define GPIO_PIN_31 GpioAction::NONE
+#define GPIO_PIN_32 GpioAction::NONE
+#define GPIO_PIN_33 GpioAction::RESERVED // octal flash/PSRAM on this module (WROOM-2-class; variant-conditional by design, hardcoded here)
+#define GPIO_PIN_34 GpioAction::RESERVED // (see above)
+#define GPIO_PIN_35 GpioAction::RESERVED // octal flash/PSRAM on this module
+#define GPIO_PIN_36 GpioAction::RESERVED // (see above)
+#define GPIO_PIN_37 GpioAction::RESERVED // (see above)
+// GPIO 38: pixel hardware present, data pin unassigned by default (see BOARD_LEDS_PIN).
+#define GPIO_PIN_38 GpioAction::NONE
+// GPIO 39 keeps its TURBO role (see TURBO_LED_PIN): no button mapping here
+// (undefined GPIO_PIN_39 defaults to NONE in config_utils.cpp).
+#define GPIO_PIN_40 GpioAction::NONE
+// (GPIO_PIN_41/42: I2C0 bus, ASSIGNED_TO_ADDON above — kept as-is.)
+#define GPIO_PIN_43 GpioAction::RESERVED // UART0 console — mapping buttons here kills COM7 flash/logs
+#define GPIO_PIN_44 GpioAction::RESERVED // (see above)
+#define GPIO_PIN_47 GpioAction::NONE // available spare
+#define GPIO_PIN_48 GpioAction::NONE // available spare
+// (GPIO_PIN_45/46: strapping, RESERVED above; 46 is input-only — kept as-is.)
+
+// Note text surfaced in the pin-mapping UI; absent pin = no note.
+static const char *const PIN_NOTES[] = { /* index = GPIO number, 49 entries, "" or note */
+    "BOOT button (A1): holding it across reset enters download mode", // 0
+    "", // 1
+    "", // 2
+    "Strapping pin: do not map buttons here", // 3
+    "", // 4
+    "", // 5
+    "", // 6
+    "", // 7
+    "", // 8
+    "", // 9
+    "", // 10
+    "", // 11
+    "", // 12
+    "", // 13
+    "", // 14
+    "", // 15
+    "", // 16
+    "", // 17
+    "", // 18
+    "Native USB D-: do not remap", // 19
+    "Native USB D+: do not remap", // 20
+    "", // 21
+    "", // 22
+    "", // 23
+    "", // 24
+    "", // 25
+    "", // 26
+    "", // 27
+    "", // 28
+    "", // 29
+    "", // 30
+    "", // 31
+    "", // 32
+    "Octal flash/PSRAM on this module: do not use", // 33
+    "Octal flash/PSRAM on this module: do not use", // 34
+    "Octal flash/PSRAM on this module: do not use", // 35
+    "Octal flash/PSRAM on this module: do not use", // 36
+    "Octal flash/PSRAM on this module: do not use", // 37
+    "", // 38
+    "", // 39 (TURBO LED pin; role documented at TURBO_LED_PIN)
+    "", // 40
+    "", // 41
+    "", // 42
+    "UART0 console (flash/logs): do not remap", // 43
+    "UART0 console (flash/logs): do not remap", // 44
+    "Strapping pin: do not map buttons here", // 45
+    "Strapping pin (input-only on S3): do not map buttons here", // 46
+    "", // 47
+    "", // 48
+};
 
 // Keyboard Mapping Configuration
 //                                            // GP2040 | Xinput | Switch  | PS3/4/5  | Dinput | Arcade |
