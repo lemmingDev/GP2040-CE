@@ -92,8 +92,8 @@
 #define GPIO_PIN_35 GpioAction::NONE // routed on quad-flash modules (owner-verified 2026-09-22); octal variants keep 33/34 reserved
 #define GPIO_PIN_36 GpioAction::NONE // (see above)
 #define GPIO_PIN_37 GpioAction::NONE // (see above)
-// GPIO 38: pixel hardware present, data pin unassigned by default (see BOARD_LEDS_PIN).
-#define GPIO_PIN_38 GpioAction::NONE
+// GPIO 38: available spare.
+#define GPIO_PIN_38 GpioAction::NONE // available spare (pixel is on 48, not 38)
 // GPIO 39 keeps its TURBO role (see TURBO_LED_PIN): LED-output pin, never a
 // button input — explicit NONE over the implicit #ifndef default in
 // config_utils.cpp.
@@ -103,7 +103,7 @@
 #define GPIO_PIN_43 GpioAction::RESERVED // UART0 console — mapping buttons here kills COM7 flash/logs
 #define GPIO_PIN_44 GpioAction::RESERVED // (see above)
 #define GPIO_PIN_47 GpioAction::NONE // available spare
-#define GPIO_PIN_48 GpioAction::NONE // available spare
+#define GPIO_PIN_48 GpioAction::NONE // onboard RGB pixel (see BOARD_LEDS_PIN)
 // (GPIO_PIN_45/46: strapping, free above like GPIO0; 46 is input-only — kept as-is.)
 
 // Note text surfaced in the pin-mapping UI; absent pin = no note.
@@ -186,11 +186,11 @@ static const char *const PIN_NOTES[] = { /* index = GPIO number, 49 entries, "" 
 // Turbo LED cannot stay on 15 (that pin is R3 now); 39 is a free plain GPIO.
 #define TURBO_LED_PIN 39
 
-// Onboard RGB pixel defaulted OFF (-1 = unassigned) until the pixel story
-// resumes. Proven on hardware: the die is on GPIO 38 (v1.1 board), RMT
-// backend healthy (chase observed). Re-enable by setting this to 38.
+// Onboard RGB pixel live by default (die on GPIO 48, owner-verified
+// 2026-09-22; earlier 38 assumption was wrong for this module). Fresh
+// configs get dataPin 48 automatically.
 // (BoardLedAddon + NeoPixel both treat -1 as absent; hal rejects >48.)
-#define BOARD_LEDS_PIN -1
+#define BOARD_LEDS_PIN 48
 #define LED_BRIGHTNESS_MAXIMUM 100
 #define LED_BRIGHTNESS_STEPS 5
 #define LED_FORMAT LED_FORMAT_GRB

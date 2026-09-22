@@ -10,6 +10,8 @@ CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 # loop yields exactly one RTOS tick per iteration (vTaskDelay(1)). At the
 # IDF default 100 Hz that quantum is 10 ms; 1000 Hz makes it 1 ms so report
 # generation matches the 1 ms USB poll rate (verified on hardware).
+# 1000 Hz tick (100 Hz trial 2026-09-22 ruled the tick rate out of the
+# dark-pixel fault; pixel stayed dark at both rates).
 CONFIG_FREERTOS_HZ=1000
 CONFIG_BT_ENABLED=y
 CONFIG_BT_NIMBLE_ENABLED=y

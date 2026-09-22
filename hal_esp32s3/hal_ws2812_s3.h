@@ -59,6 +59,9 @@ private:
   int numPixels = 0;
   uint32_t frame[FRAME_MAX];
   led_strip_handle_t strip = nullptr;
+  // S3 lazy RMT bring-up (see Show()): channels created during aux setup
+  // sometimes never emit; first frame push recreates the channel.
+  bool rmtReady = false;
 };
 
 #endif // defined(ESP_PLATFORM)

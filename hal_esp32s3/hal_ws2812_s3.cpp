@@ -128,6 +128,16 @@ void NeoPico::SetFrame(uint32_t newFrame[100]) {
 }
 
 void NeoPico::Show() {
+  // S3 lazy RMT bring-up: a channel created during aux setup (~700 ms,
+  // pre-WiFi) can silently never emit even though creation reports success,
+  // while an identical channel created later in steady state works
+  // (proven via pin-sweep test 2026-09-22). Recreate once on first frame
+  // push; afterwards the normal path runs.
+  if (!rmtReady && ledPin >= 0 && numPixels > 0) {
+    ESP_LOGI(TAG, "late RMT recreate on pin %d for %d pixel(s)", ledPin, numPixels);
+    this->Setup(ledPin, numPixels, format);
+    rmtReady = (strip != nullptr);
+  }
   if (strip == nullptr) return;
   for (int i = 0; i < this->numPixels; ++i) {
     this->PutPixel(i, this->frame[i]);

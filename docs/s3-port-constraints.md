@@ -43,9 +43,16 @@ read the matching section here before touching the code.
 
 ## 4. Pin validity covers S3 routable GPIOs (0–48 minus USB 19/20)
 
-- **Symptom:** onboard NeoPixel (GPIO38/48) never initializes; no error.
+- **Symptom:** onboard NeoPixel never initializes; no error.
 - **Root cause:** `isValidPin()` kept the RP2040-era `< 30` window, so every
   high-pin peripheral was constructed as a dummy.
+- **Resolved:** the die is on GPIO48 on this module (not 38);
+  `BOARD_LEDS_PIN` defaults to 48. Companion pixel lessons: the single
+  light must be Case/ActionButton type (Player lights are skipped by base
+  animations), and the pressed-effect static overlay repaints the frame
+  after the base effect, so profile static colors must be non-black.
+  RMT channels built during early aux setup can silently never emit;
+  the backend recreates the channel on first frame push.
 - **Rule:** S3 validation is `0 <= pin <= 48` except 19/20. Companion rule:
   every table indexed by pin (`actions[]`, `gpioMappingsSets[].pins[]`)
   stays 30 entries, so migration code must additionally bound writes to
