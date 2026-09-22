@@ -1978,10 +1978,14 @@ void migrateFreedGpioPins(Config& config) {
             case 35: return GPIO_PIN_35 == GpioAction::RESERVED;
             case 36: return GPIO_PIN_36 == GpioAction::RESERVED;
             case 37: return GPIO_PIN_37 == GpioAction::RESERVED;
+            // 3/45/46: strapping freed like GPIO0 (usable, warn at reset).
+            case 3: return GPIO_PIN_03 == GpioAction::RESERVED;
+            case 45: return GPIO_PIN_45 == GpioAction::RESERVED;
+            case 46: return GPIO_PIN_46 == GpioAction::RESERVED;
             default: return true; // unknown pins: never touch
         }
     };
-    const Pin_t freedPins[] = {35, 36, 37};
+    const Pin_t freedPins[] = {3, 35, 36, 37, 45, 46};
     for (Pin_t pin : freedPins) {
         if (boardReserves(pin)) continue;
         if (!isValidPin(pin)) continue;

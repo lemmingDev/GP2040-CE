@@ -9,6 +9,8 @@ static_assert(sizeof(PIN_NOTES) / sizeof(PIN_NOTES[0]) == 49,
 
 int main() {
     // Unassigned / nonexistent pins stay unmapped.
+    // 3/45/46 freed like GPIO0: strapping, usable, warn-at-reset.
+    assert(GPIO_PIN_03 == GpioAction::NONE);
     assert(GPIO_PIN_22 == GpioAction::NONE);
     assert(GPIO_PIN_23 == GpioAction::NONE);
     assert(GPIO_PIN_24 == GpioAction::NONE);
@@ -37,8 +39,9 @@ int main() {
     assert(GPIO_PIN_37 == GpioAction::NONE);
     assert(GPIO_PIN_43 == GpioAction::RESERVED);
     assert(GPIO_PIN_44 == GpioAction::RESERVED);
-    assert(GPIO_PIN_45 == GpioAction::RESERVED);
-    assert(GPIO_PIN_46 == GpioAction::RESERVED);
+    // 45/46 freed like GPIO0 (strapping, usable, warn-at-reset).
+    assert(GPIO_PIN_45 == GpioAction::NONE);
+    assert(GPIO_PIN_46 == GpioAction::NONE);
 
     // Kept assignments: I2C0 addons, TURBO button.
     assert(GPIO_PIN_41 == GpioAction::ASSIGNED_TO_ADDON);

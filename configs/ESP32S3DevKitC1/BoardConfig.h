@@ -54,11 +54,11 @@
 // Reserved pins: native USB (19/20) and strapping (3/45/46). Never assign
 // inputs here. GPIO 0 is intentionally NOT reserved (see A1 note above).
 // GPIO 46 is input-only on S3 (no output drive): doubly unsuitable here.
-#define GPIO_PIN_03 GpioAction::RESERVED
+#define GPIO_PIN_03 GpioAction::NONE // strapping: usable, but do not hold at reset (GPIO0 precedent)
 #define GPIO_PIN_19 GpioAction::RESERVED
 #define GPIO_PIN_20 GpioAction::RESERVED
-#define GPIO_PIN_45 GpioAction::RESERVED
-#define GPIO_PIN_46 GpioAction::RESERVED
+#define GPIO_PIN_45 GpioAction::NONE // strapping: usable, but do not hold at reset (GPIO0 precedent)
+#define GPIO_PIN_46 GpioAction::NONE // strapping + input-only: usable as a button, but do not hold at reset
 
 // Unassigned/nonexistent pins below 30: NONE so the stock table compiles
 // and maps nothing here.
@@ -104,14 +104,14 @@
 #define GPIO_PIN_44 GpioAction::RESERVED // (see above)
 #define GPIO_PIN_47 GpioAction::NONE // available spare
 #define GPIO_PIN_48 GpioAction::NONE // available spare
-// (GPIO_PIN_45/46: strapping, RESERVED above; 46 is input-only — kept as-is.)
+// (GPIO_PIN_45/46: strapping, free above like GPIO0; 46 is input-only — kept as-is.)
 
 // Note text surfaced in the pin-mapping UI; absent pin = no note.
 static const char *const PIN_NOTES[] = { /* index = GPIO number, 49 entries, "" or note */
-    "BOOT button (A1): holding it across reset enters download mode", // 0
+    "BOOT button: holding it across reset enters download mode", // 0
     "", // 1
     "", // 2
-    "Strapping pin: do not map buttons here", // 3
+    "Strapping pin: usable, but do not hold during reset", // 3
     "", // 4
     "", // 5
     "", // 6
@@ -153,8 +153,8 @@ static const char *const PIN_NOTES[] = { /* index = GPIO number, 49 entries, "" 
     "", // 42
     "UART0 console (flash/logs): do not remap", // 43
     "UART0 console (flash/logs): do not remap", // 44
-    "Strapping pin: do not map buttons here", // 45
-    "Strapping pin (input-only on S3): do not map buttons here", // 46
+    "Strapping pin: usable, but do not hold during reset", // 45
+    "Strapping pin (input-only on S3): usable, but do not hold during reset", // 46
     "", // 47
     "", // 48
 };
