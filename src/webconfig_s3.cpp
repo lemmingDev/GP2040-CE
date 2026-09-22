@@ -739,6 +739,29 @@ static std::string s3_getPinMappings()
     s3_writeDoc(doc, "profileLabel", gpioMappings.profileLabel);
     doc["enabled"] = gpioMappings.enabled;
 
+    // Display-only: pins that can never be GPIO (19/20 native USB, 22-34
+    // nonexistent/flash bus) report as RESERVED so the UI renders them
+    // inert like the strapping/flash pins. Stored values stay NONE
+    // (migration's fromBoardConfig requires isValidPin, which excludes
+    // these) and both set-paths skip them, so this changes rendering only
+    // and no wipe is needed. String literals, not an snprintf buffer (see
+    // the arduinojson by-reference note on s3_getProfileOptions).
+    s3_writeDoc(doc, "pin19", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin20", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin22", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin23", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin24", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin25", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin26", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin27", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin28", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin29", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin30", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin31", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin32", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin33", "action", GpioAction::RESERVED);
+    s3_writeDoc(doc, "pin34", "action", GpioAction::RESERVED);
+
     return s3_serialize(doc);
 }
 
@@ -872,6 +895,24 @@ static std::string s3_getProfileOptions()
 #endif
         s3_writeDoc(doc, "alternativePinMappings", i, "profileLabel", profileOptions.gpioMappingsSets[i].profileLabel);
         doc["alternativePinMappings"][i]["enabled"] = profileOptions.gpioMappingsSets[i].enabled;
+        // Same display-only RESERVED coercion as s3_getPinMappings: Profile 1
+        // renders from this response, and profile stores also hold NONE for
+        // pins that can never be GPIO.
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin19", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin20", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin22", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin23", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin24", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin25", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin26", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin27", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin28", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin29", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin30", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin31", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin32", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin33", "action", GpioAction::RESERVED);
+        s3_writeDoc(doc, "alternativePinMappings", i, "pin34", "action", GpioAction::RESERVED);
     }
 
     return s3_serialize(doc);
