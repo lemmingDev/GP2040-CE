@@ -1,11 +1,12 @@
 CXX ?= g++
 CXXFLAGS = -std=c++17 -Wall -Werror -I../../headers/drivers/bluetooth
 
-test: test_ble_report test_bootword test_wifiscan test_pinpolicy
+test: test_ble_report test_bootword test_wifiscan test_pinpolicy test_usbnet
 	./test_ble_report
 	./test_bootword
 	./test_wifiscan
 	./test_pinpolicy
+	./test_usbnet
 
 test_ble_report: test_ble_report.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $<
@@ -21,7 +22,10 @@ test_wifiscan: test_wifiscan.cpp
 test_pinpolicy: test_pinpolicy.cpp
 	$(CXX) $(CXXFLAGS) -I../../headers -I../../src -I../../esp32-s3/generated -I../../lib/nanopb -I../../lib/tinyusb/src -I../../configs/ESP32S3DevKitC1 -DCFG_TUSB_MCU=OPT_MCU_ESP32S3 -o $@ $<
 
+test_usbnet: test_usbnet.cpp ../../src/usbnet_s3.cpp
+	$(CXX) $(CXXFLAGS) -I../../src -o $@ $^
+
 clean:
-	rm -f test_ble_report test_bootword test_wifiscan test_pinpolicy
+	rm -f test_ble_report test_bootword test_wifiscan test_pinpolicy test_usbnet
 
 .PHONY: test clean
