@@ -257,7 +257,7 @@ const PinSelectList = memo(function PinSelectList({
 	return (
 		<div
 			className="pin-grid gap-3 mt-2"
-			style={{ '--pin-count': Object.entries(pins).length > 32 ? 12 : 15 }}
+			style={{ '--pin-count': Math.ceil(Object.entries(pins).length / 2) }}
 		>
 			{Object.entries(pins).map(([pin, pinData], index) => (
 				<div key={`select-${index}`} className="d-flex align-items-center">
