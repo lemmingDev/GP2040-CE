@@ -117,16 +117,15 @@ function PinSelect({ mappingKey }: { mappingKey: string }) {
 
 	const { boardDefinition } = useBoardDefinition();
 
-	const PIN_OPTIONS: PinOption[] = Array.from(
-		{ length: boardDefinition.availablePins.length },
-		(_, i) => ({
-			label: `GP${i}`,
-			value: i,
-		}),
-	);
-
-	console.dir(boardDefinition);
-	console.dir(PIN_OPTIONS);
+	// Options come from the board's availablePins (actual routable pins),
+	// not 0..length: on the S3 the set is non-contiguous (0-18, 21, 35-48)
+	// and a length-based range mislabels everything past GP21.
+	const PIN_OPTIONS: PinOption[] = (
+		(boardDefinition.availablePins as number[]) ?? []
+	).map((pin) => ({
+		label: `GP${pin}`,
+		value: pin,
+	}));
 
 	const values = PIN_OPTIONS.filter(({ value }) => pins.has(value));
 

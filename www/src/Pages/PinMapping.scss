@@ -5,6 +5,12 @@
 	grid-template-rows: repeat(var(--pin-count, 15), auto);
 }
 
+// Pin warnings sit under the dropdown, aligned with it (past the GP label
+// column), so they never squeeze the select itself.
+.pin-note {
+	margin-left: 3.5rem;
+}
+
 @media only screen and (max-width: 680px) {
 	.pin-grid {
 		display: flex;

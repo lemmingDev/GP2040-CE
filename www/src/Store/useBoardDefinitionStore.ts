@@ -6,7 +6,7 @@ type State = {
 		minPin: number;
 		maxPin: number;
 		analogPins: Array<number>;
-		availablePins: {};
+		availablePins: Array<number>;
 		usedPins: {};
 		pinNotes?: Record<string, string>;
 	};

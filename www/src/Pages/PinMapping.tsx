@@ -259,29 +259,35 @@ const PinSelectList = memo(function PinSelectList({
 			className="pin-grid gap-3 mt-2"
 			style={{ '--pin-count': Math.ceil(Object.entries(pins).length / 2) }}
 		>
-			{Object.entries(pins).map(([pin, pinData], index) => (
-				<div key={`select-${index}`} className="d-flex align-items-center">
-					<div className="d-flex flex-shrink-0" style={{ width: '3.5rem' }}>
-						<label>GP{index}</label>
+			{Object.entries(pins).map(([pin, pinData], index) => {
+				const note = notes?.[parseInt(pin.replace('pin', ''), 10)];
+				return (
+					<div key={`select-${index}`}>
+						<div className="d-flex align-items-center">
+							<div
+								className="d-flex flex-shrink-0"
+								style={{ width: '3.5rem' }}
+							>
+								<label>GP{index}</label>
+							</div>
+							<CustomSelect
+								isClearable
+								isMulti={!isDisabled(pinData.action)}
+								options={groupedOptions}
+								isDisabled={isDisabled(pinData.action)}
+								getOptionLabel={getOptionLabel}
+								onChange={onChange(pin)}
+								value={getMultiValue(pinData)}
+								onFocus={() => activateLedsOnId(index)}
+								onBlur={turnOffLedTestModes}
+							/>
+						</div>
+						{note && (
+							<div className="text-muted small pin-note">{note}</div>
+						)}
 					</div>
-					<CustomSelect
-						isClearable
-						isMulti={!isDisabled(pinData.action)}
-						options={groupedOptions}
-						isDisabled={isDisabled(pinData.action)}
-						getOptionLabel={getOptionLabel}
-						onChange={onChange(pin)}
-						value={getMultiValue(pinData)}
-						onFocus={() => activateLedsOnId(index)}
-						onBlur={turnOffLedTestModes}
-					/>
-					{notes?.[parseInt(pin.replace('pin', ''), 10)] && (
-						<span className="text-muted small ms-2">
-							{notes[parseInt(pin.replace('pin', ''), 10)]}
-						</span>
-					)}
-				</div>
-			))}
+				);
+			})}
 		</div>
 	);
 });
