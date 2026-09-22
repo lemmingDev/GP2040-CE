@@ -235,6 +235,39 @@ read the matching section here before touching the code.
   retries, device AP unaffected → clear creds → clean boot, no STA. Analog
   on this board: inspect only, never verified (ADC2 caveat above).
 
+## 13. S3 pin tables span GPIO 0–48 (49 entries, 64-bit masks)
+
+- **Symptom:** buttons wired to GPIO 30+ never register, or a board flashed
+  over a 30-entry config maps every high pin to the wrong action with no
+  error. Separately, any GPIO shift spelled as a 32-bit `1 << pin` is UB
+  (signed int) or truncation (32-bit long) for pins ≥ 31, silently
+  zeroing high-pin bits.
+- **Root cause:** the RP2040-era 30-entry tables, hardcoded `< 30` bounds,
+  and 32-bit pin shifts predate the S3 package (routable 0–48 minus USB
+  19/20 and the 22–34 gap). A legacy 30-count `gpioMappings` blob loaded
+  onto 49-entry firmware additionally misaligns every mapping.
+- **Rule:** `NUM_BANK0_GPIOS` is 49 on S3 (board header pins it; the
+  `types.h` / `animationstation.h` ESP fallbacks match it for include
+  orders that precede the board header). `Mask_t` is `uint64_t` and every
+  GPIO shift spells `Mask_t{1} << pin` (or `1ULL`); `1 << pin` / `1u <<
+  pin` / `1UL << pin` are forbidden in `src/` + `hal_esp32s3/` outside the
+  documented-safe files (bootsel SIO `gpio_hi_in`, pcf8575 expander byte,
+  tg16 nibbles, RGB packing shifts — button/LED bit domains such as
+  `GAMEPAD_MASK_*`/`PLED_*` and hotkey/focus masks are button bits, not
+  pins, and live in `headers/`). The board header defines `GPIO_PIN_30`
+  through `GPIO_PIN_48` plus `PIN_NOTES` surfaced in the pin-mapping UI;
+  set-paths reject invalid pins (22–34); a legacy `pins_count != 49`
+  config is wiped to board defaults once on S3 boot (custom mappings
+  reset — deliberate, once-ever).
+- **Verify:** guard checks 13–15; host `pinpolicy` test; hardware: Task-5
+  E2E tap matrix (button on a pin ≥ 35, each converted mask family on a
+  pin ≥ 32, `pinNotes` tail curl, >32-bit boot-mask UI round-trip).
+- **Validated-modes note:** the mask widening touched the instrument
+  drivers (PS3/PS4/XInput), tilt/dual-directional/reverse/slider/turbo/
+  macro/display-menu paths — all value-identical for pins < 32, so the
+  validated-modes list above stands; exercising pins ≥ 32 per family is
+  Task-5 hardware E2E (controller-run, not yet executed).
+
 ## Open items (observed, not guard-enforced)
 - **PS3 Feature 0x01 response over-read (upstream bug, not ours).**
   `PS3Driver::get_report`, `PS3_FEATURE_01` case: copies a 48-byte host

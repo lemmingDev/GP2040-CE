@@ -208,6 +208,54 @@ else
     failmsg "DEFAULT_STA_PASSPHRASE lives only in config_utils.cpp:$sta_cred_hits"
 fi
 
+# 13. S3 board table is 49 pins: NUM_BANK0_GPIOS must stay pinned to 49 in
+#     the S3 board header. Every pin table and per-pin array is sized to it,
+#     and the types.h / animationstation.h ESP fallbacks must match it.
+if grep -q "#define NUM_BANK0_GPIOS 49" configs/ESP32S3DevKitC1/BoardConfig.h; then
+    pass "S3 board header pins NUM_BANK0_GPIOS to 49"
+else
+    failmsg "S3 board header pins NUM_BANK0_GPIOS to 49"
+fi
+
+# 14. GPIO 48 is a first-class pin: the S3 board header must define a
+#     GPIO_PIN_48 macro. Pin 48 is a valid spare on this package; without
+#     the macro it falls back to NONE implicitly and the config/UI paths
+#     silently drop it.
+if grep -q "define GPIO_PIN_48" configs/ESP32S3DevKitC1/BoardConfig.h; then
+    pass "GPIO_PIN_48 macro present in S3 board header"
+else
+    failmsg "GPIO_PIN_48 macro present in S3 board header"
+fi
+
+# 15. No 32-bit GPIO pin shifts in S3-compiled TUs: `1 << pin`, `1u << pin`,
+#     and `1UL << pin` (any u/l case) with a pin operand truncate (32-bit
+#     int/long) or go UB for pins >= 31, silently killing high-pin inputs.
+#     GPIO shifts must spell `Mask_t{1} << pin` (or 1ULL). Documented-safe
+#     narrow shifts are excluded by file: bootsel SIO gpio_hi_in (RP2040 CS
+#     index, never a GPIO number), pcf8575 expander byte ops (8-bit port,
+#     not GPIOs), tg16 nibbles (4-bit controller data), neopicoleds RGB
+#     packing (constant byte shifts). GAMEPAD_MASK_/PLED_ button/LED domains
+#     and hotkey/focus button masks live in headers/ (button bits, not pins)
+#     and are outside this src/ + hal_esp32s3/ scan by construction.
+#     Comments stripped before matching.
+narrow_shift_hits=""
+for f in $(git ls-files 'src/*.cpp' 'hal_esp32s3/*.cpp' 'hal_esp32s3/*.h' 2>/dev/null); do
+    case "$f" in
+        src/addons/bootsel_button.cpp|src/addons/tg16_input.cpp|src/addons/neopicoleds.cpp|src/interfaces/i2c/pcf8575/pcf8575.cpp)
+            continue ;;
+    esac
+    [ -f "$f" ] || continue
+    stripped_shift="$(sed 's,//.*,,' "$f")"
+    if echo "$stripped_shift" | grep -Eq '(^|[^0-9A-Za-z_])1([uU]([lL])?)?[[:space:]]*<<[[:space:]]*pin'; then
+        narrow_shift_hits="$narrow_shift_hits $f"
+    fi
+done
+if [ -z "$narrow_shift_hits" ]; then
+    pass "no 32-bit pin shifts in S3-compiled TUs"
+else
+    failmsg "32-bit pin shifts in S3-compiled TUs:$narrow_shift_hits"
+fi
+
 if [ "$fail" -ne 0 ]; then
     echo "s3-guards: FAILURES present (see docs/s3-port-constraints.md)"
     exit 1
