@@ -26,7 +26,7 @@ typedef enum _StaMode {
 typedef struct _InputModeMapping {
     /* negative if mapping disabled */
     bool has_pinMask;
-    int32_t pinMask;
+    uint64_t pinMask;
     bool has_inputMode;
     InputMode inputMode;
     bool has_profileNumber;
@@ -37,9 +37,9 @@ typedef struct _BootModeOptions {
     bool has_enabled;
     bool enabled;
     bool has_webConfigPinMask;
-    uint32_t webConfigPinMask;
+    uint64_t webConfigPinMask;
     bool has_usbModePinMask;
-    uint32_t usbModePinMask;
+    uint64_t usbModePinMask;
     pb_size_t inputModeMappings_count;
     InputModeMapping inputModeMappings[8];
 } BootModeOptions;
@@ -365,7 +365,7 @@ typedef struct _GpioMappingInfo {
 
 typedef struct _GpioMappings {
     pb_size_t pins_count;
-    GpioMappingInfo pins[48];
+    GpioMappingInfo pins[49];
     bool has_profileLabel;
     char profileLabel[17];
     bool has_enabled;
@@ -575,9 +575,9 @@ typedef struct _AnimationProfile {
     bool has_baseCycleTime;
     int32_t baseCycleTime;
     pb_size_t notPressedStaticColors_count;
-    uint32_t notPressedStaticColors[12]; /* NUM_BANK0_GPIOS/4 from platform_defs.h */
+    uint32_t notPressedStaticColors[13]; /* (49+3)/4 from platform_defs.h */
     pb_size_t pressedStaticColors_count;
-    uint32_t pressedStaticColors[12]; /* NUM_BANK0_GPIOS/4 from platform_defs.h */
+    uint32_t pressedStaticColors[13]; /* (49+3)/4 from platform_defs.h */
     bool has_buttonPressHoldTimeInMs;
     uint32_t buttonPressHoldTimeInMs;
     bool has_buttonPressFadeOutTimeInMs;
@@ -1692,13 +1692,13 @@ X(STA_ALWAYS_ON, 2)
 #define ButtonLayoutCustomOptions_init_default   {false, ButtonLayoutParamsLeft_init_default, false, ButtonLayoutParamsRight_init_default}
 #define PinMappings_init_default                 {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define GpioMappingInfo_init_default             {false, _GpioAction_MIN, false, _GpioDirection_MIN, false, 0, false, 0}
-#define GpioMappings_init_default                {0, {GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default}, false, "", false, false}
+#define GpioMappings_init_default                {0, {GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default, GpioMappingInfo_init_default}, false, "", false, false}
 #define AlternativePinMappings_init_default      {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define ProfileOptions_init_default              {0, {AlternativePinMappings_init_default, AlternativePinMappings_init_default, AlternativePinMappings_init_default}, 0, {GpioMappings_init_default, GpioMappings_init_default, GpioMappings_init_default, GpioMappings_init_default, GpioMappings_init_default}}
 #define DisplayOptions_init_default              {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _ButtonLayout_MIN, false, _ButtonLayoutRight_MIN, false, ButtonLayoutCustomOptions_init_default, false, _SplashMode_MIN, false, _SplashChoice_MIN, false, 0, false, {0, {0}}, false, 0, false, 0, false, 0, false, 0, false, 0, false, _DisplaySaverMode_MIN, false, _ButtonLayoutOrientation_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define LightCluster_init_default                {false, 0, false, 0}
 #define LEDOptions_init_default                  {false, 0, false, _LEDFormat_Proto_MIN, false, _ButtonLayout_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _PLEDType_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _CaseRGBType_MIN, false, 0, false, 0, false, 0, 0, {LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default, LightCluster_init_default}, false, 0}
-#define AnimationProfile_init_default            {false, 0, false, _AnimationNonPressedEffects_MIN, false, _AnimationPressedEffects_MIN, false, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false, 0, false, 0, false, 0, false, _AnimationNonPressedEffects_MIN, 0, {0, 0, 0, 0, 0, 0, 0, 0}, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define AnimationProfile_init_default            {false, 0, false, _AnimationNonPressedEffects_MIN, false, _AnimationPressedEffects_MIN, false, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false, 0, false, 0, false, 0, false, _AnimationNonPressedEffects_MIN, 0, {0, 0, 0, 0, 0, 0, 0, 0}, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define AnimationOptions_init_default            {false, 0, 0, {AnimationProfile_init_default, AnimationProfile_init_default, AnimationProfile_init_default, AnimationProfile_init_default}, false, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false, 0}
 #define BootselButtonOptions_init_default        {false, 0, false, 0}
 #define OnBoardLedOptions_init_default           {false, _OnBoardLedMode_MIN, false, 0}
@@ -1767,13 +1767,13 @@ X(STA_ALWAYS_ON, 2)
 #define ButtonLayoutCustomOptions_init_zero      {false, ButtonLayoutParamsLeft_init_zero, false, ButtonLayoutParamsRight_init_zero}
 #define PinMappings_init_zero                    {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define GpioMappingInfo_init_zero                {false, _GpioAction_MIN, false, _GpioDirection_MIN, false, 0, false, 0}
-#define GpioMappings_init_zero                   {0, {GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero}, false, "", false, 0}
+#define GpioMappings_init_zero                   {0, {GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero, GpioMappingInfo_init_zero}, false, "", false, 0}
 #define AlternativePinMappings_init_zero         {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define ProfileOptions_init_zero                 {0, {AlternativePinMappings_init_zero, AlternativePinMappings_init_zero, AlternativePinMappings_init_zero}, 0, {GpioMappings_init_zero, GpioMappings_init_zero, GpioMappings_init_zero, GpioMappings_init_zero, GpioMappings_init_zero}}
 #define DisplayOptions_init_zero                 {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _ButtonLayout_MIN, false, _ButtonLayoutRight_MIN, false, ButtonLayoutCustomOptions_init_zero, false, _SplashMode_MIN, false, _SplashChoice_MIN, false, 0, false, {0, {0}}, false, 0, false, 0, false, 0, false, 0, false, 0, false, _DisplaySaverMode_MIN, false, _ButtonLayoutOrientation_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define LightCluster_init_zero                   {false, 0, false, 0}
 #define LEDOptions_init_zero                     {false, 0, false, _LEDFormat_Proto_MIN, false, _ButtonLayout_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _PLEDType_MIN, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, _CaseRGBType_MIN, false, 0, false, 0, false, 0, 0, {LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero, LightCluster_init_zero}, false, 0}
-#define AnimationProfile_init_zero               {false, 0, false, _AnimationNonPressedEffects_MIN, false, _AnimationPressedEffects_MIN, false, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false, 0, false, 0, false, 0, false, _AnimationNonPressedEffects_MIN, 0, {0, 0, 0, 0, 0, 0, 0, 0}, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
+#define AnimationProfile_init_zero               {false, 0, false, _AnimationNonPressedEffects_MIN, false, _AnimationPressedEffects_MIN, false, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false, 0, false, 0, false, 0, false, _AnimationNonPressedEffects_MIN, 0, {0, 0, 0, 0, 0, 0, 0, 0}, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0}
 #define AnimationOptions_init_zero               {false, 0, 0, {AnimationProfile_init_zero, AnimationProfile_init_zero, AnimationProfile_init_zero, AnimationProfile_init_zero}, false, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false, 0}
 #define BootselButtonOptions_init_zero           {false, 0, false, 0}
 #define OnBoardLedOptions_init_zero              {false, _OnBoardLedMode_MIN, false, 0}
@@ -2492,7 +2492,7 @@ X(STA_ALWAYS_ON, 2)
 
 /* Struct field encoding specification for nanopb */
 #define InputModeMapping_FIELDLIST(X, a) \
-X(a, STATIC,   OPTIONAL, INT32,    pinMask,                          1, 0) \
+X(a, STATIC,   OPTIONAL, UINT64,   pinMask,                          1, 0) \
 X(a, STATIC,   OPTIONAL, UENUM,    inputMode,                        2, 0) \
 X(a, STATIC,   OPTIONAL, UINT32,   profileNumber,                    3, 0)
 #define InputModeMapping_CALLBACK NULL
@@ -2500,8 +2500,8 @@ X(a, STATIC,   OPTIONAL, UINT32,   profileNumber,                    3, 0)
 
 #define BootModeOptions_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, BOOL,     enabled,                          1, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   webConfigPinMask,                 2, 0) \
-X(a, STATIC,   OPTIONAL, UINT32,   usbModePinMask,                   3, 0) \
+X(a, STATIC,   OPTIONAL, UINT64,   webConfigPinMask,                 2, 0) \
+X(a, STATIC,   OPTIONAL, UINT64,   usbModePinMask,                   3, 0) \
 X(a, STATIC,   REPEATED, MESSAGE,  inputModeMappings,                4, 0)
 #define BootModeOptions_CALLBACK NULL
 #define BootModeOptions_DEFAULT NULL
@@ -3722,16 +3722,16 @@ extern const pb_msgdesc_t Config_msg;
 #define AnalogADS1219Options_size                57
 #define AnalogADS1256Options_size                42
 #define AnalogOptions_size                       148
-#define AnimationOptions_size                    1293
-#define AnimationProfile_size                    285
-#define BootModeOptions_size                     190
+#define AnimationOptions_size                    1341
+#define AnimationProfile_size                    297
+#define BootModeOptions_size                     200
 #define BootselButtonOptions_size                8
 #define ButtonLayoutCustomOptions_size           100
 #define ButtonLayoutParamsCommon_size            44
 #define ButtonLayoutParamsLeft_size              48
 #define ButtonLayoutParamsRight_size             48
 #define BuzzerOptions_size                       30
-#define Config_size                              27005
+#define Config_size                              27225
 #define DRV8833RumbleOptions_size                51
 #define DisplayOptions_size                      1300
 #define DualDirectionalOptions_size              52
@@ -3741,7 +3741,7 @@ extern const pb_msgdesc_t Config_msg;
 #define GamepadOptions_size                      249
 #define GamepadUSBHostOptions_size               2
 #define GpioMappingInfo_size                     25
-#define GpioMappings_size                        1316
+#define GpioMappings_size                        1343
 #define HETriggerInfo_size                       81
 #define HETriggerOptions_size                    2770
 #define HotkeyEntry_size                         20
@@ -3766,7 +3766,7 @@ extern const pb_msgdesc_t Config_msg;
 #define PeripheralOptions_size                   192
 #define PinMappings_size                         213
 #define PlayerNumberOptions_size                 8
-#define ProfileOptions_size                      7000
+#define ProfileOptions_size                      7135
 #define ProfileSliderOptions_size                62
 #define ReactiveLEDInfo_size                     26
 #define ReactiveLEDOptions_size                  282

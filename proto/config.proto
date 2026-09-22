@@ -5,15 +5,15 @@ import "enums.proto";
 
 message InputModeMapping {
 	// negative if mapping disabled
-    optional int32 pinMask = 1;
+    optional uint64 pinMask = 1;
     optional InputMode inputMode = 2;
     optional uint32 profileNumber = 3;
 }
 
 message BootModeOptions {
     optional bool enabled = 1;
-    optional uint32 webConfigPinMask = 2;
-    optional uint32 usbModePinMask = 3;
+    optional uint64 webConfigPinMask = 2;
+    optional uint64 usbModePinMask = 3;
     repeated InputModeMapping inputModeMappings = 4 [(nanopb).max_count = 8];
 }
 
@@ -214,7 +214,7 @@ message GpioMappingInfo
 
 message GpioMappings
 {
-    repeated GpioMappingInfo pins = 1 [(nanopb).max_count = 48];
+    repeated GpioMappingInfo pins = 1 [(nanopb).max_count = 49];
     optional string profileLabel = 2 [(nanopb).max_length = 16];
     optional bool enabled = 3 [default = false];
 }
@@ -354,8 +354,8 @@ message AnimationProfile
 
     optional int32 baseCycleTime = 4;
 
-    repeated uint32 notPressedStaticColors = 5 [(nanopb).max_count = 12]; //NUM_BANK0_GPIOS/4 from platform_defs.h
-    repeated uint32 pressedStaticColors = 6 [(nanopb).max_count = 12]; //NUM_BANK0_GPIOS/4 from platform_defs.h
+    repeated uint32 notPressedStaticColors = 5 [(nanopb).max_count = 13]; //(49+3)/4 from platform_defs.h
+    repeated uint32 pressedStaticColors = 6 [(nanopb).max_count = 13]; //(49+3)/4 from platform_defs.h
 
     optional uint32 buttonPressHoldTimeInMs = 7;
     optional uint32 buttonPressFadeOutTimeInMs = 8;

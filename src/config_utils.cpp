@@ -2366,12 +2366,20 @@ static void __attribute__((noinline)) appendAsString(std::string& str, uint32_t 
     str.append(std::to_string(value));
 }
 
+// Don't inline this function, we do not want to consume stack space in the calling function
+// (s3-gpio48 Task 2: proto boot masks widened to uint64; mirrors the uint32 overload)
+static void __attribute__((noinline)) appendAsString(std::string& str, uint64_t value)
+{
+    str.append(std::to_string(value));
+}
+
 #define TO_JSON_ENUM(fieldname, submessageType) appendAsString(str, static_cast<int32_t>(s.fieldname));
 #define TO_JSON_UENUM(fieldname, submessageType) appendAsString(str, static_cast<uint32_t>(s.fieldname));
 #define TO_JSON_DOUBLE(fieldname, submessageType) appendAsString(str, static_cast<double>(s.fieldname));
 #define TO_JSON_FLOAT(fieldname, submessageType) appendAsString(str, static_cast<float>(s.fieldname));
 #define TO_JSON_INT32(fieldname, submessageType) appendAsString(str, s.fieldname);
 #define TO_JSON_UINT32(fieldname, submessageType) appendAsString(str, s.fieldname);
+#define TO_JSON_UINT64(fieldname, submessageType) appendAsString(str, s.fieldname);
 #define TO_JSON_BOOL(fieldname, submessageType) str.append((s.fieldname) ? "true" : "false");
 #define TO_JSON_STRING(fieldname, submessageType) str.push_back('"'); str.append(s.fieldname); str.push_back('"');
 #define TO_JSON_BYTES(fieldname, submessageType) str.push_back('"'); str.append(Base64::Encode(reinterpret_cast<const char*>(s.fieldname.bytes), s.fieldname.size)); str.push_back('"');
@@ -2606,6 +2614,31 @@ static bool fromJsonUint32(JsonObjectConst jsonObject, const char* fieldname, ui
 }
 
 #define FROM_JSON_UINT32(fieldname, submessageType) if (!fromJsonUint32(jsonObject, #fieldname, configStruct.fieldname, configStruct.PREPROCESSOR_JOIN(has_, fieldname))) { return false; }
+
+// (s3-gpio48 Task 2: mirrors fromJsonUint32 for the widened uint64 boot
+// masks; accepts the same values as before plus wider bitmasks. Negative
+// JSON input is rejected, as out-of-range input was for uint32.)
+static bool fromJsonUint64(JsonObjectConst jsonObject, const char* fieldname, uint64_t& value, bool& flag)
+{
+    if (jsonObject.containsKey(fieldname))
+    {
+        JsonVariantConst jsonVariant = jsonObject[fieldname];
+        if (jsonVariant.is<unsigned long long>())
+        {
+            value = jsonVariant.as<unsigned long long>();
+            flag = true;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+#define FROM_JSON_UINT64(fieldname, submessageType) if (!fromJsonUint64(jsonObject, #fieldname, configStruct.fieldname, configStruct.PREPROCESSOR_JOIN(has_, fieldname))) { return false; }
 
 static bool fromJsonBool(JsonObjectConst jsonObject, const char* fieldname, bool& value, bool& flag)
 {

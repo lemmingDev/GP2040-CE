@@ -9,7 +9,7 @@
 PB_BIND(InputModeMapping, InputModeMapping, AUTO)
 
 
-PB_BIND(BootModeOptions, BootModeOptions, AUTO)
+PB_BIND(BootModeOptions, BootModeOptions, 2)
 
 
 PB_BIND(GamepadOptions, GamepadOptions, 2)
