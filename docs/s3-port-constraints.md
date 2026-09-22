@@ -177,7 +177,10 @@ read the matching section here before touching the code.
   `DEFAULT_AP_PASSPHRASE` define; log lines carry lengths only, never
   `apPassphrase`. L1-hold forces a session-only WiFi-config boot;
   gamepad inputs stay live under WiFi-config and will park only under
-  the future USB-config.
+  the future USB-config. ArduinoJson docs need pool room for string
+  contents beyond member slots: bare `JSON_OBJECT_SIZE(n)` silently
+  drops tail assignments (seen 2026-09: `staIP` missing from
+  `/api/getNetworkStatus`); size small docs with `+ 64` slack.
 - **Verify:** guard checks 11 (passphrase confined to the define; no
   `apPassphrase` in `webconfig_s3.cpp` printf/`ESP_LOG` lines); hardware
   E2E 2026-09 (all pass): L1-boot → AP `GP2040-CE` → UI loads (static

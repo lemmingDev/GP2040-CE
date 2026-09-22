@@ -236,7 +236,9 @@ static std::string s3_serialize(const DynamicJsonDocument &doc)
 // Mirrors Pico getFirmwareVersion() keys (src/webconfig.cpp:2924).
 static std::string s3_getFirmwareVersion()
 {
-    const size_t capacity = JSON_OBJECT_SIZE(10);
+    // Same pool lesson as s3_getNetworkStatus: 7 string values need room
+    // beyond the member slots or the tail silently drops.
+    const size_t capacity = JSON_OBJECT_SIZE(10) + 64;
     DynamicJsonDocument doc(capacity);
     doc["version"] = GP2040VERSION;
     doc["boardArchitecture"] = GP2040PLATFORM;
@@ -4023,7 +4025,10 @@ int s3_sta_last_failure()
 // configured SSID setting (not probe data); staIP is s3_sta_ip().
 static std::string s3_getNetworkStatus()
 {
-    const size_t capacity = JSON_OBJECT_SIZE(5);
+    // Pool must hold 5 members PLUS string contents (SSID up to 32B, two
+    // IPs): bare JSON_OBJECT_SIZE(5) silently drops the last assignment
+    // (found on hardware 2026-09: staIP key missing from the response).
+    const size_t capacity = JSON_OBJECT_SIZE(5) + 64;
     DynamicJsonDocument doc(capacity);
     WebConfigOptions &webConfigOptions = Storage::getInstance().getConfig().webConfigOptions;
     s3_writeDoc(doc, "apEnabled", webConfigOptions.apEnabled);
