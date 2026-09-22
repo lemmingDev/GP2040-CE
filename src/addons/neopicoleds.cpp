@@ -21,6 +21,9 @@
 #include "enums.h"
 #include "helper.h"
 #include "animation.h"
+#if defined(ESP_PLATFORM)
+#include "esp_log.h"
+#endif
 
 const std::string BUTTON_LABEL_UP = "Up";
 const std::string BUTTON_LABEL_DOWN = "Down";
@@ -766,6 +769,9 @@ void NeoPicoLEDAddon::configureLEDs()
 
 	GenerateLights();
 	ledCount = RGBLights.GetLedCount();
+#if defined(ESP_PLATFORM)
+	ESP_LOGI("neopicoleds", "configureLEDs dataPin=%d pledType=%d ledCount=%d", (int)ledOptions.dataPin, (int)ledOptions.pledType, (int)ledCount);
+#endif
 
 	if (ledOptions.pledType == PLED_TYPE_RGB && PLED_COUNT > 0)
 	{

@@ -72,7 +72,9 @@ void NeoPico::Setup(int ledPin, int inNumPixels, LEDFormat inFormat) {
   format = inFormat;
   this->ledPin = ledPin;
   numPixels = inNumPixels;
+  ESP_LOGI(TAG, "Setup pin=%d pixels=%d format=%d", ledPin, inNumPixels, (int)inFormat);
   if (ledPin < 0 || numPixels <= 0) {
+    ESP_LOGW(TAG, "dummy instance (pin<0 or pixels<=0): no RMT channel, all no-ops");
     return; // Dummy instance (addon setup path): no RMT channel, all no-ops.
   }
   const bool isRgbw = (format == LED_FORMAT_GRBW) || (format == LED_FORMAT_RGBW);
@@ -98,6 +100,7 @@ void NeoPico::Setup(int ledPin, int inNumPixels, LEDFormat inFormat) {
     strip = nullptr;
     return;
   }
+  ESP_LOGI(TAG, "RMT channel ready on pin %d for %d pixel(s)", ledPin, numPixels);
   this->Off();
 }
 
