@@ -497,6 +497,24 @@ static std::string s3_setGamepadOptions(const char *body, size_t len)
     {
         webConfigOptions.webconfigTransport = (WebconfigTransport)doc["webconfigTransport"].as<int>();
     }
+    // STA client keys (Task STA-1 schema; same assign-only-when-set shape as
+    // the AP keys above so partial POSTs keep stored values; Pico's
+    // setGamepadOptions() reads known keys individually, so these ride-along
+    // keys are ignored there and Pico behavior is untouched).
+    if (doc["staSSID"] != nullptr)
+    {
+        strncpy(webConfigOptions.staSSID, doc["staSSID"], sizeof(webConfigOptions.staSSID) - 1);
+        webConfigOptions.staSSID[sizeof(webConfigOptions.staSSID) - 1] = '\0';
+    }
+    if (doc["staPassphrase"] != nullptr)
+    {
+        strncpy(webConfigOptions.staPassphrase, doc["staPassphrase"], sizeof(webConfigOptions.staPassphrase) - 1);
+        webConfigOptions.staPassphrase[sizeof(webConfigOptions.staPassphrase) - 1] = '\0';
+    }
+    if (doc["staMode"] != nullptr)
+    {
+        webConfigOptions.staMode = (StaMode)doc["staMode"].as<int>();
+    }
 
     HotkeyOptions& hotkeyOptions = Storage::getInstance().getHotkeyOptions();
     s3_save_hotkey(&hotkeyOptions.hotkey01, doc, "hotkey01");
@@ -572,6 +590,11 @@ static std::string s3_getGamepadOptions()
     s3_writeDoc(doc, "apSSID", webConfigOptions.apSSID);
     s3_writeDoc(doc, "apPassphrase", webConfigOptions.apPassphrase);
     s3_writeDoc(doc, "webconfigTransport", webConfigOptions.webconfigTransport);
+    // STA client keys (Task STA-1 schema; Pico's GET omits them and the
+    // shared React bundle falls back to defaults, same as the AP keys above).
+    s3_writeDoc(doc, "staSSID", webConfigOptions.staSSID);
+    s3_writeDoc(doc, "staPassphrase", webConfigOptions.staPassphrase);
+    s3_writeDoc(doc, "staMode", webConfigOptions.staMode);
     s3_writeDoc(doc, "fnButtonPin", -1);
     GpioMappingInfo* gpioMappings = Storage::getInstance().getGpioMappings().pins;
     for (unsigned int pin = 0; pin < NUM_BANK0_GPIOS; pin++) {
@@ -3994,6 +4017,40 @@ int s3_sta_last_failure()
     return (int)s3_sta_last_reason;
 }
 
+// STA-Task 3: Home Network status (S3-only; no Pico equivalent). Returns
+// exactly {apEnabled, apIP, staConnected, staSSID, staIP}: apIP is the AP
+// netif IP when up else ""; staConnected is the link flag; staSSID is the
+// configured SSID setting (not probe data); staIP is s3_sta_ip().
+static std::string s3_getNetworkStatus()
+{
+    const size_t capacity = JSON_OBJECT_SIZE(5);
+    DynamicJsonDocument doc(capacity);
+    WebConfigOptions &webConfigOptions = Storage::getInstance().getConfig().webConfigOptions;
+    s3_writeDoc(doc, "apEnabled", webConfigOptions.apEnabled);
+    std::string apIP;
+    esp_netif_t *apNetif = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+    if (apNetif != nullptr)
+    {
+        esp_netif_ip_info_t ipInfo;
+        if (esp_netif_get_ip_info(apNetif, &ipInfo) == ESP_OK && ipInfo.ip.addr != 0)
+        {
+            char buf[16];
+            esp_ip4addr_ntoa(&ipInfo.ip, buf, sizeof(buf));
+            apIP = buf;
+        }
+    }
+    s3_writeDoc(doc, "apIP", apIP);
+    s3_writeDoc(doc, "staConnected", s3_sta_connected() ? 1 : 0);
+    s3_writeDoc(doc, "staSSID", webConfigOptions.staSSID);
+    s3_writeDoc(doc, "staIP", s3_sta_ip());
+    return s3_serialize(doc);
+}
+
+static esp_err_t s3_handle_getNetworkStatus(httpd_req_t *req)
+{
+    return s3_json_get(req, s3_getNetworkStatus);
+}
+
 static uint32_t s3_sta_backoff_delay(uint32_t failCount)
 {
     static const uint32_t kDelays[] = { 5, 10, 20, 40, 80, 160, 300 };
@@ -4281,8 +4338,8 @@ void startWebconfigServer()
     // exact-match comparator never matches wildcards (every non-API URI
     // 404s), so select the wildcard matcher (found on hardware 2026-09).
     config.uri_match_fn = httpd_uri_match_wildcard;
-    // 15 core+Task-5 URIs + 49 Task-6 URIs + 2 Task-9 URIs + catch-all = 67;
-    // the IDF default max_uri_handlers (8) would reject registration with
+    // 15 core+Task-5 URIs + 49 Task-6 URIs + 2 Task-9 URIs + 1 STA status URI
+    // + catch-all = 68; the IDF default max_uri_handlers (8) would reject registration with
     // ESP_ERR_HTTPD_HANDLERS_FULL at server start, so raise it with margin.
     config.max_uri_handlers = 96;
     if (httpd_start(&s3_httpd, &config) != ESP_OK)
@@ -4362,6 +4419,8 @@ void startWebconfigServer()
         // Task 9: missing Display-page GETs (same contract as Pico).
         { .uri = "/api/getButtonLayoutDefs", .method = HTTP_GET, .handler = s3_handle_getButtonLayoutDefs, .user_ctx = nullptr },
         { .uri = "/api/getButtonLayouts", .method = HTTP_GET, .handler = s3_handle_getButtonLayouts, .user_ctx = nullptr },
+        // STA-Task 3: Home Network status (S3-only; registered before /*).
+        { .uri = "/api/getNetworkStatus", .method = HTTP_GET, .handler = s3_handle_getNetworkStatus, .user_ctx = nullptr },
         // Catch-all static serving LAST: "/*" matches every GET.
         { .uri = "/*", .method = HTTP_GET, .handler = s3_static_get, .user_ctx = nullptr },
     };

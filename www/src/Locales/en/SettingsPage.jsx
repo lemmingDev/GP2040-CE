@@ -200,4 +200,21 @@ export default {
 		usb: 'USB',
 		wifi: 'WiFi',
 	},
+	'sta-header-text': 'Home Network',
+	'sta-s3-note':
+		'These settings join a home WiFi network on the ESP32-S3 and are ignored on other boards. Changes take effect after reboot.',
+	'sta-ssid-label': 'Home Network SSID',
+	'sta-passphrase-label': 'Home Network Passphrase',
+	'sta-passphrase-help':
+		'Empty means an open network. Otherwise 8–64 characters (WPA2).',
+	'sta-mode-label': 'Home Network Mode',
+	'sta-mode-options': {
+		off: 'Off',
+		'webconfig-only': 'Webconfig-only',
+		'always-on': 'Always-on',
+	},
+	'sta-adc-note':
+		'Note: analog inputs on GPIO 11–20 (ADC2) are unavailable while any WiFi runs.',
+	'sta-status-connected': 'Connected to {{ssid}} ({{ip}})',
+	'sta-status-disconnected': 'Not connected to a home network.',
 };

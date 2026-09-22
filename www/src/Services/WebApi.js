@@ -698,6 +698,18 @@ async function getBoardDefinition() {
 	}
 }
 
+// S3-only Home Network status ({apEnabled, apIP, staConnected, staSSID,
+// staIP}). Boards without the endpoint (Pico) 404 here: return undefined so
+// callers hide the status line instead of failing.
+async function getNetworkStatus() {
+	try {
+		const response = await Http.get(`${baseUrl}/api/getNetworkStatus`);
+		return response.data;
+	} catch (error) {
+		console.error(error);
+	}
+}
+
 async function reboot(bootMode) {
 	return Http.post(`${baseUrl}/api/reboot`, { bootMode })
 		.then((response) => response.data)
@@ -782,5 +794,6 @@ export default {
 	getHeldPins,
 	abortGetHeldPins,
 	getBoardDefinition,
+	getNetworkStatus,
 	reboot,
 };

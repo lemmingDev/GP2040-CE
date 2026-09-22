@@ -303,6 +303,14 @@ const WEBCONFIG_TRANSPORTS = [
 	{ labelKey: 'webconfig-transport-options.wifi', value: 1 },
 ];
 
+// S3 Home Network (STA client) mode (WebConfigOptions.staMode):
+// 0 = Off, 1 = Webconfig-only, 2 = Always-on. Local table, same reason.
+const STA_MODES = [
+	{ labelKey: 'sta-mode-options.off', value: 0 },
+	{ labelKey: 'sta-mode-options.webconfig-only', value: 1 },
+	{ labelKey: 'sta-mode-options.always-on', value: 2 },
+];
+
 const INPUT_MODES_BINDS = [
 	{ value: 'B1' },
 	{ value: 'B2' },
@@ -481,6 +489,24 @@ const schema = yup.object().shape({
 		.number()
 		.oneOf(WEBCONFIG_TRANSPORTS.map((o) => o.value))
 		.label('Webconfig Transport'),
+	// S3 Home Network (STA client) fields (WebConfigOptions, served via the
+	// same get/setGamepadOptions ride-along as the AP keys above — Pico's
+	// GET omits them and its setter ignores unknown keys, so all three stay
+	// optional here: required() would block Pico saves when absent).
+	staSSID: yup.string().max(32).label('Home Network SSID'),
+	staPassphrase: yup
+		.string()
+		.max(64)
+		.test(
+			'wifi-pass-length',
+			'Passphrase must be empty (open network) or at least 8 characters (WPA2)',
+			(value) => !value || value.length === 0 || value.length >= 8,
+		)
+		.label('Home Network Passphrase'),
+	staMode: yup
+		.number()
+		.oneOf(STA_MODES.map((o) => o.value))
+		.label('Home Network Mode'),
 });
 
 const FormContext = ({ setButtonLabels, setKeyMappings }) => {
@@ -498,6 +524,9 @@ const FormContext = ({ setButtonLabels, setKeyMappings }) => {
 				apSSID: 'GP2040-CE',
 				apPassphrase: '',
 				webconfigTransport: 0,
+				staSSID: '',
+				staPassphrase: '',
+				staMode: 0,
 				...options,
 			});
 			setButtonLabels({
@@ -536,6 +565,8 @@ const FormContext = ({ setButtonLabels, setKeyMappings }) => {
 			values.webconfigTransport !== ''
 		)
 			values.webconfigTransport = parseInt(values.webconfigTransport);
+		if (values.staMode !== undefined && values.staMode !== '')
+			values.staMode = parseInt(values.staMode);
 
 		setButtonLabels({
 			swapTpShareLabels:
@@ -575,6 +606,19 @@ export default function SettingsPage() {
 		fetchProfiles();
 		updatePeripherals();
 		fetchBootModeOptions();
+	}, []);
+
+	// S3-only Home Network status (GET /api/getNetworkStatus). Boards
+	// without the endpoint (Pico) resolve undefined — the status line below
+	// stays hidden there instead of failing.
+	const [networkStatus, setNetworkStatus] = useState(null);
+
+	useEffect(() => {
+		async function fetchNetworkStatus() {
+			const status = await WebApi.getNetworkStatus();
+			if (status) setNetworkStatus(status);
+		}
+		fetchNetworkStatus();
 	}, []);
 
 	const [saveMessage, setSaveMessage] = useState('');
@@ -1499,6 +1543,7 @@ export default function SettingsPage() {
 	const translatedHotkeyActions = translateArray(HOTKEY_ACTIONS);
 	const translatedForcedSetupModes = translateArray(FORCED_SETUP_MODES);
 	const translatedWebconfigTransports = translateArray(WEBCONFIG_TRANSPORTS);
+	const translatedStaModes = translateArray(STA_MODES);
 	// Not currently used but we might add the option at a later date (wheel type, etc.)
 	const translatedPS4ControllerTypeModes = translateArray(PS4_MODES);
 	const translatedInputModeAuthentications =
@@ -2158,6 +2203,93 @@ export default function SettingsPage() {
 															</Form.Control.Feedback>
 														</Col>
 													</Form.Group>
+													<Button type="submit">
+														{t('Common:button-save-label')}
+													</Button>
+													{saveMessage ? (
+														<span className="alert">{saveMessage}</span>
+													) : null}
+												</Section>
+												<Section
+													title={t('SettingsPage:sta-header-text')}
+												>
+													<p>{t('SettingsPage:sta-s3-note')}</p>
+													<Form.Group className="row mb-3">
+														<Col sm={4}>
+															<Form.Label>
+																{t('SettingsPage:sta-ssid-label')}
+															</Form.Label>
+															<Form.Control
+																size="sm"
+																type="text"
+																name="staSSID"
+																value={values.staSSID ?? ''}
+																error={errors?.staSSID}
+																isInvalid={errors?.staSSID}
+																onChange={handleChange}
+																maxLength={32}
+															/>
+															<Form.Control.Feedback type="invalid">
+																{errors.staSSID}
+															</Form.Control.Feedback>
+														</Col>
+														<Col sm={4}>
+															<Form.Label>
+																{t('SettingsPage:sta-passphrase-label')}
+															</Form.Label>
+															<Form.Control
+																size="sm"
+																type="password"
+																name="staPassphrase"
+																value={values.staPassphrase ?? ''}
+																error={errors?.staPassphrase}
+																isInvalid={errors?.staPassphrase}
+																onChange={handleChange}
+																maxLength={64}
+															/>
+															<Form.Control.Feedback type="invalid">
+																{errors.staPassphrase}
+															</Form.Control.Feedback>
+														</Col>
+													</Form.Group>
+													<p>{t('SettingsPage:sta-passphrase-help')}</p>
+													<Form.Group className="row mb-3">
+														<Col sm={3}>
+															<Form.Label>
+																{t('SettingsPage:sta-mode-label')}
+															</Form.Label>
+															<Form.Select
+																name="staMode"
+																className="form-select-sm"
+																value={values.staMode}
+																onChange={handleChange}
+																isInvalid={errors.staMode}
+															>
+																{translatedStaModes.map((o, i) => (
+																	<option
+																		key={`button-staMode-option-${i}`}
+																		value={o.value}
+																	>
+																		{o.label}
+																	</option>
+																))}
+															</Form.Select>
+															<Form.Control.Feedback type="invalid">
+																{errors.staMode}
+															</Form.Control.Feedback>
+														</Col>
+													</Form.Group>
+													<p>{t('SettingsPage:sta-adc-note')}</p>
+													{networkStatus ? (
+														<p>
+															{networkStatus.staConnected
+																? t('SettingsPage:sta-status-connected', {
+																		ssid: networkStatus.staSSID,
+																		ip: networkStatus.staIP,
+																	})
+																: t('SettingsPage:sta-status-disconnected')}
+														</p>
+													) : null}
 													<Button type="submit">
 														{t('Common:button-save-label')}
 													</Button>
