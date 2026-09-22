@@ -108,7 +108,6 @@ read the matching section here before touching the code.
   sends completed without registering; 49-byte sends fixed inputs.
 
 ## Validated USB modes on S3 hardware (post-merge, Sept 2026)
-
 - XInput (`VID_045E:028E`), Pokken (`VID_0F0D:0092`), PS4, PS3 (`VID_054C`,
   needs §7 fix), SInput (`VID_2E8A:10C6`, struct is exactly the declared
   64 bytes — no PS3-style mismatch). Keyboard validated pre-merge.
@@ -180,9 +179,13 @@ read the matching section here before touching the code.
   gamepad inputs stay live under WiFi-config and will park only under
   the future USB-config.
 - **Verify:** guard checks 11 (passphrase confined to the define; no
-  `apPassphrase` in `webconfig_s3.cpp` printf/`ESP_LOG` lines); hardware:
-  L1-boot → AP `GP2040-CE` appears → UI at `http://192.168.4.1/` →
-  save → reboot → persists → inputs live during the AP session.
+  `apPassphrase` in `webconfig_s3.cpp` printf/`ESP_LOG` lines); hardware
+  E2E 2026-09 (all pass): L1-boot → AP `GP2040-CE` → UI loads (static
+  needed the `uri_match_fn` wildcard fix — exact-match never matches
+  `/*`) → SSID/passphrase/transport save → reboot → `GP2040-TEST`
+  persists → inputs live during AP → L1-valid mapping honored →
+  L2-hold normal boot → `/api/reboot {"bootMode":1}` returns to
+  webconfig (RTC proof) → toggle-off resting silent boot.
 
 ## Open items (observed, not guard-enforced)
 - **PS3 Feature 0x01 response over-read (upstream bug, not ours).**
@@ -191,8 +194,13 @@ read the matching section here before touching the code.
   end), and the GAMEPAD/alt branches look inverted against the table
   comments ("for non DS3 controllers"). Present upstream, tolerated by the
   host on S3. Flag for an upstream report; deliberately not fixed here.
-- **Boot-select mode persistence retest.** A B3-hold boot entered PS3 for
-  the session but a later reset came up in stored Pokken; XInput↔Pokken
-  switches persisted earlier, so saving itself works. Needs a dedicated
-  save → reset → recheck pass to rule out a merge regression in the
-  boot-action save path.
+- **Unmapped boot-hold returns placeholder -1 (upstream-shared flaw).**
+  Holding a button whose mapping is `-1` matches its map entry and returns
+  -1 as the mode (seen on S3: L1-hold stored -1, WiFi never came up). S3
+  guards L1/L2/R1 holds before the generic lookup; B1-B4/R2-unmapped and
+  Pico share the latent flaw. Flag for an upstream report; S3 side fixed
+  (`bbe0813f`).
+- **React `inputMode` validation lacks Bluetooth (18).** The Settings yup
+  list ends at 17/16; a stored Bluetooth mode fails validation and crashes
+  the mode lookup (white screen — seen with poisoned configs). Goes with
+  the deferred Bluetooth UI work, not this plan.
