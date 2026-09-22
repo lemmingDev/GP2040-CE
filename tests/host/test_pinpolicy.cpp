@@ -31,9 +31,10 @@ int main() {
     assert(GPIO_PIN_20 == GpioAction::RESERVED);
     assert(GPIO_PIN_33 == GpioAction::RESERVED);
     assert(GPIO_PIN_34 == GpioAction::RESERVED);
-    assert(GPIO_PIN_35 == GpioAction::RESERVED);
-    assert(GPIO_PIN_36 == GpioAction::RESERVED);
-    assert(GPIO_PIN_37 == GpioAction::RESERVED);
+    // 35-37 freed for quad-flash modules (owner-verified routed 2026-09-22).
+    assert(GPIO_PIN_35 == GpioAction::NONE);
+    assert(GPIO_PIN_36 == GpioAction::NONE);
+    assert(GPIO_PIN_37 == GpioAction::NONE);
     assert(GPIO_PIN_43 == GpioAction::RESERVED);
     assert(GPIO_PIN_44 == GpioAction::RESERVED);
     assert(GPIO_PIN_45 == GpioAction::RESERVED);

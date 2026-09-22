@@ -89,9 +89,9 @@
 #define GPIO_PIN_32 GpioAction::NONE
 #define GPIO_PIN_33 GpioAction::RESERVED // octal flash/PSRAM on this module (WROOM-2-class; variant-conditional by design, hardcoded here)
 #define GPIO_PIN_34 GpioAction::RESERVED // (see above)
-#define GPIO_PIN_35 GpioAction::RESERVED // octal flash/PSRAM on this module
-#define GPIO_PIN_36 GpioAction::RESERVED // (see above)
-#define GPIO_PIN_37 GpioAction::RESERVED // (see above)
+#define GPIO_PIN_35 GpioAction::NONE // routed on quad-flash modules (owner-verified 2026-09-22); octal variants keep 33/34 reserved
+#define GPIO_PIN_36 GpioAction::NONE // (see above)
+#define GPIO_PIN_37 GpioAction::NONE // (see above)
 // GPIO 38: pixel hardware present, data pin unassigned by default (see BOARD_LEDS_PIN).
 #define GPIO_PIN_38 GpioAction::NONE
 // GPIO 39 keeps its TURBO role (see TURBO_LED_PIN): LED-output pin, never a
@@ -143,9 +143,9 @@ static const char *const PIN_NOTES[] = { /* index = GPIO number, 49 entries, "" 
     "", // 32
     "Octal flash/PSRAM on this module: do not use", // 33
     "Octal flash/PSRAM on this module: do not use", // 34
-    "Octal flash/PSRAM on this module: do not use", // 35
-    "Octal flash/PSRAM on this module: do not use", // 36
-    "Octal flash/PSRAM on this module: do not use", // 37
+    "", // 35 (routed spare on this module; see GPIO_PIN_35)
+    "", // 36 (see above)
+    "", // 37 (see above)
     "", // 38
     "", // 39 (TURBO LED pin; role documented at TURBO_LED_PIN)
     "", // 40

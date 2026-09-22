@@ -3118,7 +3118,10 @@ static std::string s3_setLightsToDefault(const char *body, size_t len)
 // (only non-empty entries; Pico responses lack the key entirely).
 // Pico instead wraps this in a "pico" object (src/webconfig.cpp:3177).
 static std::string s3_getBoardDefinition() {
-    const size_t capacity = JSON_OBJECT_SIZE(160);
+    // 49-pin tables + pinNotes strings share this pool, and pinNotes is
+    // written last: 160 slots silently truncated it (notes never reached
+    // the UI). 384 leaves headroom; transient per-request allocation.
+    const size_t capacity = JSON_OBJECT_SIZE(384);
     DynamicJsonDocument doc(capacity);
 
     GpioMappings& gpioMappings = Storage::getInstance().getGpioMappings();

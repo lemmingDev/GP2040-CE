@@ -1960,6 +1960,43 @@ void migrateTurboPinToGpio(Config& config) {
     }
 }
 
+// Free pins the board profile no longer reserves. Stored RESERVED is
+// sticky (the set-paths refuse to overwrite it, the once-ever wipe never
+// re-runs), so a profile change from RESERVED to free would otherwise leave
+// the pins inert forever. This reconciles stored state toward the CURRENT
+// profile in core mappings and every profile set: stored RESERVED on a pin
+// the profile now leaves free becomes NONE. It only ever un-reserves,
+// never adds, and is a no-op once reconciled, so it runs ungated like the
+// migrations around it. To un-reserve a pin in future, flip its profile
+// macro to NONE and add a case to boardReserves below.
+void migrateFreedGpioPins(Config& config) {
+#if defined(ESP_PLATFORM)
+    const auto boardReserves = [](Pin_t pin) -> bool {
+        switch (pin) {
+            // 35-37: octal-flash assumption lifted for quad-flash modules
+            // (owner-verified routed 2026-09-22).
+            case 35: return GPIO_PIN_35 == GpioAction::RESERVED;
+            case 36: return GPIO_PIN_36 == GpioAction::RESERVED;
+            case 37: return GPIO_PIN_37 == GpioAction::RESERVED;
+            default: return true; // unknown pins: never touch
+        }
+    };
+    const Pin_t freedPins[] = {35, 36, 37};
+    for (Pin_t pin : freedPins) {
+        if (boardReserves(pin)) continue;
+        if (!isValidPin(pin)) continue;
+        if (config.gpioMappings.pins[pin].action == GpioAction::RESERVED) {
+            config.gpioMappings.pins[pin].action = GpioAction::NONE;
+        }
+        for (uint8_t profileNum = 0; profileNum <= MAX_PROFILES-2; profileNum++) {
+            if (config.profileOptions.gpioMappingsSets[profileNum].pins[pin].action == GpioAction::RESERVED) {
+                config.profileOptions.gpioMappingsSets[profileNum].pins[pin].action = GpioAction::NONE;
+            }
+        }
+    }
+#endif
+}
+
 void migrateAuthenticationMethods(Config& config) {
     // Auth migrations
     GamepadOptions & gamepadOptions = config.gamepadOptions;
@@ -2226,6 +2263,8 @@ void ConfigUtils::load(Config& config)
     // following migrations are simple enough to not need a protobuf boolean to track
     // Migrate turbo into GpioMappings
     migrateTurboPinToGpio(config);
+    // Release pins the board profile no longer reserves (35-37 on S3)
+    migrateFreedGpioPins(config);
     // Migrate PS4/PS5/XBone authentication methods to new organization
     migrateAuthenticationMethods(config);
     // Macro pins to gpio
@@ -2910,6 +2949,7 @@ bool ConfigUtils::fromJSON(Config& config, const char* data, size_t dataLen)
     // we need to run migrations here too, in case the json document changed pins or things derived from pins
     gpioMappingsMigrationCore(config);
     migrateTurboPinToGpio(config);
+    migrateFreedGpioPins(config);
     migrateAuthenticationMethods(config);
     migrateMacroPinsToGpio(config);
 
