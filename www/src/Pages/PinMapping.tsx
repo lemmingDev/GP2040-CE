@@ -33,6 +33,7 @@ import useProfilesStore, {
 import Section from '../Components/Section';
 import CustomSelect from '../Components/CustomSelect';
 import CaptureButton from '../Components/CaptureButton';
+import useBoardDefinition from '../Store/useBoardDefinitionStore';
 
 import { BUTTON_MASKS, DPAD_MASKS, getButtonLabels } from '../Data/Buttons';
 import { BUTTON_ACTIONS, PinActionKeys, PinActionValues } from '../Data/Pins';
@@ -171,6 +172,11 @@ const PinSelectList = memo(function PinSelectList({
 }) {
 	const setProfilePin = useProfilesStore((state) => state.setProfilePin);
 	const { activateLedsOnId, turnOffLedTestModes } = useLedsPreview();
+	const { boardDefinition, getBoardDefinition } = useBoardDefinition();
+	const notes = boardDefinition.pinNotes;
+	useEffect(() => {
+		getBoardDefinition();
+	}, []);
 	const pins = useProfilesStore(
 		useShallow((state) =>
 			omit(state.profiles[profileIndex], ['profileLabel', 'enabled']),
@@ -269,6 +275,11 @@ const PinSelectList = memo(function PinSelectList({
 						onFocus={() => activateLedsOnId(index)}
 						onBlur={turnOffLedTestModes}
 					/>
+					{notes?.[parseInt(pin.replace('pin', ''), 10)] && (
+						<span className="text-muted small ms-2">
+							{notes[parseInt(pin.replace('pin', ''), 10)]}
+						</span>
+					)}
 				</div>
 			))}
 		</div>

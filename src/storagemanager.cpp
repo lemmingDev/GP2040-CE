@@ -35,6 +35,19 @@ void Storage::init() {
 	systemFlashSize = System::getPhysicalFlash(); // System Flash Size must be called once
 	EEPROM.start();
 	ConfigUtils::load(config);
+#if defined(ESP_PLATFORM)
+	// S3 48-pin table extension, forward-only (single flashed board): a
+	// config persisted by a 30-entry build carries pins_count 30, whose
+	// tables cannot address pins 30-48. Reset the pin tables to fresh
+	// defaults in-RAM (re-run the defaults path) and save once. Runs once
+	// ever; fresh configs already match. No reboot; boot continues normally.
+	// Pico keeps its own migration and never compiles this (Pico behavior
+	// byte-identical).
+	if (config.gpioMappings.pins_count != NUM_BANK0_GPIOS) {
+		ConfigUtils::resetGpioMappingsToDefaults(config);
+		save(true);
+	}
+#endif
 }
 
 /**

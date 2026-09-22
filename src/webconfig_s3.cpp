@@ -630,8 +630,10 @@ static std::string s3_getGamepadOptions()
 }
 
 // Mirrors Pico setPinMappings() (src/webconfig.cpp:1474-1501). The pin loop
-// is bounded by NUM_BANK0_GPIOS exactly like Pico's; on S3 that macro is 30
-// (headers/types.h), so only pin00..pin29 exist here.
+// is bounded by NUM_BANK0_GPIOS exactly like Pico's (49 on the S3
+// 48-pin build, so pin00..pin48 are stored). Pins failing isValidPin()
+// (22-34 can never be routable) are rejected here as a backstop regardless
+// of UI rendering, so they can never be stored.
 static std::string s3_setPinMappings(const char *body, size_t len)
 {
     DynamicJsonDocument doc(S3_POST_MAX_PAYLOAD_LEN);
@@ -641,6 +643,9 @@ static std::string s3_setPinMappings(const char *body, size_t len)
 
     char pinName[6];
     for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
+        if (!isValidPin(pin)) {
+            continue;
+        }
         snprintf(pinName, 6, "pin%02d", (int)pin);
         // setting a pin shouldn't change a new existing addon/reserved pin
         if (gpioMappings.pins[pin].action != GpioAction::RESERVED &&
@@ -663,9 +668,8 @@ static std::string s3_setPinMappings(const char *body, size_t len)
 }
 
 // Mirrors Pico getPinMappings() (src/webconfig.cpp:1503-1572). Serializes
-// exactly the entries the S3 build owns: pin00..pin29 explicitly, plus the
-// same `#if NUM_BANK0_GPIOS > 32` pin30..pin47 block Pico has — which
-// compiles out on S3 (NUM_BANK0_GPIOS=30), so no pin48+ entries are invented.
+// pin00..pin29 explicitly, plus the same `#if NUM_BANK0_GPIOS > 32`
+// pin30..pin48 block Pico has (live on the S3 49-pin build).
 static std::string s3_getPinMappings()
 {
     const size_t capacity = JSON_OBJECT_SIZE(500);
@@ -729,6 +733,7 @@ static std::string s3_getPinMappings()
     writePinDoc("pin45", gpioMappings.pins[45]);
     writePinDoc("pin46", gpioMappings.pins[46]);
     writePinDoc("pin47", gpioMappings.pins[47]);
+    writePinDoc("pin48", gpioMappings.pins[48]);
 #endif
 
     s3_writeDoc(doc, "profileLabel", gpioMappings.profileLabel);
@@ -751,6 +756,11 @@ static std::string s3_setProfileOptions(const char *body, size_t len)
     char pinName[6];
     for (JsonObject alt : alts) {
         for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
+            // Backstop matching s3_setPinMappings: non-routable pins
+            // (22-34) are never stored, regardless of UI rendering.
+            if (!isValidPin(pin)) {
+                continue;
+            }
             snprintf(pinName, 6, "pin%02d", (int)pin);
             // setting a pin shouldn't change a new existing addon/reserved pin
             // but if the profile definition is new, we should still capture the addon/reserved state
@@ -783,9 +793,9 @@ static std::string s3_setProfileOptions(const char *body, size_t len)
     return s3_serialize(doc);
 }
 
-// Mirrors Pico getProfileOptions() (src/webconfig.cpp:602-680). Same S3
-// table-size note as s3_getPinMappings: pin00..pin29 plus Pico's identical
-// `#if NUM_BANK0_GPIOS > 32` guard (compiles out on S3).
+// Mirrors Pico getProfileOptions() (src/webconfig.cpp:602-680). Same table
+// note as s3_getPinMappings: pin00..pin29 plus Pico's identical
+// `#if NUM_BANK0_GPIOS > 32` guard through pin48 (live on S3).
 static std::string s3_getProfileOptions()
 {
     const size_t capacity = JSON_OBJECT_SIZE(500);
@@ -858,6 +868,7 @@ static std::string s3_getProfileOptions()
         writePinDoc(i, "pin45", profileOptions.gpioMappingsSets[i].pins[45]);
         writePinDoc(i, "pin46", profileOptions.gpioMappingsSets[i].pins[46]);
         writePinDoc(i, "pin47", profileOptions.gpioMappingsSets[i].pins[47]);
+        writePinDoc(i, "pin48", profileOptions.gpioMappingsSets[i].pins[48]);
 #endif
         s3_writeDoc(doc, "alternativePinMappings", i, "profileLabel", profileOptions.gpioMappingsSets[i].profileLabel);
         doc["alternativePinMappings"][i]["enabled"] = profileOptions.gpioMappingsSets[i].enabled;
@@ -988,14 +999,16 @@ static std::string s3_setBootModeOptions(const char *body, size_t len) {
     JsonObject options = doc.as<JsonObject>();
 
     bootModeOptions.enabled = options["enabled"].as<bool>();
-    bootModeOptions.webConfigPinMask = options["webConfigPinMask"].as<int32_t>();
-    bootModeOptions.usbModePinMask = options["usbModePinMask"].as<int32_t>();
+    // 64-bit boot masks (mirrors fromJsonUint64 in config_utils.cpp: a
+    // UI-sent -1 stores UINT64_MAX, the disabled-mapping sentinel).
+    bootModeOptions.webConfigPinMask = options["webConfigPinMask"].as<uint64_t>();
+    bootModeOptions.usbModePinMask = options["usbModePinMask"].as<uint64_t>();
 
     JsonArray mappings = options["inputModeMappings"];
 
     size_t i = 0;
     for (JsonObject mapping : mappings) {
-        bootModeOptions.inputModeMappings[i].pinMask = mapping["pinMask"].as<int32_t>();
+        bootModeOptions.inputModeMappings[i].pinMask = mapping["pinMask"].as<uint64_t>();
         bootModeOptions.inputModeMappings[i].inputMode = mapping["inputMode"].as<InputMode>();
         bootModeOptions.inputModeMappings[i].profileNumber = mapping["profileNumber"].as<uint32_t>();
         if (++i >= MAX_MAPPED_INPUT_MODES) {
@@ -1047,9 +1060,8 @@ static void s3_docToValue(T& value, const DynamicJsonDocument& doc, const char* 
 }
 
 // Mirrors Pico cleanAddonGpioMappings() (src/webconfig.cpp:113-139). One S3
-// difference: isValidPin() admits S3 GPIOs up to 48 (minus 19/20) while the
-// nanopb pin tables are 48 entries, so table marks are clamped to the array
-// (pin 48 stays a legal configured value but cannot be table-marked).
+// difference: isValidPin() admits S3 GPIOs up to 48 (minus 19/20 and 22-34)
+// and the pin tables are 49 entries, so table marks run through pin 48.
 static void s3_cleanAddonGpioMappings(Pin_t& addonPin, Pin_t oldAddonPin)
 {
     GpioMappingInfo* gpioMappings = Storage::getInstance().getGpioMappings().pins;
@@ -1058,7 +1070,7 @@ static void s3_cleanAddonGpioMappings(Pin_t& addonPin, Pin_t oldAddonPin)
     // if the new addon pin value is valid, mark it assigned in GpioMappings
     if (isValidPin(addonPin))
     {
-        if (addonPin >= 0 && addonPin < 48)
+        if (addonPin >= 0 && addonPin <= 48)
         {
             gpioMappings[addonPin].action = GpioAction::ASSIGNED_TO_ADDON;
             profiles.gpioMappingsSets[0].pins[addonPin].action = GpioAction::ASSIGNED_TO_ADDON;
@@ -1074,7 +1086,7 @@ static void s3_cleanAddonGpioMappings(Pin_t& addonPin, Pin_t oldAddonPin)
     // old value is a real pin (and different), we should unset it
     if (isValidPin(oldAddonPin) && oldAddonPin != addonPin)
     {
-        if (oldAddonPin >= 0 && oldAddonPin < 48)
+        if (oldAddonPin >= 0 && oldAddonPin <= 48)
         {
             gpioMappings[oldAddonPin].action = GpioAction::NONE;
             profiles.gpioMappingsSets[0].pins[oldAddonPin].action = GpioAction::NONE;
@@ -3061,9 +3073,11 @@ static std::string s3_setLightsToDefault(const char *body, size_t len)
 // Board definition for the S3 port (brief shape): flat minPin/maxPin over the
 // S3 GPIO window, analogPins from the ADC1 channel map above, availablePins
 // as the routable set minus the native-USB pair 19/20, usedPins from the pin
-// mappings. Pico instead wraps this in a "pico" object (src/webconfig.cpp:3177).
+// mappings (through pin 48), plus pinNotes from the board PIN_NOTES table
+// (only non-empty entries; Pico responses lack the key entirely).
+// Pico instead wraps this in a "pico" object (src/webconfig.cpp:3177).
 static std::string s3_getBoardDefinition() {
-    const size_t capacity = JSON_OBJECT_SIZE(100);
+    const size_t capacity = JSON_OBJECT_SIZE(160);
     DynamicJsonDocument doc(capacity);
 
     GpioMappings& gpioMappings = Storage::getInstance().getGpioMappings();
@@ -3087,6 +3101,18 @@ static std::string s3_getBoardDefinition() {
         snprintf(pinName, 6, "pin%02d", (int)pin);
         doc["usedPins"][pinName] = gpioMappings.pins[pin].action;
     }
+
+#ifdef PIN_NOTES
+    JsonObject pinNotes = doc.createNestedObject("pinNotes");
+    char noteKey[4];
+    for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
+        const char *note = PIN_NOTES[pin];
+        if (note != nullptr && note[0] != '\0') {
+            snprintf(noteKey, sizeof(noteKey), "%d", (int)pin);
+            pinNotes[noteKey] = note;
+        }
+    }
+#endif
 
     return s3_serialize(doc);
 }

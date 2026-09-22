@@ -349,6 +349,9 @@
 #ifndef GPIO_PIN_47
     #define GPIO_PIN_47 GpioAction::NONE
 #endif
+#ifndef GPIO_PIN_48
+    #define GPIO_PIN_48 GpioAction::NONE
+#endif
 
 #define MAX_PROFILES (uint8_t)6
 
@@ -1455,14 +1458,16 @@ void gpioMappingsMigrationCore(Config& config)
                                            GpioAction::NONE, GpioAction::NONE, GpioAction::NONE,
                                            GpioAction::NONE, GpioAction::NONE, GpioAction::NONE,
                                            GpioAction::NONE, GpioAction::NONE, GpioAction::NONE,
+                                           GpioAction::NONE,
 #endif
                                            };
 
     // flag additional pins as being used by an addon not managed here
-    // NOTE (S3): actions[] has NUM_BANK0_GPIOS (30) entries while isValidPin
-    // now admits S3 pins up to 48 — bound the index or pins like I2C 41/42
-    // write 11 past the end (found on hardware 2026-09-20: inputs died after
-    // the widening). Pico pins are always < 30, so its behavior is unchanged.
+    // NOTE (S3): actions[] has NUM_BANK0_GPIOS (49) entries while isValidPin
+    // admits S3 pins up to 48 — the index bound below keeps pins like I2C
+    // 41/42 inside the table (found on hardware 2026-09-20: inputs died when
+    // the 30-entry table met the widened policy). Pico pins are always < 30,
+    // so its behavior is unchanged.
     const auto markAddonPinIfUsed = [&](Pin_t gpPin) -> void {
         if (isValidPin(gpPin) && (int32_t)gpPin < (int32_t)NUM_BANK0_GPIOS)
             actions[gpPin] = GpioAction::ASSIGNED_TO_ADDON;
@@ -1472,7 +1477,7 @@ void gpioMappingsMigrationCore(Config& config)
     const auto fromProtoBuf = [&](bool isInProtobuf, Pin_t *protobufEntry, GpioAction action) -> void {
         // get the core config value for a pin either from protobuf or, failing that, BoardConfig.h
         if (isInProtobuf) {
-            if (*protobufEntry >= 0 && *protobufEntry < 30) {
+            if (*protobufEntry >= 0 && *protobufEntry < NUM_BANK0_GPIOS) {
                 actions[*protobufEntry] = action;
                 *protobufEntry = -1;
             }
@@ -1646,6 +1651,7 @@ void gpioMappingsMigrationCore(Config& config)
                                                GPIO_PIN_39, GPIO_PIN_40, GPIO_PIN_41,
                                                GPIO_PIN_42, GPIO_PIN_43, GPIO_PIN_44,
                                                GPIO_PIN_45, GPIO_PIN_46, GPIO_PIN_47,
+                                               GPIO_PIN_48,
 #endif
                                                };
 
@@ -1801,7 +1807,8 @@ void gpioMappingsMigrationCore(Config& config)
                 )
             );
             markAddonPinIfUsed(peripheralOptions.blockUSB0.dp);
-            if (isValidPin(peripheralOptions.blockUSB0.dp))
+            if (isValidPin(peripheralOptions.blockUSB0.dp) &&
+                    peripheralOptions.blockUSB0.dp + 1 < (Pin_t)NUM_BANK0_GPIOS)
                 actions[peripheralOptions.blockUSB0.dp+1] = GpioAction::ASSIGNED_TO_ADDON;
         }
     }
@@ -1883,8 +1890,8 @@ void gpioMappingsMigrationProfiles(Config& config)
     AlternativePinMappings* deprecatedAlts = config.profileOptions.deprecatedAlternativePinMappings;
 
     const auto assignProfilePinIfUsed = [&](uint8_t profileNum, Pin_t profilePin, GpioAction action) -> void {
-        // Same 30-entry bound as markAddonPinIfUsed above: legacy profile
-        // data can name any pin, and gpioMappingsSets[].pins[] is 30 long.
+        // Same table bound as markAddonPinIfUsed above: legacy profile
+        // data can name any pin, and gpioMappingsSets[].pins[] is NUM_BANK0_GPIOS long.
         if (isValidPin(profilePin) && (int32_t)profilePin < (int32_t)NUM_BANK0_GPIOS) {
             config.profileOptions.gpioMappingsSets[profileNum].pins[profilePin].action = action;
         }
@@ -1917,6 +1924,19 @@ void gpioMappingsMigrationProfiles(Config& config)
     config.profileOptions.gpioMappingsSets_count = 5;
 
     config.migrations.buttonProfilesMigrated = true;
+}
+
+// Rebuild the core + profile pin tables from board defaults in-RAM (re-runs
+// the gpioMappingsMigrationCore/Profiles defaults path: boardConfig actions
+// plus current addon-pin marks). Used once ever by the S3 legacy wipe in
+// Storage::init when a pre-extension persisted config is detected; fresh
+// configs already match and never take this path.
+void ConfigUtils::resetGpioMappingsToDefaults(Config& config)
+{
+    config.migrations.gpioMappingsMigrated = false;
+    config.migrations.buttonProfilesMigrated = false;
+    gpioMappingsMigrationCore(config);
+    gpioMappingsMigrationProfiles(config);
 }
 
 void migrateTurboPinToGpio(Config& config) {

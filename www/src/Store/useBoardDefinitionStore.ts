@@ -8,6 +8,7 @@ type State = {
 		analogPins: Array<number>;
 		availablePins: {};
 		usedPins: {};
+		pinNotes?: Record<string, string>;
 	};
 	loading: boolean;
 	error: boolean;

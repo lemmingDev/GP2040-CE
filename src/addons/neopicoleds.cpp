@@ -335,7 +335,9 @@ void NeoPicoLEDAddon::process()
 	vector<int32_t> pressedPins;
 	for(auto thisLight : RGBLights.AllLights)
 	{
-		if(values & (Mask_t{1} << thisLight.GIPOPin))
+		// Non-button lights carry GIPOPin -1: shifting by -1 is UB, so skip
+		// them before the bit test (pin 48 fits Mask_t now that it is 64-bit).
+		if (thisLight.GIPOPin >= 0 && (values & (Mask_t{1} << thisLight.GIPOPin)))
 		{
 			pressedPins.push_back(thisLight.GIPOPin);
 		}

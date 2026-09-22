@@ -7,8 +7,9 @@
 namespace ConfigUtils {
     void load(Config& config);
     bool save(Config& config);
-    
+
     void initUnsetPropertiesWithDefaults(Config& config);
+    void resetGpioMappingsToDefaults(Config& config);
 
     std::string toJSON(const Config& config);
     bool fromJSON(Config& config, const char* data, size_t dataLen);

@@ -15,10 +15,12 @@
 // S3 RMT backend, identical method set (hal_esp32s3/hal_ws2812_s3.h).
 #include "hal_ws2812_s3.h"
 // S3: NUM_BANK0_GPIOS normally comes from the board header (S3 BoardConfig
-// defines 30), but this header can precede it in the include order, so keep
-// a fallback. Values must match (per-pin static-color arrays).
+// defines 49), but this header can precede it in the include order, so keep
+// a fallback. Values must match (per-pin static-color arrays): 49 keeps the
+// S3 0-48 tables consistent. Pico is untouched — its value comes from the
+// Pico SDK, so this #ifndef never fires there.
 #ifndef NUM_BANK0_GPIOS
-#define NUM_BANK0_GPIOS 30
+#define NUM_BANK0_GPIOS 49
 #endif
 #endif
 #include "animation.h"
