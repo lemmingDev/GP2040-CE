@@ -16,6 +16,8 @@ export default {
 	'analog-warning':
 		'Note: Analog sticks will override gamepad Left-Stick and Right-Stick inputs when enabled',
 	'analog-available-pins-text': 'Available GPIO pins: {{pins}}',
+	'analog-adc2-wifi-note':
+		'Note: GPIO11-20 (ADC2) are analog-capable only while WiFi is disabled. This build always runs WiFi for webconfig, so only the ADC1 pins above are offered.',
 	'analog-available-pins-option-not-set': 'None',
 	'analog-adc-1': 'Analog Stick 1',
 	'analog-adc-1-pin-x-label': 'Analog Stick 1 X GPIO Pin',

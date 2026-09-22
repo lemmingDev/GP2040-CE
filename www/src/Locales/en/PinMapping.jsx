@@ -8,6 +8,7 @@ export default {
 	'profile-label-description':
 		'Max 16 characters. Printable ASCII characters allowed.',
 	'profile-pin-mapping-title': '{{profileLabel}} - GPIO Pin Mapping',
+	'analog-capable-text': 'Analog capable',
 	'profile-label-default': 'Profile {{profileNumber}}',
 	'profile-add-button': '+ Add Profile',
 	'profile-disabled': ' - (Disabled)',

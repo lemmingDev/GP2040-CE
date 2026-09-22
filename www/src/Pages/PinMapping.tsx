@@ -261,6 +261,9 @@ const PinSelectList = memo(function PinSelectList({
 		>
 			{Object.entries(pins).map(([pin, pinData], index) => {
 				const note = notes?.[parseInt(pin.replace('pin', ''), 10)];
+				const isAnalog = (boardDefinition.analogPins ?? []).includes(
+					parseInt(pin.replace('pin', ''), 10),
+				);
 				return (
 					<div key={`select-${index}`}>
 						<div className="d-flex align-items-center">
@@ -284,6 +287,11 @@ const PinSelectList = memo(function PinSelectList({
 						</div>
 						{note && (
 							<div className="text-muted small pin-note">{note}</div>
+						)}
+						{isAnalog && (
+							<div className="text-muted small pin-note">
+								{t('PinMapping:analog-capable-text')}
+							</div>
 						)}
 					</div>
 				);

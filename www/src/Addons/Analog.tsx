@@ -220,6 +220,11 @@ const Analog = ({
 						pins: availableAnalogPins.join(', '),
 					})}
 				</div>
+				{boardDefinition.maxPin > 29 && (
+					<div className="alert alert-info" role="alert">
+						{t('AddonsConfig:analog-adc2-wifi-note')}
+					</div>
+				)}
 				<Tabs
 					defaultActiveKey="analog1Config"
 					id="analogConfigTabs"
