@@ -176,6 +176,38 @@ else
     pass "no apPassphrase in webconfig_s3.cpp log lines"
 fi
 
+# 12. STA defaults pinned + no STA passphrase in code/logs: the STA client
+#     joins a home network, so the safe default must be radio-off with empty
+#     credentials (an Always-on default would join unknown networks on
+#     first boot). The passphrase obeys the same lengths-only logging rule as
+#     the AP check, and the default literal lives ONLY in its
+#     DEFAULT_STA_PASSPHRASE define.
+if grep -q "DEFAULT_STA_MODE STA_OFF" src/config_utils.cpp && \
+   grep -q 'define DEFAULT_STA_SSID ""' src/config_utils.cpp && \
+   grep -q 'define DEFAULT_STA_PASSPHRASE ""' src/config_utils.cpp; then
+    pass "STA defaults pinned (off, empty SSID/passphrase)"
+else
+    failmsg "STA defaults pinned (off, empty SSID/passphrase)"
+fi
+if grep -E "printf|ESP_LOG" src/webconfig_s3.cpp | grep -q "staPassphrase"; then
+    failmsg "no staPassphrase in webconfig_s3.cpp log lines"
+else
+    pass "no staPassphrase in webconfig_s3.cpp log lines"
+fi
+sta_cred_hits=""
+for f in $CODE; do
+    [ -f "$f" ] || continue
+    [ "$f" = "src/config_utils.cpp" ] && continue
+    if grep -q "DEFAULT_STA_PASSPHRASE" "$f"; then
+        sta_cred_hits="$sta_cred_hits $f"
+    fi
+done
+if [ -z "$sta_cred_hits" ]; then
+    pass "DEFAULT_STA_PASSPHRASE lives only in config_utils.cpp"
+else
+    failmsg "DEFAULT_STA_PASSPHRASE lives only in config_utils.cpp:$sta_cred_hits"
+fi
+
 if [ "$fail" -ne 0 ]; then
     echo "s3-guards: FAILURES present (see docs/s3-port-constraints.md)"
     exit 1

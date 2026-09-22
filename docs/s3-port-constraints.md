@@ -189,6 +189,49 @@ read the matching section here before touching the code.
   render offline (release check catch + 3 s abort in `useSystemStats.ts`;
   without it the page waits out the ~25 s TCP timeout or blanks).
 
+## 12. STA client: APSTA matrix, backoff, boot integration, ADC2 caveat
+
+- **Symptom:** board with saved home-network credentials never joins it (or
+  joins only while the AP session runs and drops after); alternatively a
+  fresh board unexpectedly probes/joins WiFi on first boot; or a reconnect
+  storm hammers a dead router every second while the device AP stutters.
+- **Root cause:** the S3 WiFi bring-up grew from AP-only to a two-interface
+  matrix, and each half has a failure mode: (a) without an explicit mode
+  matrix, STA-only boots re-entered the AP path (or started no WiFi at
+  all), so the LAN UI was unreachable over the home network; (b) without
+  event-driven backoff, every `WIFI_EVENT_STA_DISCONNECTED` re-called
+  `esp_wifi_connect()` immediately — a tight retry loop that starves the
+  independent AP side; (c) without boot integration per `staMode`, the
+  client either joined whenever an SSID was saved (unsafe default) or never
+  joined outside a webconfig session; (d) ESP32-S3 ADC2 shares hardware
+  with WiFi, so analog reads on ADC2 pins corrupt once the radio is up.
+- **Rule:** `startWifiS3()` implements the matrix — AP+STA →
+  `WIFI_MODE_APSTA`, AP-only → `WIFI_MODE_AP` (Task-7 behavior-identical),
+  STA-only → `WIFI_MODE_STA`, neither → no WiFi at all — with one
+  `esp_wifi_set_mode()` + one `esp_wifi_start()` per boot on the shared
+  base init (NVS/netif/event-loop hoisted so STA-only works without the AP
+  path). Boot joins per `s3_sta_wanted()`: `STA_ALWAYS_ON` joins whenever
+  an SSID is saved; `STA_WEBCONFIG_ONLY` joins only inside a webconfig
+  session (L1-hold, toggle, CONFIG+WiFi-pref — exactly `s3ApRequested`);
+  `STA_OFF` (default) or an empty SSID never joins. Defaults stay
+  `DEFAULT_STA_MODE STA_OFF` with empty SSID/passphrase in
+  `src/config_utils.cpp`; the passphrase obeys the lengths-only logging
+  rule (never in a `printf`/`ESP_LOG` line) and lives only in its define.
+  Reconnects are event-driven with backoff `{5,10,20,40,80,160,300,...}` s
+  (cap 300 s, reset to 5 s on `IP_EVENT_STA_GOT_IP`); the retry callback
+  no-ops when STA is no longer wanted or already connected. STA paths never
+  touch AP state, so backoff retries leave the device AP unaffected. ADC:
+  only ADC1 (S3 GPIO 1–10) is mapped — ADC2 is unusable while WiFi runs.
+- **Verify:** guard check 12 (defaults pinned; no `staPassphrase` in
+  `webconfig_s3.cpp` log lines; `DEFAULT_STA_PASSPHRASE` confined to
+  `config_utils.cpp`); `GET /api/getNetworkStatus` returns exactly
+  `{apEnabled, apIP, staConnected, staSSID, staIP}`; hardware E2E (script
+  kept outside the repo — see task-4 E2E notes, Sept 2026): L1-boot → AP →
+  set STA creds + Always-on via UI → reboot → joins home network (serial
+  shows IP) → UI reachable via LAN IP → unplug AP-router → backoff
+  retries, device AP unaffected → clear creds → clean boot, no STA. Analog
+  on this board: inspect only, never verified (ADC2 caveat above).
+
 ## Open items (observed, not guard-enforced)
 - **PS3 Feature 0x01 response over-read (upstream bug, not ours).**
   `PS3Driver::get_report`, `PS3_FEATURE_01` case: copies a 48-byte host
