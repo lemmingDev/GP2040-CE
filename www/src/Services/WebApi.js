@@ -710,6 +710,18 @@ async function getNetworkStatus() {
 	}
 }
 
+// S3-only WiFi scan ([{ssid, rssi, authmode}]). Boards without the
+// endpoint (Pico) 404 here: return undefined so callers hide the scan
+// UI instead of failing.
+async function getWifiScan() {
+	try {
+		const response = await Http.get(`${baseUrl}/api/getWifiScan`);
+		return response.data;
+	} catch (error) {
+		console.error(error);
+	}
+}
+
 async function reboot(bootMode) {
 	return Http.post(`${baseUrl}/api/reboot`, { bootMode })
 		.then((response) => response.data)
@@ -795,5 +807,6 @@ export default {
 	abortGetHeldPins,
 	getBoardDefinition,
 	getNetworkStatus,
+	getWifiScan,
 	reboot,
 };

@@ -100,6 +100,7 @@ extern "C" uint32_t spi_flash_get_chip_size(void);
 // helper/dependency headers (all S3-clean: they compile into the S3 app).
 #include "base64.h"
 #include "helper.h" // isValidPin() (S3-aware) + animationstation.h/playerleds.h
+#include "webconfig_scan.h" // S3WifiNet + s3_build_scan_list (IDF-free, host-tested)
 #include "layoutmanager.h" // Task 9: button-layout GETs (S3-clean, same as Pico webconfig.cpp)
 #include "peripheralmanager.h"
 #include "addons/neopicoleds.h" // NeoPicoLEDAddon + LIGHT_DATA_* board presets
@@ -4056,6 +4057,53 @@ static esp_err_t s3_handle_getNetworkStatus(httpd_req_t *req)
     return s3_json_get(req, s3_getNetworkStatus);
 }
 
+// WiFi network scan for the Home Network picker (S3-only; no Pico
+// equivalent — Pico has no WiFi). Blocking active scan (~2-3 s, same
+// accepted pattern as the 5 s held-pins scan); empty-SSID (hidden)
+// networks are filtered because manual entry covers them.
+static std::string s3_getWifiScan()
+{
+    // Pool: 20 × {ssid (≤32B), rssi, authmode} + array overhead.
+    const size_t capacity = JSON_ARRAY_SIZE(20) + 20 * (JSON_OBJECT_SIZE(3) + 40);
+    DynamicJsonDocument doc(capacity);
+    JsonArray arr = doc.to<JsonArray>();
+    wifi_scan_config_t cfg = {};
+    cfg.show_hidden = false;
+    cfg.scan_type = WIFI_SCAN_TYPE_ACTIVE;
+    cfg.scan_time.active.min = 100;
+    cfg.scan_time.active.max = 300;
+    if (esp_wifi_scan_start(&cfg, true) == ESP_OK)
+    {
+        uint16_t n = S3_WIFI_SCAN_MAX;
+        wifi_ap_record_t recs[S3_WIFI_SCAN_MAX];
+        if (esp_wifi_scan_get_ap_records(&n, recs) == ESP_OK)
+        {
+            S3WifiNet in[S3_WIFI_SCAN_MAX], out[S3_WIFI_SCAN_MAX];
+            for (uint16_t i = 0; i < n; i++)
+            {
+                memcpy(in[i].ssid, recs[i].ssid, sizeof(in[i].ssid) - 1);
+                in[i].ssid[sizeof(in[i].ssid) - 1] = '\0';
+                in[i].rssi = recs[i].rssi;
+                in[i].auth = (uint8_t)recs[i].authmode;
+            }
+            size_t m = s3_build_scan_list(in, n, out, S3_WIFI_SCAN_MAX);
+            for (size_t i = 0; i < m; i++)
+            {
+                JsonObject o = arr.createNestedObject();
+                o["ssid"] = out[i].ssid;
+                o["rssi"] = (int)out[i].rssi;
+                o["authmode"] = (int)out[i].auth;
+            }
+        }
+    }
+    return s3_serialize(doc);
+}
+
+static esp_err_t s3_handle_getWifiScan(httpd_req_t *req)
+{
+    return s3_json_get(req, s3_getWifiScan);
+}
+
 static uint32_t s3_sta_backoff_delay(uint32_t failCount)
 {
     static const uint32_t kDelays[] = { 5, 10, 20, 40, 80, 160, 300 };
@@ -4344,7 +4392,7 @@ void startWebconfigServer()
     // 404s), so select the wildcard matcher (found on hardware 2026-09).
     config.uri_match_fn = httpd_uri_match_wildcard;
     // 15 core+Task-5 URIs + 49 Task-6 URIs + 2 Task-9 URIs + 1 STA status URI
-    // + catch-all = 68; the IDF default max_uri_handlers (8) would reject registration with
+    // + 1 WiFi scan URI + catch-all = 69; the IDF default max_uri_handlers (8) would reject registration with
     // ESP_ERR_HTTPD_HANDLERS_FULL at server start, so raise it with margin.
     config.max_uri_handlers = 96;
     if (httpd_start(&s3_httpd, &config) != ESP_OK)
@@ -4426,6 +4474,7 @@ void startWebconfigServer()
         { .uri = "/api/getButtonLayouts", .method = HTTP_GET, .handler = s3_handle_getButtonLayouts, .user_ctx = nullptr },
         // STA-Task 3: Home Network status (S3-only; registered before /*).
         { .uri = "/api/getNetworkStatus", .method = HTTP_GET, .handler = s3_handle_getNetworkStatus, .user_ctx = nullptr },
+        { .uri = "/api/getWifiScan", .method = HTTP_GET, .handler = s3_handle_getWifiScan, .user_ctx = nullptr },
         // Catch-all static serving LAST: "/*" matches every GET.
         { .uri = "/*", .method = HTTP_GET, .handler = s3_static_get, .user_ctx = nullptr },
     };

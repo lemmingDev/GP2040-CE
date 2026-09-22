@@ -217,4 +217,7 @@ export default {
 		'Note: analog inputs on GPIO 11–20 (ADC2) are unavailable while any WiFi runs.',
 	'sta-status-connected': 'Connected to {{ssid}} ({{ip}})',
 	'sta-status-disconnected': 'Not connected to a home network.',
+	'sta-scan-label': 'Scan networks',
+	'sta-scan-scanning-label': 'Scanning…',
+	'sta-scan-placeholder': 'Select a network…',
 };

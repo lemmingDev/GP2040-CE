@@ -626,6 +626,19 @@ export default function SettingsPage() {
 		return () => clearInterval(networkStatusTimer);
 	}, []);
 
+	// S3-only WiFi scan results (GET /api/getWifiScan). Null until the
+	// first scan; boards without the endpoint (Pico) keep it null so the
+	// scan row below stays hidden there instead of failing.
+	const [wifiScan, setWifiScan] = useState(null);
+	const [scanning, setScanning] = useState(false);
+
+	async function runWifiScan() {
+		setScanning(true);
+		const list = await WebApi.getWifiScan();
+		if (list) setWifiScan(list);
+		setScanning(false);
+	}
+
 	const [saveMessage, setSaveMessage] = useState('');
 	const [warning, setWarning] = useState({ show: false, acceptText: '' });
 	const [validated, setValidated] = useState(false);
@@ -2258,6 +2271,42 @@ export default function SettingsPage() {
 														</Col>
 													</Form.Group>
 													<p>{t('SettingsPage:sta-passphrase-help')}</p>
+												<Form.Group className="row mb-3">
+													<Col sm={4}>
+														<Button
+															size="sm"
+															onClick={runWifiScan}
+															disabled={scanning}
+														>
+															{t(
+																scanning
+																	? 'SettingsPage:sta-scan-scanning-label'
+																	: 'SettingsPage:sta-scan-label',
+															)}
+														</Button>
+													</Col>
+													{wifiScan ? (
+														<Col sm={4}>
+															<Form.Select
+																size="sm"
+																value=""
+																onChange={(e) => {
+																	if (e.target.value)
+																		setFieldValue('staSSID', e.target.value);
+																}}
+															>
+																<option value="">
+																	{t('SettingsPage:sta-scan-placeholder')}
+																</option>
+																{wifiScan.map((net, i) => (
+																	<option key={`wifi-scan-${i}`} value={net.ssid}>
+																		{net.ssid} ({net.rssi} dBm)
+																	</option>
+																))}
+															</Form.Select>
+														</Col>
+													) : null}
+												</Form.Group>
 													<Form.Group className="row mb-3">
 														<Col sm={3}>
 															<Form.Label>
