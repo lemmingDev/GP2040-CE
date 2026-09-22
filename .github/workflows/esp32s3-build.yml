@@ -40,7 +40,9 @@ jobs:
 
       - name: ESP-IDF firmware build
         working-directory: esp32-s3
-        run: idf.py build
+        # The idf container image does not put idf.py on PATH by itself;
+        # the export script sets up PATH, IDF_PYTHON_ENV_PATH, etc.
+        run: . ${IDF_PATH:-/opt/esp/idf}/export.sh && idf.py build
 
       - name: Upload S3 flashables
         uses: actions/upload-artifact@v6.0.0
