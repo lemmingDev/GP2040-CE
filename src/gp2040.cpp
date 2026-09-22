@@ -1,4 +1,5 @@
 #include <optional>
+#include <cstdint>
 
 // GP2040 includes
 #include "gp2040.h"
@@ -667,9 +668,9 @@ GP2040::BootAction GP2040::getGpioMappedBootAction() {
 
 	for (size_t i = 0; i < bootModeOptions.inputModeMappings_count; i++) {
 		InputModeMapping m = bootModeOptions.inputModeMappings[i];
-		if (m.pinMask < 0)
+		if (m.pinMask == UINT64_MAX) // disabled mapping
 			continue;
-		if (gpio == static_cast<Mask_t>(m.pinMask)) {
+		if (gpio == m.pinMask) {
 			action.inputMode = static_cast<InputMode>(m.inputMode);
 			if (m.profileNumber > 0) {
 				action.profileNumber = m.profileNumber;

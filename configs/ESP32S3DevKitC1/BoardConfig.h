@@ -94,8 +94,10 @@
 #define GPIO_PIN_37 GpioAction::RESERVED // (see above)
 // GPIO 38: pixel hardware present, data pin unassigned by default (see BOARD_LEDS_PIN).
 #define GPIO_PIN_38 GpioAction::NONE
-// GPIO 39 keeps its TURBO role (see TURBO_LED_PIN): no button mapping here
-// (undefined GPIO_PIN_39 defaults to NONE in config_utils.cpp).
+// GPIO 39 keeps its TURBO role (see TURBO_LED_PIN): LED-output pin, never a
+// button input — explicit NONE over the implicit #ifndef default in
+// config_utils.cpp.
+#define GPIO_PIN_39 GpioAction::NONE
 #define GPIO_PIN_40 GpioAction::NONE
 // (GPIO_PIN_41/42: I2C0 bus, ASSIGNED_TO_ADDON above — kept as-is.)
 #define GPIO_PIN_43 GpioAction::RESERVED // UART0 console — mapping buttons here kills COM7 flash/logs

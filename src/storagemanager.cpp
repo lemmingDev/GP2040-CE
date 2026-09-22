@@ -24,6 +24,8 @@
 #include "CRC32.h"
 #include "types.h"
 
+#include <cstdint>
+
 // Check for saves
 #include "ps4/PS4Driver.h"
 
@@ -169,10 +171,10 @@ void Storage::setBootModeFunctionalPinMappings()
 	// Relying on the assumption that all profiles share same set of RESERVED/ASSIGNED_TO_ADDON pins
 	GpioMappingInfo* pins = getGpioMappings().pins;
 
-	int32_t mask = bootModeOptions.webConfigPinMask | bootModeOptions.usbModePinMask;
+	Mask_t mask = bootModeOptions.webConfigPinMask | bootModeOptions.usbModePinMask;
 	for (size_t i = 0; i < bootModeOptions.inputModeMappings_count; i++) {
 		auto mapping = bootModeOptions.inputModeMappings[i];
-		if (mapping.pinMask == -1) {
+		if (mapping.pinMask == UINT64_MAX) { // disabled mapping
 			continue;
 		}
 		mask |= mapping.pinMask;
@@ -181,7 +183,7 @@ void Storage::setBootModeFunctionalPinMappings()
 	for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
 		if (pins[pin].action != GpioAction::RESERVED &&
 			pins[pin].action != GpioAction::ASSIGNED_TO_ADDON &&
-			(mask & (1 << pin)))
+			(mask & (Mask_t{1} << pin)))
 		{
 			// Just setting an arbitrary non-zero action
 			functionalPinMappings[pin].action = GpioAction::BUTTON_PRESS_A1;

@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-uint32_t gpio_get_all(void);
+uint64_t gpio_get_all(void);
 
 #ifdef __cplusplus
 }

@@ -34,7 +34,7 @@ void GPButton::draw() {
     bool turboState = false;
     uint16_t state = 0;
     int16_t setPin = -1;
-    int32_t maskedPins = 0;
+    Mask_t maskedPins = 0;
     bool useMask = false;
     GamepadButtonMapping *mapMask = NULL;
     GpioMappingInfo* pinMappings = Storage::getInstance().getProfilePinMappings();
@@ -115,7 +115,7 @@ void GPButton::draw() {
     if (useMask && mapMask != NULL) {
         maskedPins = (pinValues & mapMask->pinMask);
         for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
-            if ((maskedPins & (1 << pin)) == (1 << pin)) {
+            if ((maskedPins & (Mask_t{1} << pin)) == (Mask_t{1} << pin)) {
                 setPin = pin;
                 break;
             }

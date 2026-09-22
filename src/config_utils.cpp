@@ -2616,8 +2616,10 @@ static bool fromJsonUint32(JsonObjectConst jsonObject, const char* fieldname, ui
 #define FROM_JSON_UINT32(fieldname, submessageType) if (!fromJsonUint32(jsonObject, #fieldname, configStruct.fieldname, configStruct.PREPROCESSOR_JOIN(has_, fieldname))) { return false; }
 
 // (s3-gpio48 Task 2: mirrors fromJsonUint32 for the widened uint64 boot
-// masks; accepts the same values as before plus wider bitmasks. Negative
-// JSON input is rejected, as out-of-range input was for uint32.)
+// masks; accepts the same values as before plus wider bitmasks. Task 3:
+// negative JSON input is accepted-and-cast, so a UI-sent -1 stores
+// UINT64_MAX — the disabled-mapping sentinel (round-trip stable with the
+// UINT64_MAX boot checks; toJSON keeps emitting the raw uint64_t).)
 static bool fromJsonUint64(JsonObjectConst jsonObject, const char* fieldname, uint64_t& value, bool& flag)
 {
     if (jsonObject.containsKey(fieldname))
@@ -2626,6 +2628,12 @@ static bool fromJsonUint64(JsonObjectConst jsonObject, const char* fieldname, ui
         if (jsonVariant.is<unsigned long long>())
         {
             value = jsonVariant.as<unsigned long long>();
+            flag = true;
+            return true;
+        }
+        else if (jsonVariant.is<long long>())
+        {
+            value = static_cast<uint64_t>(jsonVariant.as<long long>());
             flag = true;
             return true;
         }

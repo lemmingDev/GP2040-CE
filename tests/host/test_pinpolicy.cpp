@@ -21,6 +21,7 @@ int main() {
     assert(GPIO_PIN_31 == GpioAction::NONE);
     assert(GPIO_PIN_32 == GpioAction::NONE);
     assert(GPIO_PIN_38 == GpioAction::NONE);
+    assert(GPIO_PIN_39 == GpioAction::NONE);
     assert(GPIO_PIN_40 == GpioAction::NONE);
     assert(GPIO_PIN_47 == GpioAction::NONE);
     assert(GPIO_PIN_48 == GpioAction::NONE);

@@ -3232,10 +3232,10 @@ static std::string s3_getHeldPins()
     std::set<uint32_t> heldPinsSet;
     uint32_t startTime = hal::millis();
     // Active-low buttons with pullups: a held pin reads LOW.
-    uint32_t oldState = 0;
+    Mask_t oldState = 0;
     for (uint32_t pin = 0; pin < NUM_BANK0_GPIOS; pin++) {
         if (!hal::gpioGet((uint8_t)pin)) {
-            oldState |= (1u << pin);
+            oldState |= (Mask_t{1} << pin);
         }
     }
     uint32_t debounceTime = 0;
@@ -3243,20 +3243,20 @@ static std::string s3_getHeldPins()
 
     // Monitor pins for 5 seconds
     while (!s3_abortGetHeldPinsFlag && (hal::millis() - startTime) < 5000) {
-        uint32_t newState = 0;
+        Mask_t newState = 0;
         for (uint32_t pin = 0; pin < NUM_BANK0_GPIOS; pin++) {
             if (!hal::gpioGet((uint8_t)pin)) {
-                newState |= (1u << pin);
+                newState |= (Mask_t{1} << pin);
             }
         }
 
-        uint32_t changedPins = newState & ~oldState;
+        Mask_t changedPins = newState & ~oldState;
         if (isAnyPinHeld && changedPins == 0) break; // Pins released
         if (changedPins == 0) debounceTime = 0;
         uint32_t currentTime = hal::millis();
 
         for (uint32_t pin = 0; pin < NUM_BANK0_GPIOS; pin++) {
-            if (changedPins & (1u << pin)) {
+            if (changedPins & (Mask_t{1} << pin)) {
                 if (debounceTime == 0) debounceTime = currentTime;
                 if ((currentTime - debounceTime) > 5) { // 5ms debounce
                     heldPinsSet.insert(pin);
