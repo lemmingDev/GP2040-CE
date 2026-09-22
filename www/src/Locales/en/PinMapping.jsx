@@ -9,6 +9,7 @@ export default {
 		'Max 16 characters. Printable ASCII characters allowed.',
 	'profile-pin-mapping-title': '{{profileLabel}} - GPIO Pin Mapping',
 	'analog-capable-text': 'Analog capable',
+	'analog-capable-adc2-text': 'Analog capable when WiFi disabled',
 	'profile-label-default': 'Profile {{profileNumber}}',
 	'profile-add-button': '+ Add Profile',
 	'profile-disabled': ' - (Disabled)',

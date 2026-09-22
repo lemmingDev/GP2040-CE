@@ -194,10 +194,11 @@ const Analog = ({
 	const { boardDefinition } = useBoardDefinition();
 
 	const ANALOG_PINS = boardDefinition.analogPins;
+	const ADC2_PINS = boardDefinition.adc2Pins ?? [];
 
 	const availableAnalogPins = ANALOG_PINS.filter(
 		(pin) => !usedPins?.includes(pin),
-	);
+	).concat(ADC2_PINS.filter((pin) => !usedPins?.includes(pin)));
 
 	return (
 		<Section

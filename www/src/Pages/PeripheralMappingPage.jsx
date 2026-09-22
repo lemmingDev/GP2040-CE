@@ -76,7 +76,7 @@ export default function PeripheralMappingPage() {
 		getBoardDefinition();
 	}, []);
 
-	let allPins = [...boardDefinition.availablePins.keys()];
+	let allPins = [...boardDefinition.availablePins.values()];
 	const pinLookup = (pinList) => {
 		return (pinList && pinList.length > 0 ? pinList : allPins).filter((x) =>
 			boardDefinition.availablePins.includes(x),

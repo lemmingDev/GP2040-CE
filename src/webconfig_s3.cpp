@@ -1196,6 +1196,18 @@ static int s3_adcChannelForGpio(Pin_t pin)
     return -1;
 }
 
+// ESP32-S3 ADC2: GPIO11 -> CH0 ... GPIO20 -> CH9. Usable only while WiFi
+// is disabled (this port normally runs WiFi for webconfig), so these pins
+// are reported separately from analogPins and never offered as defaults.
+static int s3_adc2ChannelForGpio(Pin_t pin)
+{
+    if (pin >= 11 && pin <= 20)
+    {
+        return pin - 11;
+    }
+    return -1;
+}
+
 static bool s3_adcReady = false;
 
 static void s3_adcInitOnce()
@@ -3131,6 +3143,13 @@ static std::string s3_getBoardDefinition() {
     JsonArray analogPins = doc.createNestedArray("analogPins");
     for (Pin_t pin = 0; pin <= 48; pin++) {
         if (s3_adcChannelForGpio(pin) >= 0) analogPins.add(pin);
+    }
+
+    // ADC2 pins (analog only while WiFi is off); served separately so the
+    // UI can label them with the caveat instead of mixing them in.
+    JsonArray adc2Pins = doc.createNestedArray("adc2Pins");
+    for (Pin_t pin = 0; pin <= 48; pin++) {
+        if (s3_adc2ChannelForGpio(pin) >= 0) adc2Pins.add(pin);
     }
 
     JsonArray availablePins = doc.createNestedArray("availablePins");

@@ -260,9 +260,13 @@ const PinSelectList = memo(function PinSelectList({
 			style={{ '--pin-count': Math.ceil(Object.entries(pins).length / 2) }}
 		>
 			{Object.entries(pins).map(([pin, pinData], index) => {
-				const note = notes?.[parseInt(pin.replace('pin', ''), 10)];
+				const pinNumber = parseInt(pin.replace('pin', ''), 10);
+				const note = notes?.[pinNumber];
 				const isAnalog = (boardDefinition.analogPins ?? []).includes(
-					parseInt(pin.replace('pin', ''), 10),
+					pinNumber,
+				);
+				const isAdc2 = (boardDefinition.adc2Pins ?? []).includes(
+					pinNumber,
 				);
 				return (
 					<div key={`select-${index}`}>
@@ -291,6 +295,11 @@ const PinSelectList = memo(function PinSelectList({
 						{isAnalog && (
 							<div className="text-muted small pin-note">
 								{t('PinMapping:analog-capable-text')}
+							</div>
+						)}
+						{isAdc2 && (
+							<div className="text-muted small pin-note">
+								{t('PinMapping:analog-capable-adc2-text')}
 							</div>
 						)}
 					</div>

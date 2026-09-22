@@ -15,6 +15,7 @@ const AnalogPinOptions = () => {
 	}, []);
 
 	const ANALOG_PINS = boardDefinition.analogPins;
+	const ADC2_PINS = boardDefinition.adc2Pins ?? [];
 
 	return (
 		<>
@@ -24,6 +25,11 @@ const AnalogPinOptions = () => {
 			{ANALOG_PINS.map((i) => (
 				<option key={`analogPins-option-${i}`} value={i}>
 					{i}
+				</option>
+			))}
+			{ADC2_PINS.map((i) => (
+				<option key={`adc2Pins-option-${i}`} value={i}>
+					{i} (ADC2)
 				</option>
 			))}
 		</>

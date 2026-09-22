@@ -6,6 +6,9 @@ type State = {
 		minPin: number;
 		maxPin: number;
 		analogPins: Array<number>;
+		// S3-only: ADC2 pins (analog only while WiFi is off). Absent on
+		// Pico responses, so optional with empty fallbacks at use sites.
+		adc2Pins?: Array<number>;
 		availablePins: Array<number>;
 		usedPins: {};
 		pinNotes?: Record<string, string>;
