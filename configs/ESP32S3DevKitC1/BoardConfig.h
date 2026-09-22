@@ -143,9 +143,9 @@ static const char *const PIN_NOTES[] = { /* index = GPIO number, 49 entries, "" 
     "", // 32
     "Octal flash/PSRAM on this module: do not use", // 33
     "Octal flash/PSRAM on this module: do not use", // 34
-    "", // 35 (routed spare on this module; see GPIO_PIN_35)
-    "", // 36 (see above)
-    "", // 37 (see above)
+    "Usable spare GPIO on this module", // 35 (routed spare; see GPIO_PIN_35)
+    "Usable spare GPIO on this module", // 36 (see above)
+    "Usable spare GPIO on this module", // 37 (see above)
     "", // 38
     "", // 39 (TURBO LED pin; role documented at TURBO_LED_PIN)
     "", // 40
