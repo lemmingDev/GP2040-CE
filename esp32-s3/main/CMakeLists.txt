@@ -78,6 +78,10 @@ idf_component_register(
         # static serving + firmware-version/getConfig/setConfig/reboot/
         # resetSettings; Tasks 5-6 append endpoint groups to this TU).
         "../../src/webconfig_s3.cpp"
+        # S3 USB-webconfig plan Task 3: RNDIS class-driver glue (MAC,
+        # TinyUSB<->esp_netif callbacks, init/start/stop entry points).
+        # Inert: no descriptor opens RNDIS yet (later tasks).
+        "../../src/usbnet_s3.cpp"
         "../../src/config_utils.cpp"
         "../../src/config_legacy.cpp"
         "../../src/gp2040aux.cpp"

@@ -179,9 +179,10 @@
 //------------- CLASS -------------//
 #define CFG_TUD_CDC              0
 #if defined(ESP_PLATFORM)
-// S3: no RNDIS/ECM in Phase 1 (Pico webconfig transport; Phase 3 re-adds it
-// with the WiFi stack). Keeps ecm_rndis_device out of the S3 link.
-#define CFG_TUD_ECM_RNDIS        0
+// S3 USB-webconfig plan Task 3: RNDIS class driver compiled in, but no USB
+// descriptor opens it yet (bring-up/descriptors are later tasks), so
+// enumeration is unchanged. MAC + netif glue live in src/usbnet_s3.cpp.
+#define CFG_TUD_ECM_RNDIS        1
 #else
 #define CFG_TUD_ECM_RNDIS        1
 #endif
