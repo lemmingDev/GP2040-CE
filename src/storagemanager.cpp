@@ -194,6 +194,7 @@ void Storage::setBootModeFunctionalPinMappings()
 	}
 
 	for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
+		if (!isValidPin(pin)) continue; // S3: invalid bits never reach gpioInit; Pico-neutral (loop already Pico-valid)
 		if (pins[pin].action != GpioAction::RESERVED &&
 			pins[pin].action != GpioAction::ASSIGNED_TO_ADDON &&
 			(mask & (Mask_t{1} << pin)))

@@ -3072,7 +3072,7 @@ static std::string s3_setLightsToDefault(const char *body, size_t len)
 
 // Board definition for the S3 port (brief shape): flat minPin/maxPin over the
 // S3 GPIO window, analogPins from the ADC1 channel map above, availablePins
-// as the routable set minus the native-USB pair 19/20, usedPins from the pin
+// as the routable set minus invalid pins (native-USB pair 19/20 + 22-34), usedPins from the pin
 // mappings (through pin 48), plus pinNotes from the board PIN_NOTES table
 // (only non-empty entries; Pico responses lack the key entirely).
 // Pico instead wraps this in a "pico" object (src/webconfig.cpp:3177).
@@ -3092,12 +3092,13 @@ static std::string s3_getBoardDefinition() {
 
     JsonArray availablePins = doc.createNestedArray("availablePins");
     for (Pin_t pin = 0; pin <= 48; pin++) {
-        if (pin == 19 || pin == 20) continue; // native USB D-/D+
+        if (!isValidPin(pin)) continue; // S3 rejects 19/20 (USB) + 22-34
         availablePins.add(pin);
     }
 
     char pinName[6];
     for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
+        if (!isValidPin(pin)) continue; // S3 rejects 22-34; reserved-but-valid pins stay offered
         snprintf(pinName, 6, "pin%02d", (int)pin);
         doc["usedPins"][pinName] = gpioMappings.pins[pin].action;
     }
@@ -3234,8 +3235,9 @@ static bool s3_abortGetHeldPinsFlag = false;
 
 // Mirrors Pico getHeldPins() (src/webconfig.cpp:2953-3011): up to 5 s GPIO
 // scan with 5 ms debounce and an abort flag, same contract. S3 differences:
-// polling via hal::gpioGet over the 30-pin window (S3 GPIOs >= 30 are
-// invisible to the mask, same window the core loop iterates) with
+// polling via hal::gpioGet over 0..48 skipping !isValidPin (19/20 USB +
+// 22-34 nonexistent/flash-bus never touched as GPIO inputs; Mask_t is
+// uint64_t so the full window fits) with
 // hal::millis() timing; unassigned pins get input+pullup like Pico's
 // gpio_init/pull_up; no deinit exists in the S3 HAL so pins stay inputs.
 // P3 (accepted for POC): the S3 HAL has no direction query, so a pin driven
@@ -3250,6 +3252,7 @@ static std::string s3_getHeldPins()
     // Initialize unassigned pins for reading
     GpioMappings& gpioMappings = Storage::getInstance().getGpioMappings();
     for (uint32_t pin = 0; pin < NUM_BANK0_GPIOS; pin++) {
+        if (!isValidPin((int32_t)pin)) continue; // never reconfigure flash-bus/USB pins as GPIO inputs
         if (gpioMappings.pins[pin].action == GpioAction::NONE) {
             hal::gpioSetInput((uint8_t)pin, true);
         }
@@ -3260,6 +3263,7 @@ static std::string s3_getHeldPins()
     // Active-low buttons with pullups: a held pin reads LOW.
     Mask_t oldState = 0;
     for (uint32_t pin = 0; pin < NUM_BANK0_GPIOS; pin++) {
+        if (!isValidPin((int32_t)pin)) continue;
         if (!hal::gpioGet((uint8_t)pin)) {
             oldState |= (Mask_t{1} << pin);
         }
@@ -3271,6 +3275,7 @@ static std::string s3_getHeldPins()
     while (!s3_abortGetHeldPinsFlag && (hal::millis() - startTime) < 5000) {
         Mask_t newState = 0;
         for (uint32_t pin = 0; pin < NUM_BANK0_GPIOS; pin++) {
+            if (!isValidPin((int32_t)pin)) continue;
             if (!hal::gpioGet((uint8_t)pin)) {
                 newState |= (Mask_t{1} << pin);
             }
@@ -3282,6 +3287,7 @@ static std::string s3_getHeldPins()
         uint32_t currentTime = hal::millis();
 
         for (uint32_t pin = 0; pin < NUM_BANK0_GPIOS; pin++) {
+            if (!isValidPin((int32_t)pin)) continue;
             if (changedPins & (Mask_t{1} << pin)) {
                 if (debounceTime == 0) debounceTime = currentTime;
                 if ((currentTime - debounceTime) > 5) { // 5ms debounce
