@@ -195,6 +195,15 @@
 #ifndef DEFAULT_WEBCONFIG_TRANSPORT
 #define DEFAULT_WEBCONFIG_TRANSPORT WEBCONFIG_TRANSPORT_USB
 #endif
+#ifndef DEFAULT_STA_SSID
+#define DEFAULT_STA_SSID ""
+#endif
+#ifndef DEFAULT_STA_PASSPHRASE
+#define DEFAULT_STA_PASSPHRASE ""
+#endif
+#ifndef DEFAULT_STA_MODE
+#define DEFAULT_STA_MODE STA_OFF
+#endif
 
 #ifndef GPIO_PIN_00
     #define GPIO_PIN_00 GpioAction::NONE
@@ -584,6 +593,9 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY_STR(config.webConfigOptions, apSSID, DEFAULT_AP_SSID);
     INIT_UNSET_PROPERTY_STR(config.webConfigOptions, apPassphrase, DEFAULT_AP_PASSPHRASE);
     INIT_UNSET_PROPERTY(config.webConfigOptions, webconfigTransport, DEFAULT_WEBCONFIG_TRANSPORT);
+    INIT_UNSET_PROPERTY_STR(config.webConfigOptions, staSSID, DEFAULT_STA_SSID);
+    INIT_UNSET_PROPERTY_STR(config.webConfigOptions, staPassphrase, DEFAULT_STA_PASSPHRASE);
+    INIT_UNSET_PROPERTY(config.webConfigOptions, staMode, DEFAULT_STA_MODE);
 
     // ledOptions
     INIT_UNSET_PROPERTY(config.ledOptions, dataPin, BOARD_LEDS_PIN);

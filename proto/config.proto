@@ -995,11 +995,20 @@ enum WebconfigTransport {
     WEBCONFIG_TRANSPORT_USB = 0;
     WEBCONFIG_TRANSPORT_WIFI = 1;
 }
+enum StaMode {
+    option (nanopb_enumopt).long_names = false;
+    STA_OFF = 0;
+    STA_WEBCONFIG_ONLY = 1;
+    STA_ALWAYS_ON = 2;
+}
 message WebConfigOptions {
     optional bool apEnabled = 1;
     optional string apSSID = 2 [(nanopb).max_length = 32];
     optional string apPassphrase = 3 [(nanopb).max_length = 64];
     optional WebconfigTransport webconfigTransport = 4;
+    optional string staSSID = 5 [(nanopb).max_length = 32];
+    optional string staPassphrase = 6 [(nanopb).max_length = 64];
+    optional StaMode staMode = 7;
 }
 
 message Config
