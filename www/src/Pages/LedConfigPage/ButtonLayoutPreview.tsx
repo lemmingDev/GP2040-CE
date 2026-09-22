@@ -9,12 +9,9 @@ import {
 	MAX_NON_BUTTON_LIGHT_COLOR_INDEXES,
 } from '../../Store/useLedStore';
 import { rgbIntToHex } from '../../Services/Utilities';
+import useBoardDefinition from '../../Store/useBoardDefinitionStore';
 import ColorSelector from './ColorSelector';
-import boards from '../../Data/Boards.json';
 import { LedFormValues } from './ledFormUtils';
-
-const GPIO_PIN_LENGTH =
-	boards[import.meta.env.VITE_GP2040_BOARD as keyof typeof boards].maxPin + 1;
 
 const getViewBox = (lights: { xCoord: number; yCoord: number }[]) =>
 	lights.reduce(
@@ -83,6 +80,9 @@ function ButtonLayoutPreview({
 	Lights: Light[];
 }) {
 	const { t } = useTranslation('');
+	// Runtime pin count for bulk color fills (S3: 49, Pico: 30).
+	const { boardDefinition } = useBoardDefinition();
+	const pinCount = Math.max(boardDefinition.maxPin + 1, 30);
 	const { minX, minY, maxX, maxY } = getViewBox(Lights);
 	const [pressed, setPressed] = useState(false);
 
@@ -463,7 +463,7 @@ function ButtonLayoutPreview({
 							onChange={(selected) => {
 								setFieldValue(
 									`AnimationOptions.profiles.${profileIndex}.notPressedStaticColors`,
-									Array(GPIO_PIN_LENGTH).fill(selected?.value || 0),
+									Array(pinCount).fill(selected?.value || 0),
 								);
 							}}
 						/>
@@ -480,7 +480,7 @@ function ButtonLayoutPreview({
 							onChange={(selected) => {
 								setFieldValue(
 									`AnimationOptions.profiles.${profileIndex}.pressedStaticColors`,
-									Array(GPIO_PIN_LENGTH).fill(selected?.value || 0),
+									Array(pinCount).fill(selected?.value || 0),
 								);
 							}}
 						/>

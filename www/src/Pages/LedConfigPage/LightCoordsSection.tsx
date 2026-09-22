@@ -27,16 +27,14 @@ import FormControl from '../../Components/FormControl';
 import FormSelect from '../../Components/FormSelect';
 
 import { LED_COLORS, LIGHT_TYPES } from '../../Data/Leds';
-import boards from '../../Data/Boards.json';
 
 import { rgbIntToHex } from '../../Services/Utilities';
+import useBoardDefinition from '../../Store/useBoardDefinitionStore';
 import ColorSelector from './ColorSelector';
 import { LightIndicator } from './LightIndicator';
 import { getLightError, LedFormValues } from './ledFormUtils';
 
 const GRID_SIZE = 30;
-const GPIO_PIN_LENGTH =
-	boards[import.meta.env.VITE_GP2040_BOARD as keyof typeof boards].maxPin + 1;
 
 const getFirstEmptyLightCoord = (lights: Light[]) => {
 	const existingCoords = lights.map(
@@ -77,6 +75,10 @@ export default function LightCoordsSection({
 }) {
 	const { dimensions, containerRef } = useGetContainerDimensions();
 	const { t } = useTranslation('');
+	// Runtime routable pins (S3 set is non-contiguous, so map values, not
+	// a 0..length range like the old build-time boards constant did).
+	const { boardDefinition } = useBoardDefinition();
+	const pinOptions: number[] = (boardDefinition.availablePins as number[]) ?? [];
 
 	const gridId = useId();
 	const smallGridId = `${gridId}-small`;
@@ -324,16 +326,14 @@ export default function LightCoordsSection({
 										</>
 									) : (
 										<>
-											{Array.from({ length: GPIO_PIN_LENGTH }).map(
-												(_, pinIndex) => (
-													<option key={pinIndex} value={pinIndex}>
-														{t(
-															'LedConfigPage:lightCoordsSection.gpio-pin-option',
-															{ index: pinIndex },
-														)}
-													</option>
-												),
-											)}
+											{pinOptions.map((pinIndex) => (
+												<option key={pinIndex} value={pinIndex}>
+													{t(
+														'LedConfigPage:lightCoordsSection.gpio-pin-option',
+														{ index: pinIndex },
+													)}
+												</option>
+											))}
 										</>
 									)}
 								</FormSelect>

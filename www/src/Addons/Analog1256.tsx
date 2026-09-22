@@ -8,7 +8,6 @@ import * as yup from 'yup';
 import Section from '../Components/Section';
 import FormControl from '../Components/FormControl';
 import FormSelect from '../Components/FormSelect';
-import boards from '../Data/Boards.json';
 import { SPI_BLOCKS } from '../Data/Peripherals';
 import WebApi from '../Services/WebApi';
 import { AddonPropTypes } from '../Pages/AddonsConfigPage';
@@ -56,6 +55,7 @@ const Analog1256 = ({
 	handleChange,
 	handleCheckbox,
 }: AddonPropTypes) => {
+	const { boardDefinition } = useBoardDefinition();
 	const {
 		getAvailablePeripherals,
 		getSelectedPeripheral,
@@ -86,9 +86,9 @@ const Analog1256 = ({
 				hwcs: true,
 			});
 
-		const availablePins = [
-			...Array(boards[import.meta.env.VITE_GP2040_BOARD].maxPin + 1).keys(),
-		].filter((p) => (usedPins || []).indexOf(p) === -1); // Filter out used pins
+		const availablePins = (
+			(boardDefinition.availablePins as number[]) ?? []
+		).filter((p) => (usedPins || []).indexOf(p) === -1); // Filter out used pins
 
 		csPins.push(...availablePins.map((pin) => ({ pin, hwcs: false })));
 

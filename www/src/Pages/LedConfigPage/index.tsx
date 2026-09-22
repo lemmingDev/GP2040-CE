@@ -49,7 +49,11 @@ import LightCoordsSection from './LightCoordsSection';
 import ButtonLayoutPreview from './ButtonLayoutPreview';
 import ImportLayout from './ImportLayout';
 import { getProfileError } from './ledFormUtils';
+import useBoardDefinition from '../../Store/useBoardDefinitionStore';
 
+// NOTE: GPIO_PIN_LENGTH is build-time (Pico 30) and only sizes the default
+// profile color arrays below. All pin INPUT caps use the runtime maxPin
+// (pinMax) so extended boards accept their full range.
 const GPIO_PIN_LENGTH =
 	boards[import.meta.env.VITE_GP2040_BOARD as keyof typeof boards].maxPin + 1;
 
@@ -269,6 +273,10 @@ const PreviewLedChanges = ({
 
 export default function LedConfigPage() {
 	const { t } = useTranslation('');
+	const { boardDefinition } = useBoardDefinition();
+	// Runtime pin ceiling (S3: 48). Falls back to 29 while the board
+	// definition is still loading so the inputs never lock at 0.
+	const pinMax = Math.max(boardDefinition.maxPin, 29);
 	const {
 		fetchLedOptions,
 		saveAnimationOptions,
@@ -357,7 +365,7 @@ export default function LedConfigPage() {
 								isInvalid={Boolean(errors.ledOptions?.dataPin)}
 								onChange={handleChange}
 								min={-1}
-								max={GPIO_PIN_LENGTH - 1}
+								max={pinMax}
 							/>
 							<FormSelect
 								label={t('LedConfigPage:rgb.led-format-label')}
@@ -445,7 +453,7 @@ export default function LedConfigPage() {
 								isInvalid={Boolean(errors.ledOptions?.pledPin1)}
 								onChange={handleChange}
 								min={-1}
-								max={GPIO_PIN_LENGTH - 1}
+								max={pinMax}
 							/>
 							<FormControl
 								type="number"
@@ -459,7 +467,7 @@ export default function LedConfigPage() {
 								isInvalid={Boolean(errors.ledOptions?.pledPin2)}
 								onChange={handleChange}
 								min={-1}
-								max={GPIO_PIN_LENGTH - 1}
+								max={pinMax}
 							/>
 							<FormControl
 								type="number"
@@ -473,7 +481,7 @@ export default function LedConfigPage() {
 								isInvalid={Boolean(errors.ledOptions?.pledPin3)}
 								onChange={handleChange}
 								min={-1}
-								max={GPIO_PIN_LENGTH - 1}
+								max={pinMax}
 							/>
 							<FormControl
 								type="number"
@@ -487,7 +495,7 @@ export default function LedConfigPage() {
 								isInvalid={Boolean(errors.ledOptions?.pledPin4)}
 								onChange={handleChange}
 								min={-1}
-								max={GPIO_PIN_LENGTH - 1}
+								max={pinMax}
 							/>
 						</Row>
 						{values.ledOptions.pledType === 0 && (
