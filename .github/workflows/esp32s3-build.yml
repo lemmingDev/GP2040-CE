@@ -48,6 +48,7 @@ jobs:
         working-directory: esp32-s3
         # Combines bootloader + partition table + firmware + www into one
         # .bin (flash with: esptool write_flash 0x0 <file>).
+        # NOTE: relative -o lands in build/ (merge_bin chdirs there).
         run: . ${IDF_PATH:-/opt/esp/idf}/export.sh && idf.py merge-bin -o GP2040-CE-ESP32S3-merged.bin
 
       - name: Upload S3 flashables
@@ -59,5 +60,5 @@ jobs:
             esp32-s3/build/partition_table/partition-table.bin
             esp32-s3/build/gp2040-ce-s3.bin
             esp32-s3/build/www.bin
-            esp32-s3/GP2040-CE-ESP32S3-merged.bin
+            esp32-s3/build/GP2040-CE-ESP32S3-merged.bin
           if-no-files-found: error
