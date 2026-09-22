@@ -190,9 +190,11 @@ void GP2040::setup() {
 
 #if defined(ESP_PLATFORM)
 	// Consume the L1-hold WiFi-config session flag (set inside
-	// getButtonMappedBootAction above; only meaningful on the button path —
-	// the GPIO-mapped path has its own pin masks).
-	bool s3WifiSession = s3WifiConfigSession && !bootModeOptions.enabled;
+	// getButtonMappedBootAction above). Deliberately NOT gated on
+	// bootModeOptions.enabled: a physical hold at boot is an explicit
+	// override, and gating it locks out webconfig entirely when mappings
+	// are on but no webConfig pin is set (seen on hardware 2026-09).
+	bool s3WifiSession = s3WifiConfigSession;
 	s3WifiConfigSession = false; // consume once
 #endif
 

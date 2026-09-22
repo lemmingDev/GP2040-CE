@@ -77,6 +77,7 @@
 #include "esp_netif.h"
 #include "esp_event.h"
 #include "esp_wifi.h"
+#include "esp_partition.h"
 
 // spi_flash_get_chip_size() (IDF spi_flash, always linked) forward-declared
 // instead of #including "esp_flash.h": the S3 main component does not list
@@ -3072,8 +3073,19 @@ static std::string s3_getMemoryReport()
     DynamicJsonDocument doc(capacity);
     uint32_t freeHeap = (uint32_t)esp_get_free_heap_size();
     uint32_t minFreeHeap = (uint32_t)esp_get_minimum_free_heap_size();
+    // usedFlash: no linker-provided firmware size on S3, so report the sum
+    // of partition-table entry sizes (the layout footprint) instead of 0.
+    uint32_t layoutUsed = 0;
+    esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_ANY,
+        ESP_PARTITION_SUBTYPE_ANY, nullptr);
+    for (; it != nullptr; it = esp_partition_next(it))
+    {
+        const esp_partition_t *part = esp_partition_get(it);
+        layoutUsed += part->size;
+    }
+    esp_partition_iterator_release(it);
     s3_writeDoc(doc, "totalFlash", (uint32_t)spi_flash_get_chip_size());
-    s3_writeDoc(doc, "usedFlash", System::getUsedFlash());
+    s3_writeDoc(doc, "usedFlash", layoutUsed);
     s3_writeDoc(doc, "physicalFlash", Storage::getInstance().GetFlashSize());
     s3_writeDoc(doc, "staticAllocs", 0);
     s3_writeDoc(doc, "totalHeap", freeHeap);
