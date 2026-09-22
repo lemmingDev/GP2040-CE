@@ -69,13 +69,22 @@ const useSystemStats = create<State & Actions>()((set) => ({
 		set({ loading: true });
 
 		try {
+			// Offline-safe: the AP has no uplink, and a hanging release
+			// check must not stall the whole stats load (found on S3
+			// hardware 2026-09: ~25 s page load waiting on TCP timeout).
+			// Abort after 3 s; failure resolves to {} like the catch path.
+			const releaseController = new AbortController();
+			const releaseTimeout = setTimeout(() => releaseController.abort(), 3000);
+			const latestReleasePromise = fetch(
+				'https://api.github.com/repos/OpenStickCommunity/GP2040-CE/releases/latest',
+				{ signal: releaseController.signal },
+			).then((res) => res.json()).catch(() => ({}));
 			const [firmwareVersion, memoryReport, latestRelease] = await Promise.all([
 				fetch(`${baseUrl}/api/getFirmwareVersion`).then((res) => res.json()),
 				fetch(`${baseUrl}/api/getMemoryReport`).then((res) => res.json()),
-				fetch(
-					'https://api.github.com/repos/OpenStickCommunity/GP2040-CE/releases/latest',
-				).then((res) => res.json()),
+				latestReleasePromise,
 			]);
+			clearTimeout(releaseTimeout);
 			const latestDownloadUrl =
 				latestRelease.assets?.find(
 					({ name }: { name: string }) =>

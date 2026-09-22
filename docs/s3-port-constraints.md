@@ -185,7 +185,9 @@ read the matching section here before touching the code.
   `/*`) → SSID/passphrase/transport save → reboot → `GP2040-TEST`
   persists → inputs live during AP → L1-valid mapping honored →
   L2-hold normal boot → `/api/reboot {"bootMode":1}` returns to
-  webconfig (RTC proof) → toggle-off resting silent boot.
+  webconfig (RTC proof) → toggle-off resting silent boot; homepage stats
+  render offline (release check catch + 3 s abort in `useSystemStats.ts`;
+  without it the page waits out the ~25 s TCP timeout or blanks).
 
 ## Open items (observed, not guard-enforced)
 - **PS3 Feature 0x01 response over-read (upstream bug, not ours).**
