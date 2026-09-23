@@ -9,19 +9,24 @@ bool s3_validateSubnets(const char *apSubnet, const char *usbSubnet);
 #if defined(ESP_PLATFORM)
 #include "esp_netif.h"  // esp_ip4_addr_t + esp_netif_t for the declarations below
 #else
-// Host-test alias for IDF's esp_ip4_addr_t (esp_netif_ip_addr.h:111-115).
-// Layout: .addr holds the dotted quad as a network-byte-order integer, i.e.
-// "192.168.5.0" -> 0xC0A80500 (the same integer value esp_ip4addr_aton
-// produces for esp_ip4_addr_t.addr on little-endian targets).
+// Host-test alias for IDF's esp_ip4_addr_t (esp_netif_ip_addr.h).
+// Layout: .addr holds the dotted quad as the composed integer
+// (a<<24|b<<16|c<<8|d), i.e. "192.168.5.0" -> 0xC0A80500. NOTE: this is NOT
+// the on-device network-byte-order representation (esp_ip4addr_aton and
+// ESP_IP4TOADDR both apply htonl, giving 0x0005A8C0 on little-endian) —
+// convert with esp_netif_htonl() at the esp_netif boundary (see
+// s3_usbnet_bringup and s3_configure_ap).
 typedef struct {
     uint32_t addr;
 } esp_ip4_addr_t;
 #endif
 
 // Parse a /24 private-network subnet string ("192.168.5.0" style) into .addr
-// (network-byte-order integer, see above). False on garbage/non-private/host
-// bits set (same dotted-quad code as validation); `out` untouched on false.
-// String-only (no IDF headers) so host tests compile this TU directly.
+// (composed integer, see above — NOT network byte order; callers convert
+// with esp_netif_htonl() before storing into esp_netif structures). False on
+// garbage/non-private/host bits set (same dotted-quad code as validation);
+// `out` untouched on false. String-only (no IDF headers) so host tests
+// compile this TU directly.
 bool s3_subnetToIp(const char *subnet, esp_ip4_addr_t *out);
 
 #if defined(ESP_PLATFORM)

@@ -78,10 +78,17 @@ bool startWifiAP();
 bool startWifiS3(bool apWanted, bool webconfigSessionActive);
 bool s3_sta_wanted(bool webconfigSessionActive);
 void startWebconfigServer();
+// USB netif bring-up (src/usbnet_s3.cpp, Task 4); called from setup() when
+// the Task-5 boot resolution activates USB networking.
+bool s3_usbnet_bringup(const char *apSubnet, const char *usbSubnet);
 
 // L1-hold WiFi-config session flag: set by getButtonMappedBootAction(),
 // consumed once by GP2040::setup(). Session-only, never saved.
 static bool s3WifiConfigSession = false;
+// S1+S2-hold USB-networking session flag (USB-webconfig plan, Task 5): set
+// by getButtonMappedBootAction(), consumed once by GP2040::setup().
+// Session-only, never saved.
+static bool s3UsbSession = false;
 #endif
 
 // TinyUSB
@@ -199,6 +206,8 @@ void GP2040::setup() {
 	// are on but no webConfig pin is set (seen on hardware 2026-09).
 	bool s3WifiSession = s3WifiConfigSession;
 	s3WifiConfigSession = false; // consume once
+	bool s3UsbSessionHeld = s3UsbSession;
+	s3UsbSession = false; // consume once
 #endif
 
 	// Initialize last reinit profile to current so we don't reinit on first loop
@@ -239,6 +248,17 @@ void GP2040::setup() {
 	bool s3StaWanted = s3_sta_wanted(s3ApRequested);
 	if ((s3ApRequested || s3StaWanted) && startWifiS3(s3ApRequested, s3ApRequested)) {
 		startWebconfigServer();
+	}
+	// USB-webconfig plan, Task 5: USB networking is active for a held S1+S2
+	// session, AlwaysOn, or ConfigOnly on a config-mode boot. The bring-up
+	// (Task 4) runs independent of WiFi state; invalid stored subnets fall
+	// back to compiled defaults inside the bring-up, so the boot is never
+	// failed here.
+	bool s3UsbActive = s3UsbSessionHeld ||
+		webConfigOptions.usbNetworkMode == USB_NETWORK_ALWAYS_ON ||
+		(webConfigOptions.usbNetworkMode == USB_NETWORK_CONFIG_MODE_ONLY && s3ConfigBoot);
+	if (s3UsbActive) {
+		s3_usbnet_bringup(webConfigOptions.apSubnet, webConfigOptions.usbSubnet);
 	}
 	if (s3ConfigBoot) {
 		inputMode = gamepadOptions.inputMode;
@@ -587,6 +607,16 @@ GP2040::BootAction GP2040::getButtonMappedBootAction() {
 		// up). L1-unmapped boots WiFi-config (session-only, never saved);
 		// L2/R1-unmapped holds are ignored (normal boot) — L2 is reserved
 		// for the USB-config phase.
+		// S3 USB-networking session override (USB-webconfig plan, Task 5):
+		// S1+S2 held at boot enables USB networking for this session only
+		// (never saved; consumed in GP2040::setup()). Exact button match,
+		// like the L1 guard below; S1+S2+Up is ENTER_USB_MODE (returned
+		// above), so Up is excluded explicitly. Respects the webconfig lock.
+		if (!webConfigLocked && !gamepad->pressedUp() &&
+				gamepad->state.buttons == (GAMEPAD_MASK_S1 | GAMEPAD_MASK_S2)) {
+			s3UsbSession = true;
+			return bootAction;
+		}
 		if (!webConfigLocked && gamepad->state.buttons == GAMEPAD_MASK_L1 &&
 				gamepadOptions.inputModeL1 < 0) {
 			bootAction.inputMode = InputMode::INPUT_MODE_CONFIG;

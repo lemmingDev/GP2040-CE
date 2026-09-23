@@ -170,11 +170,17 @@ bool s3_usbnet_bringup(const char *apSubnet, const char *usbSubnet) {
         ESP_LOGW(S3_USBNET_TAG, "subnet parse failed, falling back to defaults");
         s3_subnetToIp(DEFAULT_USB_SUBNET, &net);  // cannot fail: valid /24 private
     }
-    const uint32_t host1 = (net.addr & 0xFFFFFF00u) | 0x01u;  // .1 of the /24
+    const uint32_t ipComposed = (net.addr & 0xFFFFFF00u) | 0x01u;  // .1 of the /24
+    // esp_netif stores network byte order (raw-copied into lwIP, same as
+    // IDF's ESP_IP4TOADDR defaults): s3_subnetToIp returns the composed
+    // (a<<24|b<<16|c<<8|d) form, so convert at the boundary — the S3 is
+    // little-endian. (Without this the netif would come up as 1.5.168.192
+    // instead of 192.168.5.1; the status string below prints from the
+    // pre-swap composition so it stays truthful.)
     esp_netif_ip_info_t ipInfo{};
-    ipInfo.ip.addr = host1;
-    ipInfo.gw.addr = host1;
-    ipInfo.netmask.addr = 0xFFFFFF00u;  // /24
+    ipInfo.ip.addr = esp_netif_htonl(ipComposed);
+    ipInfo.gw.addr = esp_netif_htonl(ipComposed);
+    ipInfo.netmask.addr = esp_netif_htonl(0xFFFFFF00u);  // /24
     // AP-netif sequence mirrored with the PUBLIC esp_netif API (start/up are
     // private; drivers drive them via the action_* handlers): create, set
     // static IP, action_start (AUTOUP brings the lwIP netif up; the
@@ -217,8 +223,8 @@ bool s3_usbnet_bringup(const char *apSubnet, const char *usbSubnet) {
     }
     s3_usbnet_start(netif);
     std::snprintf(s_usb_ip_str, sizeof(s_usb_ip_str), "%u.%u.%u.%u",
-                  (unsigned int)((host1 >> 24) & 0xFF), (unsigned int)((host1 >> 16) & 0xFF),
-                  (unsigned int)((host1 >> 8) & 0xFF), (unsigned int)(host1 & 0xFF));
+                  (unsigned int)((ipComposed >> 24) & 0xFF), (unsigned int)((ipComposed >> 16) & 0xFF),
+                  (unsigned int)((ipComposed >> 8) & 0xFF), (unsigned int)(ipComposed & 0xFF));
     ESP_LOGI(S3_USBNET_TAG, "USB netif up (%s)", s_usb_ip_str);
     return true;
 }

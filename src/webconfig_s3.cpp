@@ -519,6 +519,40 @@ static std::string s3_setGamepadOptions(const char *body, size_t len)
     {
         webConfigOptions.staMode = (StaMode)doc["staMode"].as<int>();
     }
+    if (doc["usbNetworkMode"] != nullptr)
+    {
+        webConfigOptions.usbNetworkMode = (UsbNetworkMode)doc["usbNetworkMode"].as<int>();
+    }
+    // Task 5 (USB-webconfig plan): S3-only AP/USB subnet keys (no Pico
+    // equivalent — same ignore-unknown-keys ride-along as the AP/STA keys
+    // above). Assign-only-when-set so partial POSTs keep stored values. The
+    // posted pair is validated with s3_validateSubnets against the merged
+    // (posted-over-stored) values: on invalid input the stored values are
+    // left untouched.
+    if (doc["apSubnet"] != nullptr || doc["usbSubnet"] != nullptr)
+    {
+        const char *newApSub = doc["apSubnet"] != nullptr ?
+            doc["apSubnet"].as<const char *>() : webConfigOptions.apSubnet;
+        const char *newUsbSub = doc["usbSubnet"] != nullptr ?
+            doc["usbSubnet"].as<const char *>() : webConfigOptions.usbSubnet;
+        if (!s3_validateSubnets(newApSub, newUsbSub))
+        {
+            ESP_LOGW(S3_WEBCONFIG_TAG, "rejecting invalid apSubnet/usbSubnet pair, keeping stored");
+        }
+        else
+        {
+            if (doc["apSubnet"] != nullptr)
+            {
+                strncpy(webConfigOptions.apSubnet, doc["apSubnet"], sizeof(webConfigOptions.apSubnet) - 1);
+                webConfigOptions.apSubnet[sizeof(webConfigOptions.apSubnet) - 1] = '\0';
+            }
+            if (doc["usbSubnet"] != nullptr)
+            {
+                strncpy(webConfigOptions.usbSubnet, doc["usbSubnet"], sizeof(webConfigOptions.usbSubnet) - 1);
+                webConfigOptions.usbSubnet[sizeof(webConfigOptions.usbSubnet) - 1] = '\0';
+            }
+        }
+    }
 
     HotkeyOptions& hotkeyOptions = Storage::getInstance().getHotkeyOptions();
     s3_save_hotkey(&hotkeyOptions.hotkey01, doc, "hotkey01");
@@ -599,6 +633,11 @@ static std::string s3_getGamepadOptions()
     s3_writeDoc(doc, "staSSID", webConfigOptions.staSSID);
     s3_writeDoc(doc, "staPassphrase", webConfigOptions.staPassphrase);
     s3_writeDoc(doc, "staMode", webConfigOptions.staMode);
+    // Task 5 (USB-webconfig plan): S3-only USB-networking keys (Pico's GET
+    // omits them; the shared React bundle falls back to defaults).
+    s3_writeDoc(doc, "usbNetworkMode", webConfigOptions.usbNetworkMode);
+    s3_writeDoc(doc, "apSubnet", webConfigOptions.apSubnet);
+    s3_writeDoc(doc, "usbSubnet", webConfigOptions.usbSubnet);
     s3_writeDoc(doc, "fnButtonPin", -1);
     GpioMappingInfo* gpioMappings = Storage::getInstance().getGpioMappings().pins;
     for (unsigned int pin = 0; pin < NUM_BANK0_GPIOS; pin++) {
@@ -4264,6 +4303,13 @@ static void s3_wifi_handler(void *arg, esp_event_base_t eventBase, int32_t event
     }
 }
 
+// AP subnet default (mirrors src/config_utils.cpp DEFAULT_AP_SUBNET; the
+// macro lives in that TU, so a guarded fallback keeps this TU self-contained
+// — same pattern as DEFAULT_USB_SUBNET in src/usbnet_s3.cpp).
+#ifndef DEFAULT_AP_SUBNET
+#define DEFAULT_AP_SUBNET "192.168.4.0"
+#endif
+
 // AP config exactly as Task 7 (bounded copies; open vs WPA2; channel 1).
 static bool s3_configure_ap()
 {
@@ -4295,6 +4341,53 @@ static bool s3_configure_ap()
         ESP_LOGE(S3_WEBCONFIG_TAG, "esp_wifi_set_config AP failed (SSID len %u, passphrase len %u)",
             (unsigned int)strlen(ssid), (unsigned int)passLen);
         return false;
+    }
+    // Task 5 (USB-webconfig plan): serve the configured AP subnet. The AP
+    // netif (created with IDF defaults in s3_wifi_base_init) gets .1 of the
+    // stored apSubnet (compiled default on empty/invalid); the DHCP server
+    // derives its lease pool from this address at AP_START, so setting it
+    // pre-start reconfigures the served range. A stop/start bounce covers
+    // the already-running case (not reachable from the boot callers, which
+    // run pre-start — the stop then fails with ALREADY_STOPPED and the
+    // start is skipped). Never fails the boot for config reasons: on error
+    // the AP stays up on the previous address.
+    esp_netif_t *apNetif = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+    if (apNetif == nullptr)
+    {
+        ESP_LOGW(S3_WEBCONFIG_TAG, "AP netif missing, keeping default IP");
+    }
+    else
+    {
+        const char *apSub = webConfigOptions.apSubnet[0] != '\0' ? webConfigOptions.apSubnet : DEFAULT_AP_SUBNET;
+        esp_ip4_addr_t apNet{};
+        if (!s3_subnetToIp(apSub, &apNet))
+        {
+            ESP_LOGW(S3_WEBCONFIG_TAG, "invalid stored apSubnet, falling back to default");
+            apSub = DEFAULT_AP_SUBNET;
+            s3_subnetToIp(apSub, &apNet);  // cannot fail: valid /24 private
+        }
+        // .1 of the /24 in the composed (a<<24|b<<16|c<<8|d) form shared
+        // with s3_subnetToIp; esp_netif stores network byte order
+        // (raw-copied into lwIP, same as IDF's ESP_IP4TOADDR defaults), so
+        // convert at the boundary — the S3 is little-endian.
+        const uint32_t apHost1 = (apNet.addr & 0xFFFFFF00u) | 0x01u;
+        esp_netif_ip_info_t apIpInfo{};
+        apIpInfo.ip.addr = esp_netif_htonl(apHost1);
+        apIpInfo.gw.addr = esp_netif_htonl(apHost1);
+        apIpInfo.netmask.addr = esp_netif_htonl(0xFFFFFF00u);  // /24
+        if (esp_netif_set_ip_info(apNetif, &apIpInfo) != ESP_OK)
+        {
+            ESP_LOGW(S3_WEBCONFIG_TAG, "AP subnet apply failed, keeping current IP");
+        }
+        else
+        {
+            if (esp_netif_dhcps_stop(apNetif) == ESP_OK &&
+                esp_netif_dhcps_start(apNetif) != ESP_OK)
+            {
+                ESP_LOGW(S3_WEBCONFIG_TAG, "AP DHCP restart failed");
+            }
+            ESP_LOGI(S3_WEBCONFIG_TAG, "AP subnet %s (.1)", apSub);
+        }
     }
     return true;
 }
