@@ -40,9 +40,7 @@ private:
     bool xAuthSent;
 
     InputModeDeviceType deviceType;
-    // S3 USB-webconfig (Task 7): sized for the RNDIS-appended descriptor so
-    // the copy-and-patch callback never overflows when USB networking is on.
-    uint8_t configDescriptor[sizeof(xinput_configuration_descriptor_with_net)];
+    uint8_t configDescriptor[sizeof(xinput_configuration_descriptor)];
 
     GamepadButtonMapping *buttonGas;
     GamepadButtonMapping *buttonBrake;

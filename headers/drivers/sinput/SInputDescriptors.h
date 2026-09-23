@@ -6,7 +6,6 @@
 #pragma once
 
 #include <stdint.h>
-#include "tusb.h"
 
 #define SINPUT_ENDPOINT_SIZE 64
 
@@ -323,11 +322,6 @@ static const uint8_t sinput_report_descriptor[] =
 };
 
 #define SINPUT_CONFIG1_DESC_SIZE		(9+9+9+7+7)
-// S3 USB-webconfig (Task 7): RNDIS function appended when USB networking is
-// active. The SInput function uses endpoint 1 (IN 0x81 / OUT 0x01) only, so
-// the first-free rule gives notif intr 0x83, bulk OUT 0x04, bulk IN 0x85;
-// RNDIS takes interfaces 1+2 (comm + data), hence bNumInterfaces 1 -> 3.
-#define SINPUT_CONFIG1_DESC_SIZE_WITH_NET	(SINPUT_CONFIG1_DESC_SIZE + TUD_RNDIS_DESC_LEN)
 static const uint8_t sinput_configuration_descriptor[] =
 {
 	// configuration descriptor, USB spec 9.6.3, page 264-266, Table 9-10
@@ -373,59 +367,4 @@ static const uint8_t sinput_configuration_descriptor[] =
 	0x03,						       // bmAttributes (0x03=intr)
 	GAMEPAD_SIZE, 0,				       // wMaxPacketSize
 	1						       // bInterval (1 ms)
-};
-
-// S3 USB-webconfig (Task 7): SInput function byte-identical to
-// sinput_configuration_descriptor, followed by the RNDIS function
-// (TUD_RNDIS_DESCRIPTOR argument order: itf, str, ep_notif, notif_size,
-// epout, epin, epsize). Drivers return this array iff
-// s3_usb_network_active() holds; toggle-Off keeps the plain array, so its
-// output is byte-identical.
-static const uint8_t sinput_configuration_descriptor_with_net[] =
-{
-	// configuration descriptor, USB spec 9.6.3, page 264-266, Table 9-10
-	9,						       // bLength;
-	2,						       // bDescriptorType;
-	LSB(SINPUT_CONFIG1_DESC_SIZE_WITH_NET),	       // wTotalLength
-	MSB(SINPUT_CONFIG1_DESC_SIZE_WITH_NET),
-	3,						       // bNumInterfaces
-	1,						       // bConfigurationValue
-	0,						       // iConfiguration
-	0xA0,						       // bmAttributes
-	0xAF,						       // bMaxPower
-	// interface descriptor, USB spec 9.6.5, page 267-269, Table 9-12
-	9,						       // bLength
-	4,						       // bDescriptorType
-	GAMEPAD_INTERFACE,				       // bInterfaceNumber
-	0,						       // bAlternateSetting
-	2,						       // bNumEndpoints
-	0x03,						       // bInterfaceClass (0x03 = HID)
-	0x00,						       // bInterfaceSubClass (0x00 = No Boot)
-	0x00,						       // bInterfaceProtocol (0x00 = No Protocol)
-	0,						       // iInterface
-	// HID interface descriptor, HID 1.11 spec, section 6.2.1
-	9,						       // bLength
-	0x21,						       // bDescriptorType
-	0x11, 0x01,					       // bcdHID
-	0,						       // bCountryCode
-	1,						       // bNumDescriptors
-	0x22,						       // bDescriptorType
-	LSB(sizeof(sinput_report_descriptor)),			       // wDescriptorLength
-	MSB(sizeof(sinput_report_descriptor)),
-	// endpoint descriptor, USB spec 9.6.6, page 269-271, Table 9-13
-	7,						       // bLength
-	5,						       // bDescriptorType
-	GAMEPAD_ENDPOINT_IN,				       // bEndpointAddress
-	0x03,						       // bmAttributes (0x03=intr)
-	GAMEPAD_SIZE, 0,				       // wMaxPacketSize
-	1,						       // bInterval (1 ms)
-	// endpoint descriptor, USB spec 9.6.6, page 269-271, Table 9-13
-	7,						       // bLength
-	5,						       // bDescriptorType
-	GAMEPAD_ENDPOINT_OUT,				       // bEndpointAddress
-	0x03,						       // bmAttributes (0x03=intr)
-	GAMEPAD_SIZE, 0,				       // wMaxPacketSize
-	1,						       // bInterval (1 ms)
-	// RNDIS function (IAD + comm + data interfaces)
-	TUD_RNDIS_DESCRIPTOR(GAMEPAD_INTERFACE + 1, 0, 0x83, 8, 0x04, 0x85, 64)
 };

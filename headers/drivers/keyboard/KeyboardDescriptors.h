@@ -59,18 +59,7 @@ enum
 	ITF_NUM_TOTAL_KEYBOARD
 };
 
-// S3 USB-webconfig (Task 6): RNDIS interface numbers. The keyboard function
-// uses IN 0x81 only, so the first-free rule gives notif intr 0x83, bulk OUT
-// 0x04, bulk IN 0x85; RNDIS takes interfaces 1+2 (comm + data).
-enum
-{
-	ITF_NUM_NET_KEYBOARD = ITF_NUM_TOTAL_KEYBOARD,
-	ITF_NUM_NET_DATA_KEYBOARD,
-	ITF_NUM_TOTAL_KEYBOARD_WITH_NET
-};
-
 #define  CONFIG_TOTAL_LEN  (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN)
-#define  CONFIG_TOTAL_LEN_WITH_NET  (CONFIG_TOTAL_LEN + TUD_RNDIS_DESC_LEN)
 
 #define EPNUM_HID   0x81
 
@@ -135,22 +124,4 @@ static const uint8_t keyboard_configuration_descriptor[] =
 
 	// Interface number, string index, protocol, report descriptor len, EP Out & In address, size & polling interval
 	TUD_HID_DESCRIPTOR(ITF_NUM_HID_KEYBOARD, 0, HID_ITF_PROTOCOL_KEYBOARD, sizeof(keyboard_report_descriptor), EPNUM_HID, CFG_TUD_HID_EP_BUFSIZE, 1)
-};
-
-// S3 USB-webconfig (Task 6): keyboard function byte-identical to
-// keyboard_configuration_descriptor, followed by the RNDIS function
-// (TUD_RNDIS_DESCRIPTOR argument order: itf, str, ep_notif, notif_size,
-// epout, epin, epsize). Drivers return this array iff
-// s3_usb_network_active() holds; toggle-Off keeps the plain array, so its
-// output is byte-identical.
-static const uint8_t keyboard_configuration_descriptor_with_net[] =
-{
-	// Config number, interface count, string index, total length, attribute, power in mA
-	TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL_KEYBOARD_WITH_NET, 0, CONFIG_TOTAL_LEN_WITH_NET, 32, 100),
-
-	// Interface number, string index, protocol, report descriptor len, EP Out & In address, size & polling interval
-	TUD_HID_DESCRIPTOR(ITF_NUM_HID_KEYBOARD, 0, HID_ITF_PROTOCOL_KEYBOARD, sizeof(keyboard_report_descriptor), EPNUM_HID, CFG_TUD_HID_EP_BUFSIZE, 1),
-
-	// RNDIS function (IAD + comm + data interfaces)
-	TUD_RNDIS_DESCRIPTOR(ITF_NUM_NET_KEYBOARD, 0, 0x83, 8, 0x04, 0x85, 64)
 };

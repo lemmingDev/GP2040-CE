@@ -7,13 +7,6 @@
 #include "drivers/shared/driverhelper.h"
 #include "storagemanager.h"
 
-#if defined(ESP_PLATFORM)
-// S3 USB-webconfig (Task 7): boot-resolved USB-networking flag in
-// src/usbnet_s3.cpp. Forward-declared (not included): src/ is on no include
-// path, mirroring gp2040.cpp's forward declaration of s3_usbnet_bringup.
-bool s3_usb_network_active();
-#endif
-
 #define USB_SETUP_DEVICE_TO_HOST 0x80
 #define USB_SETUP_HOST_TO_DEVICE 0x00
 #define USB_SETUP_TYPE_VENDOR    0x40
@@ -570,22 +563,8 @@ const uint8_t * XInputDriver::get_hid_descriptor_report_cb(uint8_t itf) {
 }
 
 const uint8_t * XInputDriver::get_descriptor_configuration_cb(uint8_t index) {
-#if defined(ESP_PLATFORM)
-    // S3 USB-webconfig (Task 7): copy the RNDIS-appended descriptor when USB
-    // networking is active, else the plain one (byte-identical toggle-Off).
-    // The subtype patch offset (22) lies in the shared prefix, so one patch
-    // path serves both; the member buffer is sized for the larger array.
-    bool netActive = s3_usb_network_active();
-    const uint8_t *configSrc = netActive ? xinput_configuration_descriptor_with_net
-                                         : xinput_configuration_descriptor;
-    uint16_t configDescriptorSize = netActive
-        ? sizeof(xinput_configuration_descriptor_with_net)
-        : sizeof(xinput_configuration_descriptor);
-    memcpy(configDescriptor, configSrc, configDescriptorSize);
-#else
     uint16_t configDescriptorSize = sizeof(xinput_configuration_descriptor);
     memcpy(configDescriptor, &xinput_configuration_descriptor, configDescriptorSize);
-#endif
 
     // check subtype
     GamepadOptions & gamepadOptions = Storage::getInstance().getGamepadOptions();

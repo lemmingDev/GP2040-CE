@@ -6,7 +6,6 @@
 #pragma once
 
 #include <stdint.h>
-#include "tusb.h"
 
 #define NEOGEO_ENDPOINT_SIZE 64
 
@@ -192,88 +191,6 @@ static const uint8_t neogeo_configuration_descriptor[] =
     0x03,        // bmAttributes (Interrupt)
     0x20, 0x00,  // wMaxPacketSize 32
     0x01,        // bInterval 10 (unit depends on device speed)
-};
-
-// S3 USB-webconfig (Task 7): NeoGeo function byte-identical to
-// neogeo_configuration_descriptor, followed by the RNDIS function
-// (TUD_RNDIS_DESCRIPTOR argument order: itf, str, ep_notif, notif_size,
-// epout, epin, epsize). The NeoGeo function uses OUT 0x02 / IN 0x81 on
-// interface 0 and IN 0x83 on interface 1, so the default notif 0x83
-// collides: the first-free rule gives notif intr 0x84, bulk OUT 0x04, bulk
-// IN 0x85. RNDIS takes interfaces 2+3, hence bNumInterfaces 2 -> 4 and
-// wTotalLength 0x42 -> 0x42 + TUD_RNDIS_DESC_LEN (66) = 0x84. Drivers return
-// this array iff s3_usb_network_active() holds; toggle-Off keeps the plain
-// array.
-static const uint8_t neogeo_configuration_descriptor_with_net[] =
-{
-    0x09,        // bLength
-    0x02,        // bDescriptorType (Configuration)
-    0x84, 0x00,  // wTotalLength 132
-    0x04,        // bNumInterfaces 4
-    0x01,        // bConfigurationValue
-    0x00,        // iConfiguration (String Index)
-    0x80,        // bmAttributes
-    0xFA,        // bMaxPower 500mA
-
-    0x09,        // bLength
-    0x04,        // bDescriptorType (Interface)
-    0x00,        // bInterfaceNumber 0
-    0x00,        // bAlternateSetting
-    0x02,        // bNumEndpoints 2
-    0x03,        // bInterfaceClass
-    0x00,        // bInterfaceSubClass
-    0x00,        // bInterfaceProtocol
-    0x00,        // iInterface (String Index)
-
-    0x09,        // bLength
-    0x21,        // bDescriptorType (HID)
-    0x11, 0x01,  // bcdHID 1.11
-    0x00,        // bCountryCode
-    0x01,        // bNumDescriptors
-    0x22,        // bDescriptorType[0] (HID)
-    0x96, 0x00,  // wDescriptorLength[0] 150
-
-    0x07,        // bLength
-    0x05,        // bDescriptorType (Endpoint)
-    0x02,        // bEndpointAddress (OUT/H2D)
-    0x03,        // bmAttributes (Interrupt)
-    0x20, 0x00,  // wMaxPacketSize 32
-    0x01,        // bInterval 10 (unit depends on device speed)
-
-    0x07,        // bLength
-    0x05,        // bDescriptorType (Endpoint)
-    0x81,        // bEndpointAddress (IN/D2H)
-    0x03,        // bmAttributes (Interrupt)
-    0x20, 0x00,  // wMaxPacketSize 32
-    0x01,        // bInterval 10 (unit depends on device speed)
-
-    0x09,        // bLength
-    0x04,        // bDescriptorType (Interface)
-    0x01,        // bInterfaceNumber 1
-    0x00,        // bAlternateSetting
-    0x01,        // bNumEndpoints 1
-    0x03,        // bInterfaceClass
-    0x00,        // bInterfaceSubClass
-    0x00,        // bInterfaceProtocol
-    0x00,        // iInterface (String Index)
-
-    0x09,        // bLength
-    0x21,        // bDescriptorType (HID)
-    0x11, 0x01,  // bcdHID 1.11
-    0x00,        // bCountryCode
-    0x01,        // bNumDescriptors
-    0x22,        // bDescriptorType[0] (HID)
-    0x65, 0x00,  // wDescriptorLength[0] 101
-
-    0x07,        // bLength
-    0x05,        // bDescriptorType (Endpoint)
-    0x83,        // bEndpointAddress (IN/D2H)
-    0x03,        // bmAttributes (Interrupt)
-    0x20, 0x00,  // wMaxPacketSize 32
-    0x01,        // bInterval 10 (unit depends on device speed)
-
-    // RNDIS function (IAD + comm + data interfaces 2+3)
-    TUD_RNDIS_DESCRIPTOR(2, 0, 0x84, 8, 0x04, 0x85, 64)
 };
 
 static const uint8_t neogeo_report_descriptor[] =

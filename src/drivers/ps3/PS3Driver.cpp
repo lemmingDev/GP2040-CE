@@ -7,12 +7,6 @@
 #include "drivers/ps3/PS3Descriptors.h"
 #include "drivers/shared/driverhelper.h"
 #include "storagemanager.h"
-#if defined(ESP_PLATFORM)
-// S3 USB-webconfig (Task 6): boot-resolved USB-networking flag in
-// src/usbnet_s3.cpp. Forward-declared (not included): src/ is on no include
-// path, mirroring gp2040.cpp's forward declaration of s3_usbnet_bringup.
-bool s3_usb_network_active();
-#endif
 #if defined(PICO_BOARD)
 #include "pico/rand.h"
 #elif defined(ESP_PLATFORM)
@@ -675,18 +669,8 @@ const uint8_t * PS3Driver::get_hid_descriptor_report_cb(uint8_t itf) {
 
 const uint8_t * PS3Driver::get_descriptor_configuration_cb(uint8_t index) {
     if (deviceType != InputModeDeviceType::INPUT_MODE_DEVICE_TYPE_GAMEPAD) {
-#if defined(ESP_PLATFORM)
-        if (s3_usb_network_active()) {
-            return ps3_alt_configuration_descriptor_with_net;
-        }
-#endif
         return ps3_alt_configuration_descriptor;
     } else {
-#if defined(ESP_PLATFORM)
-        if (s3_usb_network_active()) {
-            return ps3_configuration_descriptor_with_net;
-        }
-#endif
         return ps3_configuration_descriptor;
     }
 }

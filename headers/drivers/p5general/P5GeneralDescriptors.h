@@ -6,7 +6,6 @@
 #pragma once
 
 #include <stdint.h>
-#include "tusb.h"
 #include "drivers/ps4/PS4Descriptors.h"
 
 #define P5GENERAL_ENDPOINT_SIZE 64
@@ -276,59 +275,4 @@ static const uint8_t p5general_configuration_descriptor[] =
     0x03,        //   bmAttributes (Interrupt)
     0x40, 0x00,  //   wMaxPacketSize 64
     0x06,        //   bInterval 6 (unit depends on device speed)
-};
-
-// S3 USB-webconfig (Task 7): P5General function byte-identical to
-// p5general_configuration_descriptor, followed by the RNDIS function
-// (TUD_RNDIS_DESCRIPTOR argument order: itf, str, ep_notif, notif_size,
-// epout, epin, epsize). The P5General function uses IN 0x82 / OUT 0x01, so
-// the first-free rule gives notif intr 0x83, bulk OUT 0x04, bulk IN 0x85;
-// RNDIS takes interfaces 1+2, hence bNumInterfaces 1 -> 3 and wTotalLength
-// 0x29 -> 0x29 + TUD_RNDIS_DESC_LEN (66) = 0x6B. Drivers return this array
-// iff s3_usb_network_active() holds; toggle-Off keeps the plain array.
-static const uint8_t p5general_configuration_descriptor_with_net[] =
-{
-    0x09,        //   bLength
-    0x02,        //   bDescriptorType (Configuration)
-    0x6B, 0x00,  //   wTotalLength 107
-    0x03,        //   bNumInterfaces 3
-    0x01,        //   bConfigurationValue
-    0x00,        //   iConfiguration (String Index)
-    0x80,        //   bmAttributes
-    0xFA,        //   bMaxPower 500mA
-
-    0x09,        //   bLength
-    0x04,        //   bDescriptorType (Interface)
-    0x00,        //   bInterfaceNumber 0
-    0x00,        //   bAlternateSetting
-    0x02,        //   bNumEndpoints 2
-    0x03,        //   bInterfaceClass
-    0x00,        //   bInterfaceSubClass
-    0x00,        //   bInterfaceProtocol
-    0x00,        //   iInterface (String Index)
-
-    0x09,        //   bLength
-    0x21,        //   bDescriptorType (HID)
-    0x11, 0x01,  //   bcdHID 1.11
-    0x00,        //   bCountryCode
-    0x01,        //   bNumDescriptors
-    0x22,        //   bDescriptorType[0] (HID)
-    0xA5, 0x00,  //   wDescriptorLength[0] 165
-
-    0x07,        //   bLength
-    0x05,        //   bDescriptorType (Endpoint)
-    0x82,        //   bEndpointAddress (IN/D2H)
-    0x03,        //   bmAttributes (Interrupt)
-    0x40, 0x00,  //   wMaxPacketSize 64
-    0x01,        //   bInterval 1 (unit depends on device speed)
-
-    0x07,        //   bLength
-    0x05,        //   bDescriptorType (Endpoint)
-    0x01,        //   bEndpointAddress (OUT/H2D)
-    0x03,        //   bmAttributes (Interrupt)
-    0x40, 0x00,  //   wMaxPacketSize 64
-    0x06,        //   bInterval 6 (unit depends on device speed)
-
-    // RNDIS function (IAD + comm + data interfaces)
-    TUD_RNDIS_DESCRIPTOR(1, 0, 0x83, 8, 0x04, 0x85, 64)
 };

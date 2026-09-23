@@ -1,13 +1,6 @@
 #include "drivers/egret/EgretDriver.h"
 #include "drivers/shared/driverhelper.h"
 
-#if defined(ESP_PLATFORM)
-// S3 USB-webconfig (Task 7): boot-resolved USB-networking flag in
-// src/usbnet_s3.cpp. Forward-declared (not included): src/ is on no include
-// path, mirroring gp2040.cpp's forward declaration of s3_usbnet_bringup.
-bool s3_usb_network_active();
-#endif
-
 void EgretDriver::initialize() {
 	egretReport = {
 		.buttons = 0,
@@ -99,11 +92,6 @@ const uint8_t * EgretDriver::get_hid_descriptor_report_cb(uint8_t itf) {
 }
 
 const uint8_t * EgretDriver::get_descriptor_configuration_cb(uint8_t index) {
-#if defined(ESP_PLATFORM)
-    if (s3_usb_network_active()) {
-        return egret_configuration_descriptor_with_net;
-    }
-#endif
     return egret_configuration_descriptor;
 }
 
