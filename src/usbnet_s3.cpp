@@ -61,6 +61,14 @@ bool s3_validateSubnets(const char *apSubnet, const char *usbSubnet) {
 #include "tusb.h"
 #include "esp_netif.h"
 
+// Destination capacity for tud_network_xmit_cb: the ECM/RNDIS driver copies
+// into `transmitted[]` (CFG_TUD_NET_PACKET_PREFIX_LEN + CFG_TUD_NET_MTU +
+// CFG_TUD_NET_PACKET_PREFIX_LEN) past the packet prefix, so CFG_TUD_NET_MTU
+// is the conservative per-frame cap in both ECM and RNDIS modes.
+#ifndef CFG_TUD_NET_MTU
+#define CFG_TUD_NET_MTU 1514
+#endif
+
 // Locally-administered device MAC; ...:01 (Pico lib/rndis uses ...:00).
 uint8_t tud_network_mac_address[6] = {0x02, 0x02, 0x84, 0x6A, 0x96, 0x01};
 
@@ -103,6 +111,9 @@ uint16_t tud_network_xmit_cb(uint8_t *dst, void *ref, uint16_t arg) {
     (void)arg;
     const s3_usbnet_frame_t *frame = static_cast<const s3_usbnet_frame_t *>(ref);
     if (dst == nullptr || frame == nullptr || frame->data == nullptr || frame->len == 0) {
+        return 0;
+    }
+    if (frame->len > CFG_TUD_NET_MTU) {
         return 0;
     }
     std::memcpy(dst, frame->data, frame->len);
