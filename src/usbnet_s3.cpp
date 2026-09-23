@@ -107,6 +107,11 @@ namespace {
 
 esp_netif_t *s_netif = nullptr;
 
+// Task 6 descriptor flag: boot-resolved USB-networking state, set once from
+// GP2040::setup() (Task-5 resolution). Kept here (not in gp2040.cpp) so the
+// drivers' forward declaration resolves to this TU on S3; default false.
+bool s_usbNetworkActive = false;
+
 // Task 4 bring-up state (same TU, separate block so Task 3 lines above stay
 // untouched): the dotted-quad status string, one single-frame TX staging
 // buffer, and an opaque handle for the esp_netif driver slot.
@@ -243,6 +248,14 @@ bool s3_usbnet_is_up() {
 
 const char *s3_usbnet_ip() {
     return s_usb_ip_str;
+}
+
+void s3_set_usb_network_active(bool active) {
+    s_usbNetworkActive = active;
+}
+
+bool s3_usb_network_active() {
+    return s_usbNetworkActive;
 }
 
 extern "C" {

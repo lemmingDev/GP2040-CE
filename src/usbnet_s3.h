@@ -76,4 +76,13 @@ bool s3_usbnet_bringup(const char *apSubnet, const char *usbSubnet);
 bool s3_usbnet_is_up();
 const char *s3_usbnet_ip();
 
+// Boot-resolved USB-networking flag (S3 USB-webconfig plan, Task 6).
+// Set once from GP2040::setup() from the Task-5 boot resolution (S1+S2 hold
+// OR AlwaysOn OR ConfigOnly+config-boot); HID-family drivers read it in
+// get_descriptor_configuration_cb() to select the plain vs _with_net
+// configuration descriptor. Initial/default state false (Off) so toggle-Off
+// output is byte-identical to the pre-Task-6 descriptors.
+void s3_set_usb_network_active(bool active);
+bool s3_usb_network_active();
+
 #endif  // defined(ESP_PLATFORM)

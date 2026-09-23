@@ -81,6 +81,9 @@ void startWebconfigServer();
 // USB netif bring-up (src/usbnet_s3.cpp, Task 4); called from setup() when
 // the Task-5 boot resolution activates USB networking.
 bool s3_usbnet_bringup(const char *apSubnet, const char *usbSubnet);
+// Task-6 descriptor flag (src/usbnet_s3.cpp): mirrors the Task-5 resolution
+// below so HID-family drivers select the plain vs _with_net descriptors.
+void s3_set_usb_network_active(bool active);
 
 // L1-hold WiFi-config session flag: set by getButtonMappedBootAction(),
 // consumed once by GP2040::setup(). Session-only, never saved.
@@ -257,6 +260,10 @@ void GP2040::setup() {
 	bool s3UsbActive = s3UsbSessionHeld ||
 		webConfigOptions.usbNetworkMode == USB_NETWORK_ALWAYS_ON ||
 		(webConfigOptions.usbNetworkMode == USB_NETWORK_CONFIG_MODE_ONLY && s3ConfigBoot);
+	// Task 6: publish the same resolution for the USB descriptors (drivers
+	// select the _with_net configuration iff this holds). Set unconditionally
+	// so a stale true can never survive a boot that resolves false.
+	s3_set_usb_network_active(s3UsbActive);
 	if (s3UsbActive) {
 		s3_usbnet_bringup(webConfigOptions.apSubnet, webConfigOptions.usbSubnet);
 	}
