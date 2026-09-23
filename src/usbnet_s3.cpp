@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 namespace {
@@ -121,6 +122,16 @@ s3_usbnet_frame_t s_tx_frame = {s_tx_buf, 0};
 bool s_tx_busy = false;
 uint8_t s_driver_tag = 0;
 
+// RX free callback for the esp_netif driver slot. INVARIANT: every buffer
+// ever handed to esp_netif_receive() from tud_network_recv_cb() is a
+// malloc()'d heap copy (never TinyUSB's static RX buffer), passed as both
+// the buffer and the eb/l2 arg, so freeing exactly that pointer here is
+// correct. driver_handle is opaque and unused.
+void s3_usbnet_free_rx(void *h, void *buffer) {
+    (void)h;
+    std::free(buffer);
+}
+
 }  // namespace
 
 void s3_usbnet_init(const uint8_t mac[6]) {
@@ -204,6 +215,7 @@ bool s3_usbnet_bringup(const char *apSubnet, const char *usbSubnet) {
     esp_netif_driver_ifconfig_t driver{};
     driver.handle = &s_driver_tag;
     driver.transmit = &s3_usbnet_transmit;
+    driver.driver_free_rx_buffer = &s3_usbnet_free_rx;
     esp_netif_config_t cfg{};
     cfg.base = &base;
     cfg.driver = &driver;
@@ -260,17 +272,27 @@ bool s3_usb_network_active() {
 
 extern "C" {
 
-// RX path (lib/rndis linkoutput shape, esp_netif direction): deliver the USB
-// frame straight into the TCP/IP stack. esp_netif_receive() with eb ==
-// nullptr copies the frame, so passing TinyUSB's buffer directly is safe.
+// RX path (lib/rndis linkoutput shape, esp_netif direction): heap-copy the
+// USB frame and hand the copy to the TCP/IP stack. ethernetif_input wraps
+// the caller buffer zero-copy (esp_pbuf_allocate) and later releases it via
+// driver.free_rx_buffer, so passing TinyUSB's static RX buffer directly
+// would hand the stack a pointer it cannot own — hence the malloc + free_rx
+// pair (see s3_usbnet_free_rx). Returning false leaves the endpoint for
+// TinyUSB's stack to re-arm itself.
 bool tud_network_recv_cb(const uint8_t *src, uint16_t size) {
     if (s_netif == nullptr || src == nullptr || size == 0) {
         return false;
     }
-    if (esp_netif_receive(s_netif, const_cast<uint8_t *>(src), size, nullptr) != ESP_OK) {
+    uint8_t *copy = static_cast<uint8_t *>(std::malloc(size));
+    if (copy == nullptr) {
         return false;
     }
-    // Re-arm the OUT endpoint now that the stack copied the frame (mirrors
+    std::memcpy(copy, src, size);
+    if (esp_netif_receive(s_netif, copy, size, copy) != ESP_OK) {
+        std::free(copy);
+        return false;
+    }
+    // Re-arm the OUT endpoint now that the frame is handed off (mirrors
     // Pico's service_traffic renew; without this RX stalls after one frame).
     tud_network_recv_renew();
     return true;
