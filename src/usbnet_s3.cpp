@@ -267,7 +267,13 @@ bool tud_network_recv_cb(const uint8_t *src, uint16_t size) {
     if (s_netif == nullptr || src == nullptr || size == 0) {
         return false;
     }
-    return esp_netif_receive(s_netif, const_cast<uint8_t *>(src), size, nullptr) == ESP_OK;
+    if (esp_netif_receive(s_netif, const_cast<uint8_t *>(src), size, nullptr) != ESP_OK) {
+        return false;
+    }
+    // Re-arm the OUT endpoint now that the stack copied the frame (mirrors
+    // Pico's service_traffic renew; without this RX stalls after one frame).
+    tud_network_recv_renew();
+    return true;
 }
 
 // TX path: copy the bring-up task's frame into the USB transfer. The future
