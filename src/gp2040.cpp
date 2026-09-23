@@ -581,6 +581,20 @@ GP2040::BootAction GP2040::getButtonMappedBootAction() {
 		bootAction.type = BootActionType::ENTER_USB_MODE;
 		return bootAction;
 	}
+#if defined(ESP_PLATFORM)
+	// S3 USB-networking session override (USB-webconfig plan, Task 5):
+	// exact S1+S2 match must win over the generic S2 subset guard below
+	// (pressedS2() is a subset test, so S1+S2 would otherwise shadow here).
+	// Same guard shape as the L1 session guard: respects both locks.
+	// S1+S2+Up is ENTER_USB_MODE (returned above), so Up is excluded
+	// explicitly. Sets the session flag and returns the otherwise-normal
+	// bootAction (session-only, never saved).
+	if (!webConfigLocked && !modeSwitchLocked && !gamepad->pressedUp() &&
+			gamepad->state.buttons == (GAMEPAD_MASK_S1 | GAMEPAD_MASK_S2)) {
+		s3UsbSession = true;
+		return bootAction;
+	}
+#endif
 	if (!webConfigLocked && gamepad->pressedS2()) {
 		bootAction.inputMode =  InputMode::INPUT_MODE_CONFIG;
 		return bootAction;
@@ -607,16 +621,6 @@ GP2040::BootAction GP2040::getButtonMappedBootAction() {
 		// up). L1-unmapped boots WiFi-config (session-only, never saved);
 		// L2/R1-unmapped holds are ignored (normal boot) — L2 is reserved
 		// for the USB-config phase.
-		// S3 USB-networking session override (USB-webconfig plan, Task 5):
-		// S1+S2 held at boot enables USB networking for this session only
-		// (never saved; consumed in GP2040::setup()). Exact button match,
-		// like the L1 guard below; S1+S2+Up is ENTER_USB_MODE (returned
-		// above), so Up is excluded explicitly. Respects the webconfig lock.
-		if (!webConfigLocked && !gamepad->pressedUp() &&
-				gamepad->state.buttons == (GAMEPAD_MASK_S1 | GAMEPAD_MASK_S2)) {
-			s3UsbSession = true;
-			return bootAction;
-		}
 		if (!webConfigLocked && gamepad->state.buttons == GAMEPAD_MASK_L1 &&
 				gamepadOptions.inputModeL1 < 0) {
 			bootAction.inputMode = InputMode::INPUT_MODE_CONFIG;
