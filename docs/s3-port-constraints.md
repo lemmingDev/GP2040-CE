@@ -304,12 +304,14 @@ read the matching section here before touching the code.
   USB device task — fixed by yielding in the CONFIG branch; (b) a
   pre-existing S3 quirk demoted CONFIG boots to the stored gamepad mode
   (`if (s3ConfigBoot) inputMode = gamepadOptions.inputMode`), silently
-  cancelling every S2-hold boot — removed.
+  cancelling every S2-hold boot — removed; (c) the S1+S2 USB-networking
+  session hold was removed as part of the pivot — CONFIG-only RNDIS uses
+  S2-hold CONFIG boot + `usbNetworkMode` gating, with no S1+S2 path.
 - **Rule:** gamepad descriptors never carry RNDIS interfaces; CONFIG boot
   selects `S3NetDriver` (standalone RNDIS, MISC class, Pico EP triple)
-  when USB networking is enabled, else the HID fallback. USB netif
-  bring-up runs on CONFIG boots only, so `usbEnabled` never reports a
-  dormant netif.
+  when USB networking is enabled, else the HID fallback. S1+S2 session
+  logic is gone. USB netif bring-up runs on CONFIG boots only, so
+  `usbEnabled` never reports a dormant netif.
 - **Verify:** S2-hold boot shows an RNDIS-only device (no gamepad) that
   starts and serves webconfig; normal boots show pure gamepad and no
   RNDIS nodes; guards check (new) asserts no RNDIS bytes in gamepad
