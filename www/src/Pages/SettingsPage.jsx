@@ -311,6 +311,35 @@ const STA_MODES = [
 	{ labelKey: 'sta-mode-options.always-on', value: 2 },
 ];
 
+// S3 USB network mode (WebConfigOptions.usbNetworkMode):
+// 0 = Off, 1 = Always-on, 2 = Config-mode-only. Local table, same reason.
+// Governs CONFIG-boot RNDIS only (pivot: per-mode composite removed).
+const USB_NETWORK_MODES = [
+	{ labelKey: 'usb-network-mode-options.off', value: 0 },
+	{ labelKey: 'usb-network-mode-options.always-on', value: 1 },
+	{ labelKey: 'usb-network-mode-options.config-only', value: 2 },
+];
+
+// Private /24 subnet check shared by the apSubnet/usbSubnet validators.
+// Mirrors src/usbnet_s3.cpp parsePrivateSubnet24: IPv4 quad, last octet 0,
+// private range (10/8, 172.16/12, 192.168/16).
+function isPrivateSubnet24(value) {
+	if (typeof value !== 'string' || value.length === 0) return false;
+	const parts = value.split('.');
+	if (parts.length !== 4) return false;
+	const octets = parts.map((p) => {
+		if (!/^\d+$/.test(p)) return NaN;
+		// forbid leading zeros like "01" would still parse but keep strict numeric
+		return parseInt(p, 10);
+	});
+	if (octets.some((o) => Number.isNaN(o) || o < 0 || o > 255)) return false;
+	if (octets[3] !== 0) return false;
+	if (octets[0] === 10) return true;
+	if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return true;
+	if (octets[0] === 192 && octets[1] === 168) return true;
+	return false;
+}
+
 const INPUT_MODES_BINDS = [
 	{ value: 'B1' },
 	{ value: 'B2' },
@@ -507,6 +536,42 @@ const schema = yup.object().shape({
 		.number()
 		.oneOf(STA_MODES.map((o) => o.value))
 		.label('Home Network Mode'),
+	// S3 USB networking fields (WebConfigOptions, same ride-along as
+	// the AP/STA keys — optional here so Pico saves aren't blocked).
+	usbNetworkMode: yup
+		.number()
+		.oneOf(USB_NETWORK_MODES.map((o) => o.value))
+		.label('USB Network Mode'),
+	apSubnet: yup
+		.string()
+		.max(16)
+		.test(
+			'subnet-pair',
+			'Must be a private /24 network address (e.g. 192.168.4.0) and differ from USB subnet',
+			function (value) {
+				if (!value) return true;
+				if (!isPrivateSubnet24(value)) return false;
+				const other = this.parent?.usbSubnet;
+				if (other && isPrivateSubnet24(other) && value === other) return false;
+				return true;
+			},
+		)
+		.label('AP Subnet'),
+	usbSubnet: yup
+		.string()
+		.max(16)
+		.test(
+			'subnet-pair',
+			'Must be a private /24 network address (e.g. 192.168.5.0) and differ from AP subnet',
+			function (value) {
+				if (!value) return true;
+				if (!isPrivateSubnet24(value)) return false;
+				const other = this.parent?.apSubnet;
+				if (other && isPrivateSubnet24(other) && value === other) return false;
+				return true;
+			},
+		)
+		.label('USB Subnet'),
 });
 
 const FormContext = ({ setButtonLabels, setKeyMappings }) => {
@@ -527,6 +592,9 @@ const FormContext = ({ setButtonLabels, setKeyMappings }) => {
 				staSSID: '',
 				staPassphrase: '',
 				staMode: 0,
+				usbNetworkMode: 0,
+				apSubnet: '192.168.4.0',
+				usbSubnet: '192.168.5.0',
 				...options,
 			});
 			setButtonLabels({
@@ -567,6 +635,11 @@ const FormContext = ({ setButtonLabels, setKeyMappings }) => {
 			values.webconfigTransport = parseInt(values.webconfigTransport);
 		if (values.staMode !== undefined && values.staMode !== '')
 			values.staMode = parseInt(values.staMode);
+		if (
+			values.usbNetworkMode !== undefined &&
+			values.usbNetworkMode !== ''
+		)
+			values.usbNetworkMode = parseInt(values.usbNetworkMode);
 
 		setButtonLabels({
 			swapTpShareLabels:
@@ -1562,6 +1635,7 @@ export default function SettingsPage() {
 	const translatedForcedSetupModes = translateArray(FORCED_SETUP_MODES);
 	const translatedWebconfigTransports = translateArray(WEBCONFIG_TRANSPORTS);
 	const translatedStaModes = translateArray(STA_MODES);
+	const translatedUsbNetworkModes = translateArray(USB_NETWORK_MODES);
 	// Not currently used but we might add the option at a later date (wheel type, etc.)
 	const translatedPS4ControllerTypeModes = translateArray(PS4_MODES);
 	const translatedInputModeAuthentications =
@@ -2342,6 +2416,91 @@ export default function SettingsPage() {
 																		ip: networkStatus.staIP,
 																	})
 																: t('SettingsPage:sta-status-disconnected')}
+														</p>
+													) : null}
+													<Button type="submit">
+														{t('Common:button-save-label')}
+													</Button>
+													{saveMessage ? (
+														<span className="alert">{saveMessage}</span>
+													) : null}
+												</Section>
+												<Section
+													title={t('SettingsPage:usb-network-header-text')}
+												>
+													<p>{t('SettingsPage:usb-network-s3-note')}</p>
+													<Form.Group className="row mb-3">
+														<Col sm={3}>
+															<Form.Label>
+																{t('SettingsPage:usb-network-mode-label')}
+															</Form.Label>
+															<Form.Select
+																name="usbNetworkMode"
+																className="form-select-sm"
+																value={values.usbNetworkMode}
+																onChange={handleChange}
+																isInvalid={errors.usbNetworkMode}
+															>
+																{translatedUsbNetworkModes.map((o, i) => (
+																	<option
+																		key={`button-usbNetworkMode-option-${i}`}
+																		value={o.value}
+																	>
+																		{o.label}
+																	</option>
+																))}
+															</Form.Select>
+															<Form.Control.Feedback type="invalid">
+																{errors.usbNetworkMode}
+															</Form.Control.Feedback>
+														</Col>
+													</Form.Group>
+													<Form.Group className="row mb-3">
+														<Col sm={4}>
+															<Form.Label>
+																{t('SettingsPage:ap-subnet-label')}
+															</Form.Label>
+															<Form.Control
+																size="sm"
+																type="text"
+																name="apSubnet"
+																value={values.apSubnet ?? ''}
+																error={errors?.apSubnet}
+																isInvalid={errors?.apSubnet}
+																onChange={handleChange}
+																maxLength={16}
+															/>
+															<Form.Control.Feedback type="invalid">
+																{errors.apSubnet}
+															</Form.Control.Feedback>
+														</Col>
+														<Col sm={4}>
+															<Form.Label>
+																{t('SettingsPage:usb-subnet-label')}
+															</Form.Label>
+															<Form.Control
+																size="sm"
+																type="text"
+																name="usbSubnet"
+																value={values.usbSubnet ?? ''}
+																error={errors?.usbSubnet}
+																isInvalid={errors?.usbSubnet}
+																onChange={handleChange}
+																maxLength={16}
+															/>
+															<Form.Control.Feedback type="invalid">
+																{errors.usbSubnet}
+															</Form.Control.Feedback>
+														</Col>
+													</Form.Group>
+													<p>{t('SettingsPage:subnet-help')}</p>
+													{networkStatus ? (
+														<p>
+															{networkStatus.usbEnabled
+																? t('SettingsPage:usb-status-connected', {
+																		ip: networkStatus.usbIP,
+																	})
+																: t('SettingsPage:usb-status-disconnected')}
 														</p>
 													) : null}
 													<Button type="submit">

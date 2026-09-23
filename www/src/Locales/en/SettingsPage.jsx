@@ -220,4 +220,19 @@ export default {
 	'sta-scan-label': 'Scan networks',
 	'sta-scan-scanning-label': 'Scanning…',
 	'sta-scan-placeholder': 'Select a network…',
+	'usb-network-header-text': 'USB Network',
+	'usb-network-s3-note':
+		'These settings control the ESP32-S3 USB network (RNDIS) and are ignored on other boards. RNDIS is available in CONFIG mode only; changes take effect after reboot.',
+	'usb-network-mode-label': 'USB Network Mode',
+	'usb-network-mode-options': {
+		off: 'Off',
+		'always-on': 'Always-on',
+		'config-only': 'Config-mode-only',
+	},
+	'ap-subnet-label': 'AP Subnet',
+	'usb-subnet-label': 'USB Subnet',
+	'subnet-help':
+		'Private /24 network addresses (e.g. 192.168.4.0). AP and USB must differ. Takes effect after reboot.',
+	'usb-status-connected': 'USB network active ({{ip}})',
+	'usb-status-disconnected': 'USB network not active.',
 };
