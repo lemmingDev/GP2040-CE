@@ -6,6 +6,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "tusb.h"
 #if defined(PICO_BOARD)
 #include <pico/unique_id.h>
 #elif defined(ESP_PLATFORM)
@@ -205,6 +206,53 @@ static const uint8_t xbone_configuration_descriptor[] =
 	0x03,        // bmAttributes (Interrupt)
 	0x40, 0x00,  // wMaxPacketSize 64
 	0x01,        // bInterval 1 (unit depends on device speed)
+};
+
+// S3 USB-webconfig (Task 7): XBOne function byte-identical to
+// xbone_configuration_descriptor, followed by the RNDIS function
+// (TUD_RNDIS_DESCRIPTOR argument order: itf, str, ep_notif, notif_size,
+// epout, epin, epsize). The XBOne function uses IN 0x81 / OUT 0x02, so the
+// first-free rule gives notif intr 0x83, bulk OUT 0x04, bulk IN 0x85; RNDIS
+// takes interfaces 1+2, hence bNumInterfaces 1 -> 3 and wTotalLength
+// 0x20 -> 0x20 + TUD_RNDIS_DESC_LEN (66) = 0x62. Drivers return this array
+// iff s3_usb_network_active() holds; toggle-Off keeps the plain array.
+static const uint8_t xbone_configuration_descriptor_with_net[] =
+{
+	0x09,        // bLength
+	0x02,        // bDescriptorType (Configuration)
+	0x62, 0x00,  // wTotalLength 98
+	0x03,        // bNumInterfaces 3
+	0x01,        // bConfigurationValue
+	0x00,        // iConfiguration (String Index)
+	0xA0,        // bmAttributes (USB_CONFIG_ATTRIBUTE_RESERVED | USB_CONFIG_ATTRIBUTE_REMOTEWAKEUP)
+	0xFA,        // bMaxPower 500mA
+
+	0x09,        // bLength
+	0x04,        // bDescriptorType (Interface)
+	0x00,        // bInterfaceNumber 0
+	0x00,        // bAlternateSetting
+	0x02,        // bNumEndpoints 2
+	0xFF,        // bInterfaceClass
+	0x47,        // bInterfaceSubClass
+	0xD0,        // bInterfaceProtocol
+	0x00,        // iInterface (String Index)
+
+	0x07,        // bLength
+	0x05,        // bDescriptorType (Endpoint)
+	0x81,        // bEndpointAddress (IN/D2H)
+	0x03,        // bmAttributes (Interrupt)
+	0x40, 0x00,  // wMaxPacketSize 64
+	0x01,        // bInterval 1 (unit depends on device speed)
+
+	0x07,        // bLength
+	0x05,        // bDescriptorType (Endpoint)
+	0x02,        // bEndpointAddress (OUT/H2D)
+	0x03,        // bmAttributes (Interrupt)
+	0x40, 0x00,  // wMaxPacketSize 64
+	0x01,        // bInterval 1 (unit depends on device speed)
+
+	// RNDIS function (IAD + comm + data interfaces)
+	TUD_RNDIS_DESCRIPTOR(1, 0, 0x83, 8, 0x04, 0x85, 64)
 };
 
 static uint8_t const * xbone_configuration_descriptor_cb(uint8_t index)

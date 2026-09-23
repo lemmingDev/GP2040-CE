@@ -6,6 +6,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "tusb.h"
 
 #define EGRET_ENDPOINT_SIZE 64
 
@@ -135,6 +136,61 @@ static const uint8_t egret_configuration_descriptor[] =
     0x03,        // bmAttributes (Interrupt)
     0x40, 0x00,  // wMaxPacketSize 64
     0x0A,        // bInterval 10 (unit depends on device speed)
+};
+
+// S3 USB-webconfig (Task 7): Egret function byte-identical to
+// egret_configuration_descriptor, followed by the RNDIS function
+// (TUD_RNDIS_DESCRIPTOR argument order: itf, str, ep_notif, notif_size,
+// epout, epin, epsize). The Egret function uses OUT 0x02 / IN 0x81, so the
+// first-free rule gives notif intr 0x83, bulk OUT 0x04, bulk IN 0x85; RNDIS
+// takes interfaces 1+2, hence bNumInterfaces 1 -> 3 and wTotalLength
+// 0x29 -> 0x29 + TUD_RNDIS_DESC_LEN (66) = 0x6B. Drivers return this array
+// iff s3_usb_network_active() holds; toggle-Off keeps the plain array.
+static const uint8_t egret_configuration_descriptor_with_net[] =
+{
+    0x09,        // bLength
+    0x02,        // bDescriptorType (Configuration)
+    0x6B, 0x00,  // wTotalLength 107
+    0x03,        // bNumInterfaces 3
+    0x01,        // bConfigurationValue
+    0x00,        // iConfiguration (String Index)
+    0x80,        // bmAttributes
+    0xFA,        // bMaxPower 500mA
+
+    0x09,        // bLength
+    0x04,        // bDescriptorType (Interface)
+    0x00,        // bInterfaceNumber 0
+    0x00,        // bAlternateSetting
+    0x02,        // bNumEndpoints 2
+    0x03,        // bInterfaceClass
+    0x00,        // bInterfaceSubClass
+    0x00,        // bInterfaceProtocol
+    0x00,        // iInterface (String Index)
+
+    0x09,        // bLength
+    0x21,        // bDescriptorType (HID)
+    0x11, 0x01,  // bcdHID 1.11
+    0x00,        // bCountryCode
+    0x01,        // bNumDescriptors
+    0x22,        // bDescriptorType[0] (HID)
+    0x31, 0x00,  // wDescriptorLength[0] 49
+
+    0x07,        // bLength
+    0x05,        // bDescriptorType (Endpoint)
+    0x02,        // bEndpointAddress (OUT/H2D)
+    0x03,        // bmAttributes (Interrupt)
+    0x40, 0x00,  // wMaxPacketSize 64
+    0x0A,        // bInterval 10 (unit depends on device speed)
+
+    0x07,        // bLength
+    0x05,        // bDescriptorType (Endpoint)
+    0x81,        // bEndpointAddress (IN/D2H)
+    0x03,        // bmAttributes (Interrupt)
+    0x40, 0x00,  // wMaxPacketSize 64
+    0x0A,        // bInterval 10 (unit depends on device speed)
+
+    // RNDIS function (IAD + comm + data interfaces)
+    TUD_RNDIS_DESCRIPTOR(1, 0, 0x83, 8, 0x04, 0x85, 64)
 };
 
 static const uint8_t egret_report_descriptor[] =

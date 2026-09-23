@@ -6,6 +6,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "tusb.h"
 #if defined(PICO_BOARD)
 #include <pico/unique_id.h>
 #elif defined(ESP_PLATFORM)
@@ -129,6 +130,14 @@ static const uint8_t xinput_device_descriptor[] =
 // This needs to be:
  // 4 interfaces
  // remote wakeup enabled
+// S3 USB-webconfig (Task 7): RNDIS function appended when USB networking is
+// active. The XInput function already uses EP addresses 0x81-0x86 (IN
+// 0x81/0x83/0x85/0x86, OUT 0x02/0x04/0x06), so the Task-6 default triple
+// (0x83/0x04/0x85) collides on all three; the first-free rule gives notif
+// intr 0x87, bulk OUT 0x08, bulk IN 0x89. RNDIS takes interfaces 4+5
+// (0-based; comm + data), hence bNumInterfaces 4 -> 6 and wTotalLength
+// 0x99 -> 0x99 + TUD_RNDIS_DESC_LEN (66) = 0xDB.
+#define XINPUT_CONFIG_DESC_SIZE_WITH_NET (0x99 + TUD_RNDIS_DESC_LEN)
 static const uint8_t xinput_configuration_descriptor[] =
 {
     0x09,        // bLength
@@ -299,6 +308,189 @@ static const uint8_t xinput_configuration_descriptor[] =
     0x01,
     0x01,
     0x03,
+};
+
+// S3 USB-webconfig (Task 7): XInput function byte-identical to
+// xinput_configuration_descriptor, followed by the RNDIS function
+// (TUD_RNDIS_DESCRIPTOR argument order: itf, str, ep_notif, notif_size,
+// epout, epin, epsize). The XInput driver copies this array into its member
+// buffer (sized XINPUT_CONFIG_DESC_SIZE_WITH_NET) and patches the subtype
+// byte at offset 22 exactly as for the plain array; it returns this array
+// iff s3_usb_network_active() holds, so toggle-Off output is byte-identical.
+// Do NOT mutate this shared static in place.
+static const uint8_t xinput_configuration_descriptor_with_net[] =
+{
+    0x09,        // bLength
+    0x02,        // bDescriptorType (Configuration)
+    0xDB, 0x00,  // wTotalLength 0xDB (0x99 + TUD_RNDIS_DESC_LEN)
+    0x06,        // bNumInterfaces 6
+    0x01,        // bConfigurationValue
+    0x00,        // iConfiguration (String Index)
+    0xA0,        // bmAttributes (remote wakeup)
+    0xFA,        // bMaxPower 500mA
+
+    // Control Interface (0x5D 0xFF)
+    0x09,        // bLength
+    0x04,        // bDescriptorType (Interface)
+    0x00,        // bInterfaceNumber 0
+    0x00,        // bAlternateSetting
+    0x02,        // bNumEndpoints 2
+    0xFF,        // bInterfaceClass
+    0x5D,        // bInterfaceSubClass
+    0x01,        // bInterfaceProtocol
+    0x00,        // iInterface (String Index)
+
+    // Gamepad Descriptor
+    0x11,        // bLength
+    0x21,        // bDescriptorType (HID)
+    0x00, 0x01,  // bcdHID 1.10
+    0x01,        // SUB_TYPE
+    0x25,        // reserved2
+    0x81,        // DEVICE_EPADDR_IN
+    0x14,        // bMaxDataSizeIn
+    0x00, 0x00, 0x00, 0x00, 0x13, // reserved3
+    0x02,        // DEVICE_EPADDR_OUT is this right?
+    0x08,        // bMaxDataSizeOut
+    0x00, 0x00,  // reserved4
+
+    // Report IN Endpoint 1.1
+    0x07,        // bLength
+    0x05,        // bDescriptorType (Endpoint)
+    0x81,        // bEndpointAddress (IN/D2H)
+    0x03,        // bmAttributes (Interrupt)
+    0x20, 0x00,  // wMaxPacketSize 32
+    0x01,        // bInterval 1 (unit depends on device speed)
+
+    // Report OUT Endpoint 1.2
+    0x07,        // bLength
+    0x05,        // bDescriptorType (Endpoint)
+    0x02,        // bEndpointAddress (OUT/H2D)
+    0x03,        // bmAttributes (Interrupt)
+    0x20, 0x00,  // wMaxPacketSize 32
+    0x08,        // bInterval 8 (unit depends on device speed)
+
+    // Interface Audio
+    0x09,        // bLength
+    0x04,        // bDescriptorType (Interface)
+    0x01,        // bInterfaceNumber 1
+    0x00,        // bAlternateSetting
+    0x04,        // bNumEndpoints 4
+    0xFF,        // bInterfaceClass
+    0x5D,        // bInterfaceSubClass
+    0x03,        // bInterfaceProtocol
+    0x00,        // iInterface (String Index)
+
+    // Audio Descriptor
+    0x1B,        // bLength
+    0x21,
+    0x00,
+    0x01,
+    0x01,
+    0x01,
+    0x83,        // XINPUT_MIC_IN
+    0x40,        // ??
+    0x01,        // ??
+    0x04,        // XINPUT_AUDIO_OUT
+    0x20,        // ??
+    0x16,        // ??
+    0x85,        // XINPUT_UNK_IN
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x16,
+    0x06,        // XINPUT_UNK_OUT
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+
+    // Report IN Endpoint 2.1
+    0x07,        // bLength
+    0x05,        // bDescriptorType (Endpoint)
+    0x83,        // bEndpointAddress (XINPUT_MIC_IN)
+    0x03,        // bmAttributes (Interrupt)
+    0x20, 0x00,  // wMaxPacketSize 32
+    0x02,        // bInterval 2 (unit depends on device speed)
+
+    // Report OUT Endpoint 2.2
+    0x07,        // bLength
+    0x05,        // bDescriptorType (Endpoint)
+    0x04,        // bEndpointAddress (XINPUT_AUDIO_OUT)
+    0x03,        // bmAttributes (Interrupt)
+    0x20, 0x00,  // wMaxPacketSize 32
+    0x04,        // bInterval 4 (unit depends on device speed)
+
+    // Report IN Endpoint 2.3
+    0x07,        // bLength
+    0x05,        // bDescriptorType (Endpoint)
+    0x85,        // bEndpointAddress (XINPUT_UNK_IN)
+    0x03,        // bmAttributes (Interrupt)
+    0x20, 0x00,  // wMaxPacketSize 32
+    0x40,        // bInterval 128
+
+    // Report OUT Endpoint 2.4
+    0x07,        // bLength
+    0x05,        // bDescriptorType (Endpoint)
+    0x06,        // bEndpointAddress (XINPUT_UNK_OUT)
+    0x03,        // bmAttributes (Interrupt)
+    0x20, 0x00,  // wMaxPacketSize 32
+    0x10,        // bInterval 16
+
+    // Interface Plugin Module
+    0x09,        // bLength
+    0x04,        // bDescriptorType (Interface)
+    0x02,        // bInterfaceNumber 2
+    0x00,        // bAlternateSetting
+    0x01,        // bNumEndpoints 1
+    0xFF,        // bInterfaceClass
+    0x5D,        // bInterfaceSubClass
+    0x02,        // bInterfaceProtocol
+    0x00,        // iInterface (String Index)
+
+    //PluginModuleDescriptor : {
+    0x09,        // bLength
+    0x21,        // bDescriptorType
+    0x00, 0x01,  // version 1.00
+    0x01,        // ??
+    0x22,        // ??
+    0x86,        // XINPUT_PLUGIN_MODULE_IN,
+    0x03,        // ??
+    0x00,        // ??
+
+    // Report IN Endpoint 3.1
+    0x07,        // bLength
+    0x05,        // bDescriptorType (Endpoint)
+    0x86,        // bEndpointAddress (XINPUT_PLUGIN_MODULE_IN)
+    0x03,        // bmAttributes (Interrupt)
+    0x20, 0x00,  // wMaxPacketSize 32
+    0x10,        // bInterval 8 (unit depends on device speed)
+
+    // Interface Security
+    0x09,        // bLength
+    0x04,        // bDescriptorType (Interface)
+    0x03,        // bInterfaceNumber 3
+    0x00,        // bAlternateSetting
+    0x00,        // bNumEndpoints 0
+    0xFF,        // bInterfaceClass
+    0xFD,        // bInterfaceSubClass
+    0x13,        // bInterfaceProtocol
+    0x04,        // iInterface (String Index)
+
+    // SecurityDescriptor (XSM3)
+    0x06,        // bLength
+    0x41,        // bDescriptType (Xbox 360)
+    0x00,
+    0x01,
+    0x01,
+    0x03,
+
+    // RNDIS function (IAD + comm + data interfaces 4+5)
+    TUD_RNDIS_DESCRIPTOR(4, 0, 0x87, 8, 0x08, 0x89, 64)
 };
 
 typedef enum
