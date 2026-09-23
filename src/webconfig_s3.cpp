@@ -4355,12 +4355,11 @@ static bool s3_configure_ap()
     // Task 5 (USB-webconfig plan): serve the configured AP subnet. The AP
     // netif (created with IDF defaults in s3_wifi_base_init) gets .1 of the
     // stored apSubnet (compiled default on empty/invalid); the DHCP server
-    // derives its lease pool from this address at AP_START, so setting it
-    // pre-start reconfigures the served range. A stop/start bounce covers
-    // the already-running case (not reachable from the boot callers, which
-    // run pre-start — the stop then fails with ALREADY_STOPPED and the
-    // start is skipped). Never fails the boot for config reasons: on error
-    // the AP stays up on the previous address.
+    // derives its lease pool from this address at AP_START, so stop the
+    // server first (set_ip_info refuses unless it is STOPPED), set the IP,
+    // then start the server unconditionally. Never fails the boot for
+    // config reasons: on error the AP stays up on the previous address
+    // with DHCP restarted.
     esp_netif_t *apNetif = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
     if (apNetif == nullptr)
     {
@@ -4385,14 +4384,26 @@ static bool s3_configure_ap()
         apIpInfo.ip.addr = esp_netif_htonl(apHost1);
         apIpInfo.gw.addr = esp_netif_htonl(apHost1);
         apIpInfo.netmask.addr = esp_netif_htonl(0xFFFFFF00u);  // /24
+        // Stop first (result ignored): esp_netif_set_ip_info refuses while
+        // the DHCP server is not STOPPED, and a fresh netif sits at INIT.
+        // On INIT the stop transitions to STOPPED and returns OK; only an
+        // already-STOPPED server errors ALREADY_STOPPED (both fine).
+        esp_netif_dhcps_stop(apNetif);
         if (esp_netif_set_ip_info(apNetif, &apIpInfo) != ESP_OK)
         {
             ESP_LOGW(S3_WEBCONFIG_TAG, "AP subnet apply failed, keeping current IP");
+            // Never leave the AP without DHCP: the pre-stop above stopped it.
+            if (esp_netif_dhcps_start(apNetif) != ESP_OK)
+            {
+                ESP_LOGW(S3_WEBCONFIG_TAG, "AP DHCP restart failed");
+            }
         }
         else
         {
-            if (esp_netif_dhcps_stop(apNetif) == ESP_OK &&
-                esp_netif_dhcps_start(apNetif) != ESP_OK)
+            // Unconditional start: the pre-stop already stopped the server,
+            // so a stop-OK-gated bounce would skip the start and leave AP
+            // DHCP dead. The pool derives from the netif IP at AP_START.
+            if (esp_netif_dhcps_start(apNetif) != ESP_OK)
             {
                 ESP_LOGW(S3_WEBCONFIG_TAG, "AP DHCP restart failed");
             }

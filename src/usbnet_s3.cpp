@@ -182,9 +182,11 @@ bool s3_usbnet_bringup(const char *apSubnet, const char *usbSubnet) {
     ipInfo.gw.addr = esp_netif_htonl(ipComposed);
     ipInfo.netmask.addr = esp_netif_htonl(0xFFFFFF00u);  // /24
     // AP-netif sequence mirrored with the PUBLIC esp_netif API (start/up are
-    // private; drivers drive them via the action_* handlers): create, set
-    // static IP, action_start (AUTOUP brings the lwIP netif up; the
-    // DHCP_SERVER flag starts the DHCP server inside), then verify link +
+    // private; drivers drive them via the action_* handlers): create, stop
+    // the DHCP server (fresh netif sits at INIT, and set_ip_info refuses
+    // unless the server is STOPPED), set static IP, action_start (AUTOUP
+    // brings the lwIP netif up; the DHCP_SERVER flag starts the DHCP server
+    // inside), then verify link +
     // DHCP state via the public getters. Ethernet stack config: RNDIS
     // carries Ethernet frames.
     esp_netif_inherent_config_t base{};
@@ -206,6 +208,12 @@ bool s3_usbnet_bringup(const char *apSubnet, const char *usbSubnet) {
         ESP_LOGE(S3_USBNET_TAG, "esp_netif_new failed");
         return false;
     }
+    // esp_netif_set_ip_info refuses while the DHCP server is not STOPPED,
+    // and a fresh netif sits at INIT (not STOPPED), so stop first and ignore
+    // the result: on INIT this transitions to STOPPED and returns OK, and
+    // only an already-STOPPED server errors ALREADY_STOPPED (both fine).
+    // The DHCP server (re)starts with the new address at action_start below.
+    esp_netif_dhcps_stop(netif);
     if (esp_netif_set_ip_info(netif, &ipInfo) != ESP_OK) {
         ESP_LOGE(S3_USBNET_TAG, "esp_netif_set_ip_info failed");
         esp_netif_destroy(netif);
