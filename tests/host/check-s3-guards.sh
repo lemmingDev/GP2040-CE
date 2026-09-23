@@ -256,6 +256,26 @@ else
     failmsg "32-bit pin shifts in S3-compiled TUs:$narrow_shift_hits"
 fi
 
+# USB-webconfig pivot: gamepad descriptors must never carry RNDIS (the
+# CONFIG-mode S3NetDriver owns the only RNDIS function). S3NetDriver* is
+# exempt by design; Pico's NetDriver is upstream-owned.
+rndis_hits=""
+for f in $(git ls-files 'headers/drivers/*/*Descriptors.h' 2>/dev/null); do
+    case "$f" in
+        headers/drivers/net/S3NetDriverDescriptors.h) continue ;;
+    esac
+    [ -f "$f" ] || continue
+    stripped_rndis="$(sed 's,//.*,,' "$f")"
+    if echo "$stripped_rndis" | grep -Eq 'TUD_RNDIS_DESCRIPTOR|with_net|0xE0'; then
+        rndis_hits="$rndis_hits $f"
+    fi
+done
+if [ -z "$rndis_hits" ]; then
+    pass "no RNDIS in gamepad descriptors (CONFIG-only RNDIS)"
+else
+    failmsg "RNDIS in gamepad descriptors:$rndis_hits"
+fi
+
 if [ "$fail" -ne 0 ]; then
     echo "s3-guards: FAILURES present (see docs/s3-port-constraints.md)"
     exit 1

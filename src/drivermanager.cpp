@@ -43,6 +43,12 @@
 #include "drivers/switchpro/SwitchProDriver.h"
 #include "drivers/p5general/P5GeneralDriver.h"
 #include "drivers/sinput/SInputDriver.h"
+#if defined(ESP_PLATFORM)
+// S3 USB-webconfig pivot: CONFIG-mode standalone RNDIS driver + boot-
+// resolved USB-networking flag (src/usbnet_s3.cpp).
+#include "drivers/net/S3NetDriver.h"
+bool s3_usb_network_active();
+#endif
 #if defined(PICO_BOARD)
 #include "usbhostmanager.h"
 #endif
@@ -170,6 +176,15 @@ void DriverManager::setup(InputMode mode) {
         case INPUT_MODE_SINPUT:
             driver = new SInputDriver();
             break;
+        case INPUT_MODE_CONFIG:
+            // S3 USB-webconfig pivot: CONFIG boot serves standalone RNDIS
+            // when USB networking is enabled, else today's HID fallback
+            // (byte-identical Off behavior).
+            if (s3_usb_network_active()) {
+                driver = new S3NetDriver();
+                break;
+            }
+            // fall through to HID fallback
         case INPUT_MODE_GENERIC:
         default:
             driver = new HIDDriver();

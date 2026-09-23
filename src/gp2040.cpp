@@ -1,6 +1,10 @@
 #include <optional>
 #include <cstdint>
 
+#if defined(ESP_PLATFORM)
+#include "esp_log.h"
+#endif
+
 // GP2040 includes
 #include "gp2040.h"
 #if defined(PICO_BOARD)
@@ -81,17 +85,14 @@ void startWebconfigServer();
 // USB netif bring-up (src/usbnet_s3.cpp, Task 4); called from setup() when
 // the Task-5 boot resolution activates USB networking.
 bool s3_usbnet_bringup(const char *apSubnet, const char *usbSubnet);
-// Task-6 descriptor flag (src/usbnet_s3.cpp): mirrors the Task-5 resolution
-// below so HID-family drivers select the plain vs _with_net descriptors.
+// USB-networking active flag (src/usbnet_s3.cpp): mirrors the boot
+// resolution below so the CONFIG driver selects standalone RNDIS vs the
+// HID fallback.
 void s3_set_usb_network_active(bool active);
 
 // L1-hold WiFi-config session flag: set by getButtonMappedBootAction(),
 // consumed once by GP2040::setup(). Session-only, never saved.
 static bool s3WifiConfigSession = false;
-// S1+S2-hold USB-networking session flag (USB-webconfig plan, Task 5): set
-// by getButtonMappedBootAction(), consumed once by GP2040::setup().
-// Session-only, never saved.
-static bool s3UsbSession = false;
 #endif
 
 // TinyUSB
@@ -209,8 +210,6 @@ void GP2040::setup() {
 	// are on but no webConfig pin is set (seen on hardware 2026-09).
 	bool s3WifiSession = s3WifiConfigSession;
 	s3WifiConfigSession = false; // consume once
-	bool s3UsbSessionHeld = s3UsbSession;
-	s3UsbSession = false; // consume once
 #endif
 
 	// Initialize last reinit profile to current so we don't reinit on first loop
@@ -252,24 +251,35 @@ void GP2040::setup() {
 	if ((s3ApRequested || s3StaWanted) && startWifiS3(s3ApRequested, s3ApRequested)) {
 		startWebconfigServer();
 	}
-	// USB-webconfig plan, Task 5: USB networking is active for a held S1+S2
-	// session, AlwaysOn, or ConfigOnly on a config-mode boot. The bring-up
-	// (Task 4) runs independent of WiFi state; invalid stored subnets fall
-	// back to compiled defaults inside the bring-up, so the boot is never
-	// failed here.
-	bool s3UsbActive = s3UsbSessionHeld ||
+	// USB-webconfig pivot: USB networking is active for AlwaysOn, or for
+	// ConfigModeOnly on a config-mode boot (CONFIG boot serves standalone
+	// RNDIS; gamepad modes never expose it). The bring-up (Task 4) runs
+	// independent of WiFi state; invalid stored subnets fall back to
+	// compiled defaults inside the bring-up, so the boot is never failed
+	// here.
+	bool s3UsbActive =
 		webConfigOptions.usbNetworkMode == USB_NETWORK_ALWAYS_ON ||
 		(webConfigOptions.usbNetworkMode == USB_NETWORK_CONFIG_MODE_ONLY && s3ConfigBoot);
-	// Task 6: publish the same resolution for the USB descriptors (drivers
-	// select the _with_net configuration iff this holds). Set unconditionally
-	// so a stale true can never survive a boot that resolves false.
+	// USB-webconfig pivot: publish the resolution for the CONFIG driver
+	// (standalone RNDIS vs HID fallback). Set unconditionally so a stale
+	// true can never survive a boot that resolves false.
 	s3_set_usb_network_active(s3UsbActive);
-	if (s3UsbActive) {
+	// Bring-up runs only on CONFIG boots: gamepad modes expose no RNDIS
+	// interface, so a netif there would report usbEnabled without serving
+	// anything. Gating here keeps status truthful.
+	if (s3UsbActive && s3ConfigBoot) {
 		s3_usbnet_bringup(webConfigOptions.apSubnet, webConfigOptions.usbSubnet);
 	}
-	if (s3ConfigBoot) {
-		inputMode = gamepadOptions.inputMode;
-	}
+#if defined(ESP_PLATFORM)
+	// Boot diagnostics (one line per boot): report resolved boot mode
+	// and USB state so CONFIG-driver selection is observable.
+	ESP_LOGI("boot", "resolved inputMode=%d usbActive=%d configBoot=%d",
+		(int)inputMode, (int)s3UsbActive, (int)s3ConfigBoot);
+#endif
+	// USB-webconfig pivot: a CONFIG bootAction reaches DriverManager as
+	// CONFIG (S3NetDriver serves standalone RNDIS). The old demotion to the
+	// stored gamepad mode is gone: it predates the pivot (CONFIG kept
+	// gameplay live) and would silently cancel every S2-hold boot.
 #endif
 
 	// Setup USB Driver
@@ -458,6 +468,15 @@ void GP2040::run() {
 			inputDriver->process(gamepad);
 			rebootHotkeys.process(gamepad, configMode);
 			checkSaveRebootState();
+#if defined(ESP_PLATFORM)
+			// S3/FreeRTOS: the loop-bottom yield is skipped by this
+			// continue, so yield here too — without it IDLE0 starves,
+			// the task watchdog fires, and the USB device task (which
+			// RNDIS needs) never runs (found via watchdog backtrace:
+			// main spun in debounceGpioGetAll, CONFIG RNDIS dead).
+			tud_task_ext(0, false);
+			vTaskDelay(1);
+#endif
 			continue;
 		}
 
@@ -584,26 +603,22 @@ GP2040::BootAction GP2040::getButtonMappedBootAction() {
 	bool webConfigLocked  = forcedSetupOptions.mode == FORCED_SETUP_MODE_LOCK_WEB_CONFIG ||
 													forcedSetupOptions.mode == FORCED_SETUP_MODE_LOCK_BOTH;
 
+#if defined(ESP_PLATFORM)
+	// Boot diagnostics (one line per boot): report sampled buttons,
+	// locks, and profile so hold failures are attributable.
+	ESP_LOGI("boot", "holdcheck buttons=0x%08X lockW=%d lockM=%d profile=%d",
+		(unsigned)gamepad->state.buttons, (int)webConfigLocked,
+		(int)modeSwitchLocked, (int)gamepadOptions.profileNumber);
+#endif
 	if (gamepad->pressedS1() && gamepad->pressedS2() && gamepad->pressedUp()) {
 		bootAction.type = BootActionType::ENTER_USB_MODE;
 		return bootAction;
 	}
-#if defined(ESP_PLATFORM)
-	// S3 USB-networking session override (USB-webconfig plan, Task 5):
-	// exact S1+S2 match must win over the generic S2 subset guard below
-	// (pressedS2() is a subset test, so S1+S2 would otherwise shadow here).
-	// Same guard shape as the L1 session guard: respects both locks.
-	// S1+S2+Up is ENTER_USB_MODE (returned above), so Up is excluded
-	// explicitly. Sets the session flag and returns the otherwise-normal
-	// bootAction (session-only, never saved).
-	if (!webConfigLocked && !modeSwitchLocked && !gamepad->pressedUp() &&
-			gamepad->state.buttons == (GAMEPAD_MASK_S1 | GAMEPAD_MASK_S2)) {
-		s3UsbSession = true;
-		return bootAction;
-	}
-#endif
 	if (!webConfigLocked && gamepad->pressedS2()) {
 		bootAction.inputMode =  InputMode::INPUT_MODE_CONFIG;
+#if defined(ESP_PLATFORM)
+		ESP_LOGI("boot", "S2-hold -> CONFIG");
+#endif
 		return bootAction;
 	}
 	// input mask, action

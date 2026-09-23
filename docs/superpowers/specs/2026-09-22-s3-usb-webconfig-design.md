@@ -77,3 +77,29 @@ re-runs with the toggle off and on.
 - No ECM/NCM (Windows driver story is worse; RNDIS is plug-and-play).
 - No custom serial protocol (a second config API to maintain forever).
 - No Pico changes; S3-gated throughout, Pico builds stay green.
+
+## Pivot (2026-09-23): CONFIG-only RNDIS, per-mode appends reverted
+
+Hardware verification showed per-mode composite RNDIS (gamepad+RNDIS in
+one configuration) failing Windows start (Code 10) across PCs, modes,
+cables and ports, while a standalone RNDIS function starts cleanly. Root
+cause narrowed to composite interaction (IAD grouping path), not the RNDIS
+core (proven: adapter starts, DHCP serves, webconfig answers). Decision:
+RNDIS lives ONLY in CONFIG boot as a standalone device (Pico NetDriver
+pattern); gamepad modes stay byte-identical pure gamepad forever.
+
+Consequences, all implemented:
+- Per-mode `_with_net` descriptors reverted (Tasks 6-7 hardware work
+  superseded; their RNDIS-core findings — heap-copy RX, stop-first DHCP,
+  EP rules — carry over).
+- New `S3NetDriver` (CONFIG mode): standalone RNDIS device (MISC class,
+  Pico EP triple, own VID/PID/serial), no gamepad interfaces.
+- `usbNetworkMode` Off means no RNDIS anywhere (HID fallback in CONFIG);
+  any other value enables RNDIS in CONFIG boot only. S1+S2 special-case
+  removed (falls through to normal boot); S2-hold remains the standard
+  GP2040-CE path into CONFIG/RNDIS.
+- A latent S3 CONFIG bug fixed along the way: the main loop's CONFIG
+  branch skipped the loop-bottom yield, starving IDLE0 (task watchdog)
+  and the USB device task — any CONFIG USB function was dead on arrival.
+- Pre-existing S3 quirk removed: CONFIG boot no longer demotes to the
+  stored gamepad mode (that line silently cancelled every S2-hold boot).

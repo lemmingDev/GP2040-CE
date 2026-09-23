@@ -82,6 +82,9 @@ idf_component_register(
         # TinyUSB<->esp_netif callbacks, init/start/stop entry points).
         # Inert: no descriptor opens RNDIS yet (later tasks).
         "../../src/usbnet_s3.cpp"
+        # S3 USB-webconfig pivot: CONFIG-mode standalone RNDIS driver
+        # (Pico NetDriver shape, esp_netif instead of raw lwIP).
+        "../../src/drivers/net/S3NetDriver.cpp"
         "../../src/config_utils.cpp"
         "../../src/config_legacy.cpp"
         "../../src/gp2040aux.cpp"

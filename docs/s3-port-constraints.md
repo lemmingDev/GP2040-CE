@@ -290,5 +290,27 @@ read the matching section here before touching the code.
   (`bbe0813f`).
 - **React `inputMode` validation lacks Bluetooth (18).** The Settings yup
   list ends at 17/16; a stored Bluetooth mode fails validation and crashes
-  the mode lookup (white screen — seen with poisoned configs). Goes with
+  the mode lookup (white screen ?" seen with poisoned configs). Goes with
   the deferred Bluetooth UI work, not this plan.
+
+## 14. USB RNDIS lives in CONFIG mode only (never composited with gamepad)
+
+- **Symptom:** per-mode composite RNDIS (gamepad+RNDIS, IAD-grouped)
+  failed Windows start (Code 10) on two PCs, all modes, cables and
+  ports; standalone RNDIS starts cleanly on the same hardware.
+- **Root causes found along the way:** (a) the S3 main loop's CONFIG
+  branch skipped the loop-bottom yield (`continue` before
+  `tud_task_ext`/`vTaskDelay`), starving IDLE0 (task watchdog) and the
+  USB device task — fixed by yielding in the CONFIG branch; (b) a
+  pre-existing S3 quirk demoted CONFIG boots to the stored gamepad mode
+  (`if (s3ConfigBoot) inputMode = gamepadOptions.inputMode`), silently
+  cancelling every S2-hold boot — removed.
+- **Rule:** gamepad descriptors never carry RNDIS interfaces; CONFIG boot
+  selects `S3NetDriver` (standalone RNDIS, MISC class, Pico EP triple)
+  when USB networking is enabled, else the HID fallback. USB netif
+  bring-up runs on CONFIG boots only, so `usbEnabled` never reports a
+  dormant netif.
+- **Verify:** S2-hold boot shows an RNDIS-only device (no gamepad) that
+  starts and serves webconfig; normal boots show pure gamepad and no
+  RNDIS nodes; guards check (new) asserts no RNDIS bytes in gamepad
+  descriptors.
