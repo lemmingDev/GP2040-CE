@@ -609,6 +609,11 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY_STR(config.webConfigOptions, staPassphrase, DEFAULT_STA_PASSPHRASE);
     INIT_UNSET_PROPERTY(config.webConfigOptions, staMode, DEFAULT_STA_MODE);
     INIT_UNSET_PROPERTY(config.webConfigOptions, usbNetworkMode, DEFAULT_USB_NETWORK_MODE);
+    // USB-network pivot: AlwaysOn (1) was removed; map legacy 1 -> ConfigOnly (2).
+    if (config.webConfigOptions.has_usbNetworkMode &&
+        config.webConfigOptions.usbNetworkMode == USB_NETWORK_ALWAYS_ON) {
+        config.webConfigOptions.usbNetworkMode = USB_NETWORK_CONFIG_MODE_ONLY;
+    }
     INIT_UNSET_PROPERTY_STR(config.webConfigOptions, apSubnet, DEFAULT_AP_SUBNET);
     INIT_UNSET_PROPERTY_STR(config.webConfigOptions, usbSubnet, DEFAULT_USB_SUBNET);
 

@@ -273,7 +273,7 @@ const PreviewLedChanges = ({
 
 export default function LedConfigPage() {
 	const { t } = useTranslation('');
-	const { boardDefinition } = useBoardDefinition();
+	const { boardDefinition, getBoardDefinition } = useBoardDefinition();
 	// Runtime pin ceiling (S3: 48). Falls back to 29 while the board
 	// definition is still loading so the inputs never lock at 0.
 	const pinMax = Math.max(boardDefinition.maxPin, 29);
@@ -316,6 +316,7 @@ export default function LedConfigPage() {
 	};
 
 	useEffect(() => {
+		getBoardDefinition();
 		fetchLedOptions();
 		fetchPresets();
 	}, []);

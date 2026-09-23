@@ -311,12 +311,11 @@ const STA_MODES = [
 	{ labelKey: 'sta-mode-options.always-on', value: 2 },
 ];
 
-// S3 USB network mode (WebConfigOptions.usbNetworkMode):
-// 0 = Off, 1 = Always-on, 2 = Config-mode-only. Local table, same reason.
-// Governs CONFIG-boot RNDIS only (pivot: per-mode composite removed).
+// S3 USB network mode: Off vs Config-mode-only. Always-on was removed:
+// after the CONFIG-only pivot, AlwaysOn == ConfigOnly (both mean RNDIS in
+// CONFIG boot only), so the extra option was redundant.
 const USB_NETWORK_MODES = [
 	{ labelKey: 'usb-network-mode-options.off', value: 0 },
-	{ labelKey: 'usb-network-mode-options.always-on', value: 1 },
 	{ labelKey: 'usb-network-mode-options.config-only', value: 2 },
 ];
 
@@ -2294,7 +2293,26 @@ export default function SettingsPage() {
 																{errors.webconfigTransport}
 															</Form.Control.Feedback>
 														</Col>
+														<Col sm={4}>
+															<Form.Label>
+																{t('SettingsPage:ap-subnet-label')}
+															</Form.Label>
+															<Form.Control
+																size="sm"
+																type="text"
+																name="apSubnet"
+																value={values.apSubnet ?? ''}
+																error={errors?.apSubnet}
+																isInvalid={errors?.apSubnet}
+																onChange={handleChange}
+																maxLength={16}
+															/>
+															<Form.Control.Feedback type="invalid">
+																{errors.apSubnet}
+															</Form.Control.Feedback>
+														</Col>
 													</Form.Group>
+													<p>{t('SettingsPage:subnet-help')}</p>
 													<Button type="submit">
 														{t('Common:button-save-label')}
 													</Button>
@@ -2452,26 +2470,6 @@ export default function SettingsPage() {
 															</Form.Select>
 															<Form.Control.Feedback type="invalid">
 																{errors.usbNetworkMode}
-															</Form.Control.Feedback>
-														</Col>
-													</Form.Group>
-													<Form.Group className="row mb-3">
-														<Col sm={4}>
-															<Form.Label>
-																{t('SettingsPage:ap-subnet-label')}
-															</Form.Label>
-															<Form.Control
-																size="sm"
-																type="text"
-																name="apSubnet"
-																value={values.apSubnet ?? ''}
-																error={errors?.apSubnet}
-																isInvalid={errors?.apSubnet}
-																onChange={handleChange}
-																maxLength={16}
-															/>
-															<Form.Control.Feedback type="invalid">
-																{errors.apSubnet}
 															</Form.Control.Feedback>
 														</Col>
 														<Col sm={4}>
