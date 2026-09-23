@@ -461,16 +461,26 @@ static std::string s3_setGamepadOptions(const char *body, size_t len)
     s3_readDoc(gamepadOptions.ps4ControllerIDMode, doc, "ps4ControllerIDMode");
     s3_readDoc(gamepadOptions.usbDescOverride, doc, "usbDescOverride");
     s3_readDoc(gamepadOptions.miniMenuGamepadInput, doc, "miniMenuGamepadInput");
-    // Copy USB descriptor strings
-    size_t strSize = sizeof(gamepadOptions.usbDescManufacturer);
-    strncpy(gamepadOptions.usbDescManufacturer, doc["usbDescManufacturer"], strSize - 1);
-    gamepadOptions.usbDescManufacturer[strSize - 1] = '\0';
-    strSize = sizeof(gamepadOptions.usbDescProduct);
-    strncpy(gamepadOptions.usbDescProduct, doc["usbDescProduct"], strSize - 1);
-    gamepadOptions.usbDescProduct[strSize - 1] = '\0';
-    strSize = sizeof(gamepadOptions.usbDescVersion);
-    strncpy(gamepadOptions.usbDescVersion, doc["usbDescVersion"], strSize - 1);
-    gamepadOptions.usbDescVersion[strSize - 1] = '\0';
+    // Copy USB descriptor strings (assign-only-when-set: absent keys must
+    // not clear stored values, and strncpy(dst, NULL) would crash).
+    if (doc["usbDescManufacturer"] != nullptr)
+    {
+        size_t strSize = sizeof(gamepadOptions.usbDescManufacturer);
+        strncpy(gamepadOptions.usbDescManufacturer, doc["usbDescManufacturer"], strSize - 1);
+        gamepadOptions.usbDescManufacturer[strSize - 1] = '\0';
+    }
+    if (doc["usbDescProduct"] != nullptr)
+    {
+        size_t strSize = sizeof(gamepadOptions.usbDescProduct);
+        strncpy(gamepadOptions.usbDescProduct, doc["usbDescProduct"], strSize - 1);
+        gamepadOptions.usbDescProduct[strSize - 1] = '\0';
+    }
+    if (doc["usbDescVersion"] != nullptr)
+    {
+        size_t strSize = sizeof(gamepadOptions.usbDescVersion);
+        strncpy(gamepadOptions.usbDescVersion, doc["usbDescVersion"], strSize - 1);
+        gamepadOptions.usbDescVersion[strSize - 1] = '\0';
+    }
     s3_readDoc(gamepadOptions.usbOverrideID, doc, "usbOverrideID");
     s3_readDoc(gamepadOptions.usbVendorID, doc, "usbVendorID");
     s3_readDoc(gamepadOptions.usbProductID, doc, "usbProductID");
