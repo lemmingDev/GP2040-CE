@@ -1,8 +1,28 @@
 #pragma once
 
+#include <cstdint>
+
 // True iff both subnets are valid IPv4 /24 private-network addresses and differ.
 // String-only (no IDF headers) so host tests compile this TU directly.
 bool s3_validateSubnets(const char *apSubnet, const char *usbSubnet);
+
+#if defined(ESP_PLATFORM)
+#include "esp_netif.h"  // esp_ip4_addr_t + esp_netif_t for the declarations below
+#else
+// Host-test alias for IDF's esp_ip4_addr_t (esp_netif_ip_addr.h:111-115).
+// Layout: .addr holds the dotted quad as a network-byte-order integer, i.e.
+// "192.168.5.0" -> 0xC0A80500 (the same integer value esp_ip4addr_aton
+// produces for esp_ip4_addr_t.addr on little-endian targets).
+typedef struct {
+    uint32_t addr;
+} esp_ip4_addr_t;
+#endif
+
+// Parse a /24 private-network subnet string ("192.168.5.0" style) into .addr
+// (network-byte-order integer, see above). False on garbage/non-private/host
+// bits set (same dotted-quad code as validation); `out` untouched on false.
+// String-only (no IDF headers) so host tests compile this TU directly.
+bool s3_subnetToIp(const char *subnet, esp_ip4_addr_t *out);
 
 #if defined(ESP_PLATFORM)
 
@@ -16,10 +36,6 @@ bool s3_validateSubnets(const char *apSubnet, const char *usbSubnet);
 // instead of esp_netif, and pumps its own tud_task() loop; only its shape
 // (recv_cb -> netif input, link-output -> tud_network_xmit, init_cb reset)
 // is mirrored here, mapped onto the esp_netif driver model.
-
-#include <cstdint>
-
-#include "esp_netif.h"
 
 // Frame view passed as the `ref` argument of tud_network_xmit() by the
 // future esp_netif transmit function; tud_network_xmit_cb() copies it into
@@ -39,5 +55,20 @@ void s3_usbnet_init(const uint8_t mac[6]);
 // frames and init_cb() is a no-op.
 void s3_usbnet_start(esp_netif_t *netif);
 void s3_usbnet_stop();
+
+// USB netif bring-up (S3 USB-webconfig plan, Task 4): creates the RNDIS
+// esp_netif with static IP `.1` of `usbSubnet`, starts the DHCP server, and
+// attaches it via s3_usbnet_start(). Invalid stored subnets (or a pair that
+// fails s3_validateSubnets) fall back to compiled defaults — the boot is
+// never failed for config reasons; false is returned only on esp_netif
+// errors. Idempotent: a second call while up returns true without touching
+// the shared netif state. Called from webconfig bring-up (Task 5 wires the
+// call); inert until then.
+bool s3_usbnet_bringup(const char *apSubnet, const char *usbSubnet);
+
+// Status for GET /api/getNetworkStatus (Task 4): true / "192.168.5.1"-style
+// IP while the USB netif is up, false / "" when down.
+bool s3_usbnet_is_up();
+const char *s3_usbnet_ip();
 
 #endif  // defined(ESP_PLATFORM)

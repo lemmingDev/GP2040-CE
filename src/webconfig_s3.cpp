@@ -101,6 +101,7 @@ extern "C" uint32_t spi_flash_get_chip_size(void);
 #include "base64.h"
 #include "helper.h" // isValidPin() (S3-aware) + animationstation.h/playerleds.h
 #include "webconfig_scan.h" // S3WifiNet + s3_build_scan_list (IDF-free, host-tested)
+#include "usbnet_s3.h" // s3_usbnet_is_up/ip (RNDIS status keys; bring-up wired in a later task)
 #include "layoutmanager.h" // Task 9: button-layout GETs (S3-clean, same as Pico webconfig.cpp)
 #include "peripheralmanager.h"
 #include "addons/neopicoleds.h" // NeoPicoLEDAddon + LIGHT_DATA_* board presets
@@ -4117,15 +4118,17 @@ int s3_sta_last_failure()
 }
 
 // STA-Task 3: Home Network status (S3-only; no Pico equivalent). Returns
-// exactly {apEnabled, apIP, staConnected, staSSID, staIP}: apIP is the AP
+// exactly {apEnabled, apIP, staConnected, staSSID, staIP} plus the Task-4
+// additive USB keys {usbEnabled, usbIP}: apIP is the AP
 // netif IP when up else ""; staConnected is the link flag; staSSID is the
-// configured SSID setting (not probe data); staIP is s3_sta_ip().
+// configured SSID setting (not probe data); staIP is s3_sta_ip(); usbEnabled
+// is the USB-netif flag and usbIP its "192.168.5.1"-style address ("" down).
 static std::string s3_getNetworkStatus()
 {
-    // Pool must hold 5 members PLUS string contents (SSID up to 32B, two
+    // Pool must hold 7 members PLUS string contents (SSID up to 32B, three
     // IPs): bare JSON_OBJECT_SIZE(5) silently drops the last assignment
     // (found on hardware 2026-09: staIP key missing from the response).
-    const size_t capacity = JSON_OBJECT_SIZE(5) + 64;
+    const size_t capacity = JSON_OBJECT_SIZE(7) + 96;
     DynamicJsonDocument doc(capacity);
     WebConfigOptions &webConfigOptions = Storage::getInstance().getConfig().webConfigOptions;
     s3_writeDoc(doc, "apEnabled", webConfigOptions.apEnabled);
@@ -4145,6 +4148,8 @@ static std::string s3_getNetworkStatus()
     s3_writeDoc(doc, "staConnected", s3_sta_connected() ? 1 : 0);
     s3_writeDoc(doc, "staSSID", webConfigOptions.staSSID);
     s3_writeDoc(doc, "staIP", s3_sta_ip());
+    s3_writeDoc(doc, "usbEnabled", s3_usbnet_is_up() ? 1 : 0);
+    s3_writeDoc(doc, "usbIP", s3_usbnet_ip());  // "192.168.5.1" style, "" when down
     return s3_serialize(doc);
 }
 
