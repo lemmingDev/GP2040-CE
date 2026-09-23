@@ -179,10 +179,10 @@
 //------------- CLASS -------------//
 #define CFG_TUD_CDC              0
 #if defined(ESP_PLATFORM)
-// S3 USB-webconfig plan Task 3: RNDIS class driver compiled in, but no USB
-// descriptor opens it yet (bring-up/descriptors are later tasks), so
-// enumeration is unchanged. MAC + netif glue live in src/usbnet_s3.cpp.
-#define CFG_TUD_ECM_RNDIS        1
+// S3 NCM test branch: CDC-NCM (not RNDIS) for the standalone CONFIG RNDIS
+// device. Same bring-up glue, different class driver (ncm_device.c).
+#define CFG_TUD_ECM_RNDIS        0
+#define CFG_TUD_NCM              1
 #else
 #define CFG_TUD_ECM_RNDIS        1
 #endif

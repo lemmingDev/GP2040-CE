@@ -27,10 +27,10 @@ enum
   S3_ITF_NUM_TOTAL
 };
 
-// Single configuration (RNDIS only).
-#define S3_RNDIS_CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_RNDIS_DESC_LEN)
+// Single configuration (NCM test branch).
+#define S3_NCM_CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_CDC_NCM_DESC_LEN)
 
-// Pico NetDriver EP triple (proven on Windows).
+// Same EP triple (NCM uses the same bulk pair; driver is ncm_device.c).
 #define S3_EPNUM_NET_NOTIF 0x81
 #define S3_EPNUM_NET_OUT   0x02
 #define S3_EPNUM_NET_IN    0x82
@@ -56,11 +56,8 @@ static const uint8_t s3net_device_descriptor[] =
 static const uint8_t s3net_configuration_descriptor[] =
 {
 	// Config number, interface count, string index, total length, attribute, power in mA
-	TUD_CONFIG_DESCRIPTOR(1, S3_ITF_NUM_TOTAL, 0, S3_RNDIS_CONFIG_TOTAL_LEN, 0, 100),
+	TUD_CONFIG_DESCRIPTOR(1, S3_ITF_NUM_TOTAL, 0, S3_NCM_CONFIG_TOTAL_LEN, 0, 100),
 
-	// Interface number, string index, EP notification address and size, EP data address (out, in) and size.
-	// Endpoint size is a literal 64 (full-speed bulk): our fork defines
-	// CFG_TUD_NET_ENDPOINT_SIZE but the managed TinyUSB copy built on S3
-	// does not, so the macro is unusable here.
-	TUD_RNDIS_DESCRIPTOR(S3_ITF_NUM_CDC, S3_STRID_INTERFACE, S3_EPNUM_NET_NOTIF, 8, S3_EPNUM_NET_OUT, S3_EPNUM_NET_IN, 64),
+	// NCM: interface, MAC string, notif EP, bulk pair, MTU.
+	TUD_CDC_NCM_DESCRIPTOR(S3_ITF_NUM_CDC, S3_STRID_INTERFACE, S3_STRID_MAC, S3_EPNUM_NET_NOTIF, 8, S3_EPNUM_NET_OUT, S3_EPNUM_NET_IN, 64, CFG_TUD_NET_MTU),
 };
