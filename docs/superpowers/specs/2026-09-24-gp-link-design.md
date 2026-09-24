@@ -64,6 +64,18 @@ extensions, e.g. IMU streams), `DEBUG_TEXT` (human-readable, never in
 production timing paths). Types 0x80–0xFF reserved for experimental
 extensions; 0xF0–0xFF for transport testing (ping/throughput).
 
+Assigned v1 type numbers (backported from `extras/gp-link/gplink.h`):
+`HELLO=0x01`, `INPUT_STATE=0x02`, `HEARTBEAT=0x03`,
+`RUMBLE_SET=0x04`, `PLAYER_LED_SET=0x05`, `BATTERY_REPORT=0x06`,
+`GPIO_CONFIG=0x07`, `GPIO_READ=0x08`, `GPIO_WRITE=0x09`,
+`DEBUG_TEXT=0x0A`, `FEATURE_REQ=0x0B`, `FEATURE_ACK=0x0C`,
+`PIN_CAPS_REQ=0x0D`, `PIN_CAPS_RSP=0x0E`, `HTTP_REQ=0x10`,
+`HTTP_RESP=0x11`, `HTTP_FRAG=0x12`, `GPIO_NAK=0x13` (codes:
+`1`=not-a-pin, `2`=output-on-input-only, `3`=not-adc-capable).
+
+Caps: max payload 240 B (`GPLINK_MAX_PAYLOAD`), max encoded frame
+256 B (`GPLINK_ENCODED_MAX`).
+
 ## 6. Report payloads
 
 `INPUT_STATE` v1 payload mirrors the already-processed `GamepadState`
