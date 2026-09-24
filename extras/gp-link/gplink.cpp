@@ -30,6 +30,9 @@ size_t gplink_encode(uint8_t type, const uint8_t *payload, uint8_t payload_len, 
         out[codeIdx] = code;
         if (i < rawLen && raw[i] == 0) i++;
     }
+    // Standard COBS termination: a trailing zero byte in the raw input must
+    // close with an empty final group, otherwise the decoder drops it.
+    if (rawLen > 0 && raw[rawLen - 1] == 0) out[w++] = 0x01;
     out[w++] = 0x00;
     return w;
 }
@@ -59,6 +62,7 @@ static bool gplink_decode_frame(const uint8_t *cobs, uint16_t cobsLen, gplink_fr
     uint8_t payloadLen = raw[3];
     if ((uint16_t)(8 + payloadLen) != r) return false;
     if (payloadLen > GPLINK_MAX_PAYLOAD) return false;
+    if (raw[0] != GPLINK_VERSION_BYTE) return false;
     uint32_t crc = (uint32_t)raw[4 + payloadLen] |
                    ((uint32_t)raw[5 + payloadLen] << 8) |
                    ((uint32_t)raw[6 + payloadLen] << 16) |
