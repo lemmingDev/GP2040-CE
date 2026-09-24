@@ -97,6 +97,24 @@ ever produce pad-state) keep using §6 virtual-pad `INPUT_STATE`s.
 - Advertised via the `COMPANION_GPIO` caps bit; webconfig (§9) shows
   companion pins as a separate source section when present, configured
   like the PCF8575 pin table.
+- Pure-GPIO mode is valid with no BT role at all: a companion that
+  advertises only `COMPANION_GPIO` is just an expander. BT host/device
+  roles are independent caps, never prerequisites.
+- Classic-ESP32 pin capabilities (companion enforces; NAK violations
+  with new `GPIO_NAK(pin, code)` type `0x13`, codes: `1`=not-a-pin,
+  `2`=output-on-input-only, `3`=not-adc-capable):
+  - ADC1 (works with WiFi): GPIO32–39 — i.e. 8 channels, and the easy
+    way to add a lot more analog to a controller.
+  - ADC2 (blocked while WiFi runs, same caveat as S3): GPIO0,2,4,
+    12–15,25–27 (10 channels).
+  - Input-only, no internal pullup/down: GPIO34,35,36,39 — output
+    direction rejected; inputs need external pull resistors.
+  - Strapping (boot-mode sense, usable with care, never held at
+    reset): GPIO0,2,5,12,15.
+  - Reserved: GPIO6–11 (SPI flash), GPIO1/3 (USB-serial console).
+  - DAC outputs (not ADC inputs): GPIO25,26.
+  - Everything else commonly broken out (4,5,13,14,16–19,21–23,27,
+    32,33) is full digital IO with pullups.
 
 ## 7. Link supervision
 
