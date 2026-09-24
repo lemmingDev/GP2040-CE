@@ -29,6 +29,26 @@
 #define GPLINK_TYPE_HTTP_FRAG 0x12
 #define GPLINK_TYPE_GPIO_NAK 0x13
 
+// HELLO device capability bits (spec section 4)
+#define GPLINK_CAP_RUMBLE (1u << 0)
+#define GPLINK_CAP_LEDS (1u << 1)
+#define GPLINK_CAP_BATTERY (1u << 2)
+#define GPLINK_CAP_IMU (1u << 3)
+#define GPLINK_CAP_MULTI_PAD (1u << 4)
+#define GPLINK_CAP_DISPLAY (1u << 5)
+#define GPLINK_CAP_HTTP_TUNNEL (1u << 6)
+#define GPLINK_CAP_COMPANION_GPIO (1u << 7)
+
+// PIN_CAPS_RSP per-pin capability bits (spec section 6c)
+#define GPLINK_PINCAP_INPUT (1u << 0)
+#define GPLINK_PINCAP_OUTPUT (1u << 1)
+#define GPLINK_PINCAP_PULL (1u << 2)
+#define GPLINK_PINCAP_ADC (1u << 3)
+#define GPLINK_PINCAP_PWM (1u << 4)
+#define GPLINK_PINCAP_STRAPPING (1u << 5)
+#define GPLINK_PINCAP_FIVE_VOLT (1u << 6)
+// bit 7 reserved, must be 0
+
 size_t gplink_encode(uint8_t type, const uint8_t *payload, uint8_t payload_len, uint8_t *out);
 size_t gplink_encode_seq(uint8_t type, const uint8_t *payload, uint8_t payload_len, uint8_t seq, uint8_t *out);
 

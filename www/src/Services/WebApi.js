@@ -612,6 +612,15 @@ async function getGPLinkStatus() {
 		console.error(error);
 	}
 }
+
+async function testGPLink() {
+	try {
+		const response = await Http.post(`${baseUrl}/api/testGPLink`);
+		return response.data;
+	} catch (error) {
+		console.error(error);
+	}
+}
 async function setLightsDataOptions(options) {
 	return Http.post(`${baseUrl}/api/setLightsDataOptions`, options);
 }
@@ -773,6 +782,7 @@ export default {
 	getExpansionPins,
 	setExpansionPins,
 	getGPLinkStatus,
+	testGPLink,
 	getHETriggerVoltage,
 	setHETriggerCalibrations,
 	getHETriggerCalibrations,

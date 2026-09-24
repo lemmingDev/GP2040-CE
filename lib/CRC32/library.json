@@ -1,0 +1,10 @@
+{
+	"name": "CRC32",
+	"version": "1.0.0",
+	"description": "CRC32 checksum (Christopher Baker, MIT) vendored for GP-Link",
+	"license": "MIT",
+	"frameworks": ["arduino", "espidf"],
+	"platforms": "*",
+	"includeDir": "src",
+	"srcDir": "src"
+}

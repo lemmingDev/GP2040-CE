@@ -14,6 +14,12 @@
 #define GPLINK_ENABLED 0
 #endif
 
+// Companion GPIO table size (matches GPLinkOptions.gplinkPins max_count).
+// Indexed by companion GPIO number (covers ESP32-S3 GPIO 48).
+#ifndef GPLINK_PIN_COUNT
+#define GPLINK_PIN_COUNT 64
+#endif
+
 #ifndef GPLINK_UART_INSTANCE
 #define GPLINK_UART_INSTANCE GPLINK_UART_DEFAULT_INST
 #endif
@@ -39,11 +45,11 @@ struct GPLinkStatus {
     bool linkAlive;         // inbound traffic within the 2 s timeout
     uint32_t seqGaps;       // inbound sequence discontinuities observed
     uint32_t ignoredFrames; // inbound frames parsed but not acted on (v1 scope)
+    uint32_t handledFrames; // inbound GPIO_READ frames applied to gamepad state
     uint8_t txSeq;          // next outbound sequence number (== frames sent)
     bool txFuncOk;          // TX pin still muxed to UART (not stolen post-setup)
     bool rxFuncOk;          // RX pin still muxed to UART
     uint32_t uartFr;        // raw UART flag register (TXFE/RXFE/BUSY inspection)
-    uint8_t loopTest;       // setup-time SIO continuity test: 0=not run, 1=pass, 2=fail
     uint32_t processCalls;  // process() invocations (dispatch watchdog)
     uint32_t rxBytes;       // total bytes drained from RX FIFO
     uint32_t uptimeS;       // getMillis()/1000 at status time (reboot detector)
@@ -60,9 +66,14 @@ public:
     virtual void postprocess(bool sent) {}
     virtual std::string name() { return GPLinkName; }
     void getStatus(GPLinkStatus &out);
+    // Queue a PIN_CAPS_REQ discovery round (RSP arrives via pumpRx in gamepad
+    // mode; the /api/testGPLink handler drains synchronously in config mode).
+    bool requestCaps();
 
 private:
     void sendHello();
+    void sendGpioConfigs();
+    void applyGpioMask(uint64_t mask);
     void sendInputState(const GamepadState &state);
     void sendHeartbeat();
     void pumpRx(uint32_t now);
@@ -72,7 +83,6 @@ private:
     uint8_t uartInst;           // active UART instance (for reinit deinit)
     uint8_t txPin;              // active TX pin (for mux diagnostics)
     uint8_t rxPin;              // active RX pin (for mux diagnostics)
-    uint8_t loopTest;           // setup-time continuity result (mirrors status)
     uint32_t processCalls;      // process() invocations (dispatch watchdog)
     uint32_t rxBytes;           // total bytes drained from RX FIFO
     gplink_decoder decoder;     // streaming COBS decoder for inbound bytes
@@ -81,6 +91,7 @@ private:
     GamepadState lastSent;      // change detection for INPUT_STATE
     bool haveLastSent;
     uint32_t ignoredFrames;     // inbound frames parsed but not acted on (v1 scope)
+    uint32_t handledFrames;     // inbound GPIO_READ frames applied to state
     uint32_t seqGaps;           // inbound sequence gaps observed
 };
 

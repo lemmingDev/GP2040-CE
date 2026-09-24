@@ -34,6 +34,19 @@ type Actions = {
 	savePins: () => Promise<object>;
 };
 
+const GPLINK_PIN_COUNT = 64;
+
+const makeGplinkPins = () => {
+	const pins = {};
+	for (let i = 0; i < GPLINK_PIN_COUNT; i++) {
+		pins[`pin${String(i).padStart(2, '0')}`] = {
+			option: -10,
+			direction: 0,
+		};
+	}
+	return pins;
+};
+
 const INITIAL_STATE: State = {
 	pins: {
 		pcf8575: [
@@ -56,6 +69,7 @@ const INITIAL_STATE: State = {
 				pin15: { option: -10, direction: 0 },
 			},
 		],
+		gplink: [makeGplinkPins()],
 	},
 	loadingPins: false,
 };

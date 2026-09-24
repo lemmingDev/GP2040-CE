@@ -102,18 +102,24 @@ export default {
 	'gplink-uart0-warning-text':
 		'UART0 shares GPIO 0/1 with the debug console. Disable stdio UART output or debug logs will corrupt link frames.',
 	'gplink-status-text':
-		'Link {{link}} — TX frames {{tx}}, RX frames {{rx}}, sequence gaps {{gaps}}.',
+		'Link {{link}} — TX frames {{tx}}, RX frames {{rx}} ({{handled}} handled), sequence gaps {{gaps}}.',
 	'gplink-status-up': 'UP',
 	'gplink-status-down': 'DOWN',
 	'gplink-status-not-started-text':
 		'UART failed to start (check the selected pin pair).',
-	'gplink-status-mux-text': 'Mux TX {{txm}} RX {{rxm}} FR {{fr}}.',
-	'gplink-status-loop-text': 'Jumper continuity {{loop}}.',
+	'gplink-status-loop-pass': 'PASS (pins are connected)',
 	'gplink-status-loop-pass': 'PASS (pins are connected)',
 	'gplink-status-loop-fail': 'FAIL (pins are NOT connected — check the jumper)',
-	'gplink-status-loop-na': 'not tested',
-	'gplink-status-dispatch-text':
-		'Dispatch proc {{proc}}, RX bytes drained {{rxb}}, uptime {{up}}s.',
+	'gplink-test-label': 'Test link & discover pins',
+	'gplink-test-running-label': 'Testing…',
+	'gplink-test-result-text':
+		'Continuity {{cont}} — companion {{name}} reports {{count}} pins.',
+	'gplink-test-not-found-text':
+		'No capability response (companion may not support discovery yet).',
+	'gplink-pins-header-text': 'Companion GPIO Inputs',
+	'gplink-pins-sub-header-text':
+		'Assign gamepad actions to companion pins. Run the test above to list reported pins, or configure all slots manually.',
+	'gplink-pins-save-label': 'Save Pin Assignments',
 	'input-reverse-header-text': 'Input Reverse',
 	'input-reverse-led-pin-label': 'Reverse Input LED GPIO Pin',
 	'input-reverse-action-up-label': 'Reverse Up',

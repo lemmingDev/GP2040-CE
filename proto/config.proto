@@ -953,6 +953,7 @@ message GPLinkOptions
     optional int32 txPin = 3;
     optional int32 rxPin = 4;
     optional uint32 baudRate = 5;
+    repeated GpioMappingInfo gplinkPins = 6 [(nanopb).max_count = 64];
 }
 
 message AddonOptions

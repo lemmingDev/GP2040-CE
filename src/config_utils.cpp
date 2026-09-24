@@ -806,6 +806,12 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions, txPin, GPLINK_TX_PIN);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions, rxPin, GPLINK_RX_PIN);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions, baudRate, GPLINK_BAUD_RATE);
+    for (uint16_t pin = 0; pin < GPLINK_PIN_COUNT; pin++) {
+        INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions.gplinkPins[pin], action, GpioAction::NONE);
+        INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions.gplinkPins[pin], direction, GpioDirection::GPIO_DIRECTION_INPUT);
+    }
+    // reminder that this must be set or else nanopb won't retain anything
+    config.addonOptions.gplinkOptions.gplinkPins_count = GPLINK_PIN_COUNT;
   
     // addonOptions.analogADS1115Options
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1115Options, enabled, !!I2C_ANALOG1115_ENABLED);

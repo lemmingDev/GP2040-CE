@@ -37,6 +37,10 @@
 #include "lwip/mem.h"
 #include "addons/input_macro.h"
 #include "addons/gplink.h"
+// NOTE: relative paths, not bare "gplink.h": headers/addons is on the include
+// path and a bare include would self-match headers/addons/gplink.h.
+#include "../extras/gp-link/gplink.h"
+#include "../extras/gp-link/gplink_link.h"
 
 #define PATH_CGI_ACTION "/cgi/action"
 
@@ -438,14 +442,63 @@ std::string getGPLinkStatus()
     writeDoc(doc, "linkAlive", status.linkAlive);
     writeDoc(doc, "seqGaps", status.seqGaps);
     writeDoc(doc, "ignoredFrames", status.ignoredFrames);
+    writeDoc(doc, "handledFrames", status.handledFrames);
     writeDoc(doc, "txSeq", status.txSeq);
     writeDoc(doc, "txFuncOk", status.txFuncOk);
     writeDoc(doc, "rxFuncOk", status.rxFuncOk);
     writeDoc(doc, "uartFr", status.uartFr);
-    writeDoc(doc, "loopTest", status.loopTest);
     writeDoc(doc, "processCalls", status.processCalls);
     writeDoc(doc, "rxBytes", status.rxBytes);
     writeDoc(doc, "uptimeS", status.uptimeS);
+    return serialize_json(doc);
+}
+
+// On-demand link test + capability discovery (replaces the old boot-time SIO
+// check). Runs the SIO continuity wiggle, sends PIN_CAPS_REQ, and drains the
+// UART for up to 300 ms collecting the RSP. Bounded like getHeldPins.
+std::string testGPLink()
+{
+    const size_t capacity = JSON_OBJECT_SIZE(8);
+    DynamicJsonDocument doc(capacity);
+    bool continuity = false;
+    bool found = false;
+    char capsName[33] = {0};
+    uint8_t capsCount = 0;
+    uint8_t tmpPins[70] = {0};
+    uint8_t tmpCaps[70] = {0};
+    GPLinkStatus status = {};
+    GPLinkAddon *addon = GPLink_GetAddon();
+    if (addon != nullptr) addon->getStatus(status);
+    if (status.started && addon != nullptr) {
+        continuity = gplink_uart_loopback_test();
+        if (addon->requestCaps()) {
+            gplink_decoder dec;
+            gplink_decoder_init(&dec);
+            uint32_t start = getMillis();
+            while ((getMillis() - start) < 300) {
+                int byte = gplink_uart_read();
+                if (byte < 0) continue;
+                gplink_frame frame;
+                if (!gplink_feed(&dec, (uint8_t)byte, &frame)) continue;
+                if (frame.type != GPLINK_TYPE_PIN_CAPS_RSP) continue;
+                uint8_t nameLen = 0, count = 0;
+                if (!gplink_unpack_pin_caps_rsp(&frame, capsName, &nameLen, &count, tmpPins, tmpCaps)) continue;
+                if (count > GPLINK_PIN_COUNT) count = GPLINK_PIN_COUNT;
+                capsCount = count;
+                found = true;
+                break;
+            }
+        }
+    }
+    writeDoc(doc, "started", status.started);
+    writeDoc(doc, "continuity", continuity);
+    writeDoc(doc, "found", found);
+    writeDoc(doc, "capsName", capsName);
+    writeDoc(doc, "capsCount", capsCount);
+    JsonArray pinsArr = doc.createNestedArray("capsPins");
+    for (uint8_t i = 0; i < capsCount; i++) pinsArr.add(tmpPins[i]);
+    JsonArray capsArr = doc.createNestedArray("capsCaps");
+    for (uint8_t i = 0; i < capsCount; i++) capsArr.add(tmpCaps[i]);
     return serialize_json(doc);
 }
 
@@ -1886,6 +1939,13 @@ std::string getExpansionPins()
     writeDoc(doc, "pins", "pcf8575", 0, "pin14", "direction", gpioMappings[14].direction);
     writeDoc(doc, "pins", "pcf8575", 0, "pin15", "option", gpioMappings[15].action);
     writeDoc(doc, "pins", "pcf8575", 0, "pin15", "direction", gpioMappings[15].direction);
+    GpioMappingInfo* gplinkPins = Storage::getInstance().getAddonOptions().gplinkOptions.gplinkPins;
+    char gplinkPinName[6];
+    for (uint16_t pin = 0; pin < GPLINK_PIN_COUNT; pin++) {
+        snprintf(gplinkPinName, 6, "pin%0*d", 2, pin);
+        writeDoc(doc, "pins", "gplink", 0, gplinkPinName, "option", gplinkPins[pin].action);
+        writeDoc(doc, "pins", "gplink", 0, gplinkPinName, "direction", gplinkPins[pin].direction);
+    }
     return serialize_json(doc);
 }
 
@@ -1908,6 +1968,20 @@ std::string setExpansionPins()
         }
     }
     Storage::getInstance().getAddonOptions().pcf8575Options.pins_count = 16;
+
+    GpioMappingInfo* gplinkPins = Storage::getInstance().getAddonOptions().gplinkOptions.gplinkPins;
+    for (uint16_t pin = 0; pin < GPLINK_PIN_COUNT; pin++) {
+        snprintf(pinName, 6, "pin%0*d", 2, pin);
+        // setting a pin shouldn't change a new existing addon/reserved pin
+        if (gplinkPins[pin].action != GpioAction::RESERVED &&
+                gplinkPins[pin].action != GpioAction::ASSIGNED_TO_ADDON &&
+                (GpioAction)doc["pins"]["gplink"][0][pinName]["option"] != GpioAction::RESERVED &&
+                (GpioAction)doc["pins"]["gplink"][0][pinName]["option"] != GpioAction::ASSIGNED_TO_ADDON) {
+            gplinkPins[pin].action = (GpioAction)doc["pins"]["gplink"][0][pinName]["option"];
+            gplinkPins[pin].direction = (GpioDirection)doc["pins"]["gplink"][0][pinName]["direction"];
+        }
+    }
+    Storage::getInstance().getAddonOptions().gplinkOptions.gplinkPins_count = GPLINK_PIN_COUNT;
 
     EventManager::getInstance().triggerEvent(new GPStorageSaveEvent(true));
 
@@ -3369,6 +3443,7 @@ static const std::pair<const char*, HandlerFuncPtr> handlerFuncs[] =
     { "/api/abortGetHeldPins", abortGetHeldPins },
     { "/api/getUsedPins", getUsedPins },
     { "/api/getGPLinkStatus", getGPLinkStatus },
+    { "/api/testGPLink", testGPLink },
     { "/api/getConfig", getConfig },
     { "/api/getJoystickCenter", getJoystickCenter },
     { "/api/getJoystickCenter2", getJoystickCenter2 },
