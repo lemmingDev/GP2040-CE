@@ -109,8 +109,39 @@ ever produce pad-state) keep using §6 virtual-pad `INPUT_STATE`s.
     12–15,25–27 (10 channels).
   - Input-only, no internal pullup/down: GPIO34,35,36,39 — output
     direction rejected; inputs need external pull resistors.
-  - Strapping (boot-mode sense, usable with care, never held at
-    reset): GPIO0,2,5,12,15.
+- Strapping (sampled at reset only; normal GPIO after boot —
+  Espressif boot-mode-selection + hardware-design docs). All five are
+  usable with per-pin rules the companion enforces as warnings
+  (never hard NAKs — the board already booted, so misuse risks only
+  the *next* reset/flash):
+  - GPIO0: LOW at reset = download mode. BOOT button territory on
+    nearly every devkit — ideal as an input button to GND; keep the
+    pullup. Never externally held LOW (kills normal boot).
+  - GPIO2: must float/be LOW only while entering the bootloader
+    (ignored in normal boot). Full GPIO + ADC2 after boot. Watch the
+    onboard blue LED (DOIT V1, NodeMCU-32S): repurpose it, don't fight
+    it — and a HIGH-driving peripheral here breaks *flashing*, not
+    booting.
+  - GPIO5: must be HIGH at reset (LOW alters SDIO-slave timing, may
+    block boot). Keep pulled HIGH; never drive LOW at reset. No ADC
+    on this pin — digital only.
+  - GPIO12 (MTDI): the dangerous one. HIGH at reset selects 1.8 V
+    flash voltage → brownout boot-loop on 3.3 V-flash modules
+    (internal pulldown saves floating pins). Rule: outputs fine
+    (sampled before your code runs), inputs only with pullDOWN —
+    never a pullup/button-to-3V3. Also ADC2 + JTAG.
+  - GPIO15 (MTDO): LOW merely silences ROM boot messages (internal
+    pullup = noisy default, harmless). Emits a PWM burst at boot —
+    fine for LEDs, never servos/relays. Also ADC2 + JTAG.
+  - Note all of 0/2/12/15 are ADC2: with WiFi up they're digital-only
+    on the companion too (same WiFi rule as S3).
+- Common-board conflicts (check the schematic; clones vary): DOIT
+  DEVKIT V1 + NodeMCU-32S put the blue LED on GPIO2 and BOOT on GPIO0;
+  38-pin layouts (NodeMCU-32S) break out flash pins 6–11 — driving
+  those kills the chip's own flash access (hard trap, not a strap
+  issue); WROVER modules spend GPIO16/17 on PSRAM; integrated boards
+  (e.g. M5Stack: buttons on 37/38/39, LCD over SPI) pre-consume pins
+  before you start.
   - Reserved: GPIO6–11 (SPI flash), GPIO1/3 (USB-serial console).
   - DAC outputs (not ADC inputs): GPIO25,26.
   - Everything else commonly broken out (4,5,13,14,16–19,21–23,27,
