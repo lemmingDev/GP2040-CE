@@ -159,6 +159,34 @@ ever produce pad-state) keep using §6 virtual-pad `INPUT_STATE`s.
   - Everything else commonly broken out (4,5,13,14,16–19,21–23,27,
     32,33) is full digital IO with pullups.
 
+## 6c. Pin capability advertisement (PIN_CAPS)
+
+`PIN_CAPS_REQ` (empty payload) asks the companion to describe its GPIO.
+`PIN_CAPS_RSP` answers: `name_len u8`, `name[name_len]` (≤32 B, not
+NUL-terminated), `count u8` (≤70), then per pin `pin u8`, `caps u8`.
+Pin numbering stays source-local (companion GPIO numbers, qualified by
+device id — never merged into main-board numbering). The main board
+renders only reported pins in its pin table; unreported companions fall
+back to manual slot configuration.
+
+Each `caps` byte (bit set = capable; `0x00` = unknown, never filter on it):
+
+| Bit | Name | Meaning |
+|-----|------|---------|
+| 0 | INPUT | Usable as digital input |
+| 1 | OUTPUT | Usable as digital output (clear = input-only, e.g. ESP32 GPIO34–39) |
+| 2 | PULL | Internal pull up/down available (else the main board must assume external) |
+| 3 | ADC_CAPABLE | Has an ADC channel (future analog reads; no v1 wire change) |
+| 4 | PWM_CAPABLE | Hardware PWM/LEDC (future LED/motor outputs) |
+| 5 | STRAPPING | Boot-strapping pin — UI warns against driving it at boot |
+| 6 | FIVE_VOLT_TOLERANT | 5 V-safe input (AVR yes, ESP32 no — wiring note) |
+| 7 | — | Reserved, must be 0 |
+
+Advertisement mirrors enforcement: `GPIO_NAK` codes are the same
+vocabulary in the other direction (`1`=not-a-pin, `2`=output-on-input-only,
+`3`=not-adc-capable). The companion enforces; the main board filters and
+warns but never hard-blocks (a miscabled pin NAKs at `GPIO_CONFIG` time).
+
 ## 7. Link supervision
 
 `HEARTBEAT` every 500 ms when idle; 2 s silence = link down. On link

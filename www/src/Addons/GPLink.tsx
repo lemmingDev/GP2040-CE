@@ -1,12 +1,14 @@
 import { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FormCheck, Row } from 'react-bootstrap';
+import { Button, FormCheck, Row } from 'react-bootstrap';
 import * as yup from 'yup';
 
 import { AppContext } from '../Contexts/AppContext';
 import Section from '../Components/Section';
 import FormSelect from '../Components/FormSelect';
 import WebApi from '../Services/WebApi';
+import useExpansionPinStore from '../Store/useExpansionPinStore';
+import { BUTTON_ACTIONS } from '../Data/Pins';
 import { AddonPropTypes } from '../Pages/AddonsConfigPage';
 
 // RP2040 UART GPIO-mux tables. Source of truth: extras/gp-link/gplink_link.h
@@ -26,6 +28,20 @@ const GPLINK_BAUD_RATES = [
 	{ label: '2000000 (2 Mbaud, default)', value: 2000000 },
 	{ label: '921600 (fallback)', value: 921600 },
 ];
+
+// Honored by applyGpioMask in src/addons/gplink.cpp: everything that maps
+// directly onto gamepad state. NOT offered: pin-scan consumers (turbo,
+// macro, sustain/focus modes, DDI, reverse), combo masks, or RESERVED /
+// ASSIGNED_TO_ADDON — offering those would silently do nothing.
+const SELECTABLE_BUTTON_ACTIONS = [
+	-10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+	41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 59, 60, 61, 62,
+	63, 64, 65, 66,
+];
+
+const GPLINK_PIN_COUNT = 64;
+
+const pinName = (i: number) => `pin${String(i).padStart(2, '0')}`;
 
 export const gplinkScheme = {
 	GPLinkEnabled: yup.number().required().label('GPLink Enabled'),
@@ -83,6 +99,13 @@ const GPLink = ({
 	const uartPins = GPLINK_UART_PINS[instance];
 
 	const [status, setStatus] = useState(null);
+	const [discovery, setDiscovery] = useState(null);
+	const [testing, setTesting] = useState(false);
+	const { pins, fetchPins, setPinAction, savePins } = useExpansionPinStore();
+
+	useEffect(() => {
+		fetchPins();
+	}, []);
 
 	useEffect(() => {
 		if (!values.GPLinkEnabled) {
@@ -109,6 +132,21 @@ const GPLink = ({
 		setFieldValue('gplinkRxPin', GPLINK_DEFAULT_PINS[next].rx);
 		handleChange(e);
 	};
+
+	const handleTest = async () => {
+		setTesting(true);
+		setDiscovery(null);
+		const data = await WebApi.testGPLink();
+		if (data) setDiscovery(data);
+		setTesting(false);
+	};
+
+	// Rows come from discovery when available (companion-reported pins),
+	// otherwise all 64 slots are shown for offline configuration.
+	const rowPins =
+		discovery?.found && discovery?.capsPins?.length
+			? discovery.capsPins
+			: Array.from({ length: GPLINK_PIN_COUNT }, (_, i) => i);
 
 	return (
 		<Section
@@ -145,37 +183,42 @@ const GPLink = ({
 								: t('AddonsConfig:gplink-status-down'),
 							tx: status.txSeq,
 							rx: status.ignoredFrames,
+							handled: status.handledFrames ?? 0,
 							gaps: status.seqGaps,
 						})}
 						{!status.started &&
 							` ${t('AddonsConfig:gplink-status-not-started-text')}`}
-						{status.started && (
-							<>
-								<br />
-								{t('AddonsConfig:gplink-status-mux-text', {
-									txm: status.txFuncOk ? 'UART' : 'STOLEN',
-									rxm: status.rxFuncOk ? 'UART' : 'STOLEN',
-									fr: `0x${status.uartFr.toString(16)}`,
-								})}
-								<br />
-								{t('AddonsConfig:gplink-status-loop-text', {
-									loop:
-										status.loopTest === 1
-											? t('AddonsConfig:gplink-status-loop-pass')
-											: status.loopTest === 2
-												? t('AddonsConfig:gplink-status-loop-fail')
-												: t('AddonsConfig:gplink-status-loop-na'),
-								})}
-								<br />
-								{t('AddonsConfig:gplink-status-dispatch-text', {
-									proc: status.processCalls,
-									rxb: status.rxBytes,
-									up: status.uptimeS,
-								})}
-							</>
-						)}
 					</div>
 				)}
+				<Row className="mb-3">
+					<div className="col-sm-12">
+						<Button
+							size="sm"
+							disabled={testing}
+							onClick={handleTest}
+						>
+							{testing
+								? t('AddonsConfig:gplink-test-running-label')
+								: t('AddonsConfig:gplink-test-label')}
+						</Button>
+					</div>
+					{discovery && (
+						<div
+							className={`col-sm-12 mt-2 alert ${discovery.found ? 'alert-success' : 'alert-warning'}`}
+							role="alert"
+						>
+							{t('AddonsConfig:gplink-test-result-text', {
+								cont: discovery.continuity
+									? t('AddonsConfig:gplink-status-loop-pass')
+									: t('AddonsConfig:gplink-status-loop-fail'),
+								name: discovery.capsName || '?',
+								count: discovery.capsCount ?? 0,
+							})}
+							{!discovery.found &&
+								` ${t('AddonsConfig:gplink-test-not-found-text')}`}
+						</div>
+					)}
+				</Row>
 				<Row className="mb-3">
 					<FormSelect
 						label={t('AddonsConfig:gplink-instance-label')}
@@ -230,6 +273,57 @@ const GPLink = ({
 							</option>
 						))}
 					</FormSelect>
+				</Row>
+				<Row className="mb-3">
+					<div className="col-sm-12">
+						<h6>{t('AddonsConfig:gplink-pins-header-text')}</h6>
+						<p className="text-muted">
+							{t('AddonsConfig:gplink-pins-sub-header-text')}
+						</p>
+					</div>
+					{rowPins.map((pin) => {
+						const name = pinName(pin);
+						const current =
+							pins.gplink?.[0]?.[name]?.option ?? -10;
+						return (
+							<FormSelect
+								key={`gplink-${name}`}
+								label={`Pin ${pin}`}
+								name={`gplink-${name}`}
+								className="form-select-sm"
+								groupClassName="col-sm-3 mb-2"
+								value={current}
+								onChange={(e) =>
+									setPinAction(
+										'gplink',
+										0,
+										name,
+										parseInt(e.target.value, 10),
+									)
+								}
+							>
+								{Object.entries(BUTTON_ACTIONS)
+									.filter(([, value]) =>
+										SELECTABLE_BUTTON_ACTIONS.includes(value),
+									)
+									.map(([key, value]) => (
+										<option key={`gplink-${name}-${value}`} value={value}>
+											{key}
+										</option>
+									))}
+							</FormSelect>
+						);
+					})}
+					<div className="col-sm-12 mt-2">
+						<Button
+							size="sm"
+							onClick={() => {
+								savePins();
+							}}
+						>
+							{t('AddonsConfig:gplink-pins-save-label')}
+						</Button>
+					</div>
 				</Row>
 			</div>
 			<FormCheck

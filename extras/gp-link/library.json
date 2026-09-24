@@ -1,0 +1,10 @@
+{
+	"name": "GPLink",
+	"version": "1.0.0",
+	"description": "GP-Link companion protocol: COBS framing, CRC32, v1 messages and link policy",
+	"keywords": "uart, protocol, gamepad, gplink",
+	"license": "MIT",
+	"frameworks": ["arduino", "espidf"],
+	"platforms": ["espressif32", "atmelavr", "raspberrypi"],
+	"srcFilter": ["+<*.h>", "+<*.cpp>", "-<tests/>"]
+}
