@@ -36,6 +36,7 @@
 #include "lwip/def.h"
 #include "lwip/mem.h"
 #include "addons/input_macro.h"
+#include "addons/gplink.h"
 
 #define PATH_CGI_ACTION "/cgi/action"
 
@@ -424,6 +425,27 @@ std::string getUsedPins()
     const size_t capacity = JSON_OBJECT_SIZE(100);
     DynamicJsonDocument doc(capacity);
     addUsedPinsArray(doc);
+    return serialize_json(doc);
+}
+
+std::string getGPLinkStatus()
+{
+    const size_t capacity = JSON_OBJECT_SIZE(14);
+    DynamicJsonDocument doc(capacity);
+    GPLinkStatus status = {};
+    if (GPLinkAddon *addon = GPLink_GetAddon()) addon->getStatus(status);
+    writeDoc(doc, "started", status.started);
+    writeDoc(doc, "linkAlive", status.linkAlive);
+    writeDoc(doc, "seqGaps", status.seqGaps);
+    writeDoc(doc, "ignoredFrames", status.ignoredFrames);
+    writeDoc(doc, "txSeq", status.txSeq);
+    writeDoc(doc, "txFuncOk", status.txFuncOk);
+    writeDoc(doc, "rxFuncOk", status.rxFuncOk);
+    writeDoc(doc, "uartFr", status.uartFr);
+    writeDoc(doc, "loopTest", status.loopTest);
+    writeDoc(doc, "processCalls", status.processCalls);
+    writeDoc(doc, "rxBytes", status.rxBytes);
+    writeDoc(doc, "uptimeS", status.uptimeS);
     return serialize_json(doc);
 }
 
@@ -2227,6 +2249,35 @@ std::string setAddonOptions()
         }
     }
 
+    GPLinkOptions& gplinkOptions = Storage::getInstance().getAddonOptions().gplinkOptions;
+    docToValue(gplinkOptions.enabled, doc, "GPLinkEnabled");
+    docToValue(gplinkOptions.uartInstance, doc, "gplinkUartInstance");
+    docToPin(gplinkOptions.txPin, doc, "gplinkTxPin");
+    docToPin(gplinkOptions.rxPin, doc, "gplinkRxPin");
+    docToValue(gplinkOptions.baudRate, doc, "gplinkBaudRate");
+    // TX/RX default to valid pins that may never pass through docToPin (the UI
+    // only POSTs changed values), so mark/unmark on enable/disable as well.
+    {
+        GpioMappingInfo* gpioMappings = Storage::getInstance().getGpioMappings().pins;
+        ProfileOptions& profiles = Storage::getInstance().getProfileOptions();
+        const auto markGplinkPin = [&](Pin_t pin, GpioAction action) {
+            if (!isValidPin(pin)) return;
+            if (action == GpioAction::NONE &&
+                    gpioMappings[pin].action != GpioAction::ASSIGNED_TO_ADDON) return;
+            gpioMappings[pin].action = action;
+            profiles.gpioMappingsSets[0].pins[pin].action = action;
+            profiles.gpioMappingsSets[1].pins[pin].action = action;
+            profiles.gpioMappingsSets[2].pins[pin].action = action;
+        };
+        if (gplinkOptions.enabled) {
+            markGplinkPin(gplinkOptions.txPin, GpioAction::ASSIGNED_TO_ADDON);
+            markGplinkPin(gplinkOptions.rxPin, GpioAction::ASSIGNED_TO_ADDON);
+        } else {
+            markGplinkPin(gplinkOptions.txPin, GpioAction::NONE);
+            markGplinkPin(gplinkOptions.rxPin, GpioAction::NONE);
+        }
+    }
+
     OnBoardLedOptions& onBoardLedOptions = Storage::getInstance().getAddonOptions().onBoardLedOptions;
     docToValue(onBoardLedOptions.mode, doc, "onBoardLedMode");
     docToValue(onBoardLedOptions.enabled, doc, "BoardLedAddonEnabled");
@@ -2705,6 +2756,13 @@ std::string getAddonOptions()
     for (size_t i = 0; i < profileSliderOptions.profileAssignments_count; i++) {
         profileAssignmentsArray.add(profileSliderOptions.profileAssignments[i]);
     }
+
+    const GPLinkOptions& gplinkOptions = Storage::getInstance().getAddonOptions().gplinkOptions;
+    writeDoc(doc, "GPLinkEnabled", gplinkOptions.enabled);
+    writeDoc(doc, "gplinkUartInstance", gplinkOptions.uartInstance);
+    writeDoc(doc, "gplinkTxPin", cleanPin(gplinkOptions.txPin));
+    writeDoc(doc, "gplinkRxPin", cleanPin(gplinkOptions.rxPin));
+    writeDoc(doc, "gplinkBaudRate", gplinkOptions.baudRate);
 
     const OnBoardLedOptions& onBoardLedOptions = Storage::getInstance().getAddonOptions().onBoardLedOptions;
     writeDoc(doc, "onBoardLedMode", onBoardLedOptions.mode);
@@ -3310,6 +3368,7 @@ static const std::pair<const char*, HandlerFuncPtr> handlerFuncs[] =
     { "/api/getHeldPins", getHeldPins },
     { "/api/abortGetHeldPins", abortGetHeldPins },
     { "/api/getUsedPins", getUsedPins },
+    { "/api/getGPLinkStatus", getGPLinkStatus },
     { "/api/getConfig", getConfig },
     { "/api/getJoystickCenter", getJoystickCenter },
     { "/api/getJoystickCenter2", getJoystickCenter2 },

@@ -946,6 +946,15 @@ message HETriggerOptions
     optional int32 smoothingFactor = 13;
 }
 
+message GPLinkOptions
+{
+    optional bool enabled = 1;
+    optional uint32 uartInstance = 2;
+    optional int32 txPin = 3;
+    optional int32 rxPin = 4;
+    optional uint32 baudRate = 5;
+}
+
 message AddonOptions
 {
     optional BootselButtonOptions bootselButtonOptions = 1;
@@ -980,6 +989,7 @@ message AddonOptions
     optional HETriggerOptions heTriggerOptions = 30;
     optional ProfileSliderOptions profileSliderOptions = 31;
     optional AnalogADS1115Options analogADS1115Options = 32;
+    optional GPLinkOptions gplinkOptions = 33;
 }
 
 message MigrationHistory

@@ -298,6 +298,10 @@ src/addons/spi_analog_ads1256.cpp
 src/addons/gamepad_usb_host.cpp
 src/addons/gamepad_usb_host_listener.cpp
 src/addons/tg16_input.cpp
+src/addons/gplink.cpp
+extras/gp-link/gplink.cpp
+extras/gp-link/gplink_link.cpp
+extras/gp-link/gplink_uart_rp2040.cpp
 src/animationstation/animation.cpp
 src/animationstation/animationstation.cpp
 src/animationstation/effects/burstcolor.cpp
@@ -336,10 +340,11 @@ ADS1115
 ADS1219
 ADS1256
 NeoPico
-ArduinoJson
-rndis
-hardware_adc
-hardware_pwm
+ ArduinoJson
+ rndis
+ hardware_adc
+ hardware_uart
+ hardware_pwm
 PicoPeripherals
 WiiExtension
 SNESpad
@@ -372,6 +377,7 @@ headers/animationstation
 headers/animationstation/effects
 headers/hosts
 configs/${GP2040_BOARDCONFIG}
+extras/gp-link
 ${PROTO_OUTPUT_DIR}
 ${CMAKE_BINARY_DIR}/headers
 )

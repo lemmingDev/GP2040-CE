@@ -30,6 +30,7 @@
 #define GPLINK_TYPE_GPIO_NAK 0x13
 
 size_t gplink_encode(uint8_t type, const uint8_t *payload, uint8_t payload_len, uint8_t *out);
+size_t gplink_encode_seq(uint8_t type, const uint8_t *payload, uint8_t payload_len, uint8_t seq, uint8_t *out);
 
 struct gplink_decoder {
     uint8_t buf[GPLINK_ENCODED_MAX];
@@ -38,6 +39,7 @@ struct gplink_decoder {
 
 struct gplink_frame {
     uint8_t type;
+    uint8_t seq;
     uint8_t payload[GPLINK_MAX_PAYLOAD];
     uint8_t len;
 };

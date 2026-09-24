@@ -90,6 +90,30 @@ export default {
 	'turbo-led-type-label-off': 'Off',
 	'turbo-led-type-label-pwm': 'PWM',
 	'turbo-led-type-label-rgb': 'RGB',
+	'gplink-header-text': 'GP-Link Companion',
+	'gplink-sub-header-text':
+		'Streams a copy of the processed gamepad inputs to a companion board over UART. Only pin pairs with a hardware UART function can be selected.',
+	'gplink-config-mode-note-text':
+		'Add-ons only run in gamepad mode: while webconfig is open the link is idle and the counters below show the boot probe only. Reboot to gamepad mode for live traffic.',
+	'gplink-instance-label': 'UART Instance',
+	'gplink-tx-pin-label': 'GP-Link TX GPIO Pin',
+	'gplink-rx-pin-label': 'GP-Link RX GPIO Pin',
+	'gplink-baud-label': 'Baud Rate',
+	'gplink-uart0-warning-text':
+		'UART0 shares GPIO 0/1 with the debug console. Disable stdio UART output or debug logs will corrupt link frames.',
+	'gplink-status-text':
+		'Link {{link}} — TX frames {{tx}}, RX frames {{rx}}, sequence gaps {{gaps}}.',
+	'gplink-status-up': 'UP',
+	'gplink-status-down': 'DOWN',
+	'gplink-status-not-started-text':
+		'UART failed to start (check the selected pin pair).',
+	'gplink-status-mux-text': 'Mux TX {{txm}} RX {{rxm}} FR {{fr}}.',
+	'gplink-status-loop-text': 'Jumper continuity {{loop}}.',
+	'gplink-status-loop-pass': 'PASS (pins are connected)',
+	'gplink-status-loop-fail': 'FAIL (pins are NOT connected — check the jumper)',
+	'gplink-status-loop-na': 'not tested',
+	'gplink-status-dispatch-text':
+		'Dispatch proc {{proc}}, RX bytes drained {{rxb}}, uptime {{up}}s.',
 	'input-reverse-header-text': 'Input Reverse',
 	'input-reverse-led-pin-label': 'Reverse Input LED GPIO Pin',
 	'input-reverse-action-up-label': 'Reverse Up',

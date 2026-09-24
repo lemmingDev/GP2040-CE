@@ -603,6 +603,15 @@ async function getExpansionPins() {
 		console.error(error);
 	}
 }
+
+async function getGPLinkStatus() {
+	try {
+		const response = await Http.get(`${baseUrl}/api/getGPLinkStatus`);
+		return response.data;
+	} catch (error) {
+		console.error(error);
+	}
+}
 async function setLightsDataOptions(options) {
 	return Http.post(`${baseUrl}/api/setLightsDataOptions`, options);
 }
@@ -763,6 +772,7 @@ export default {
 	getLightsPresets,
 	getExpansionPins,
 	setExpansionPins,
+	getGPLinkStatus,
 	getHETriggerVoltage,
 	setHETriggerCalibrations,
 	getHETriggerCalibrations,

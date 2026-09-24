@@ -10,3 +10,5 @@ $CXX $FLAGS extras/gp-link/tests/test_gplink_robust.cpp extras/gp-link/gplink.cp
 /tmp/test_gplink_robust
 $CXX $FLAGS extras/gp-link/tests/test_gplink_throughput.cpp extras/gp-link/gplink.cpp lib/CRC32/src/CRC32.cpp -o /tmp/test_gplink_throughput
 /tmp/test_gplink_throughput
+$CXX $FLAGS extras/gp-link/tests/test_gplink_link.cpp extras/gp-link/gplink_link.cpp extras/gp-link/gplink.cpp lib/CRC32/src/CRC32.cpp -o /tmp/test_gplink_link
+/tmp/test_gplink_link

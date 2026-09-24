@@ -38,6 +38,7 @@
 #include "addons/drv8833_rumble.h"
 #include "addons/gamepad_usb_host.h"
 #include "addons/he_trigger.h"
+#include "addons/gplink.h"
 #include "addons/tg16_input.h"
 
 #include "CRC32.h"
@@ -798,6 +799,13 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.profileSliderOptions, enabled, !!SLIDER_PROFILE_ENABLED);
     INIT_UNSET_PROPERTY(config.addonOptions.profileSliderOptions, numPositions, SLIDER_PROFILE_NUM_POSITIONS);
     INIT_UNSET_PROPERTY(config.addonOptions.profileSliderOptions, defaultProfile, SLIDER_PROFILE_DEFAULT_PROFILE);
+
+    // addonOptions.gplinkOptions
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions, enabled, !!GPLINK_ENABLED);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions, uartInstance, GPLINK_UART_INSTANCE);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions, txPin, GPLINK_TX_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions, rxPin, GPLINK_RX_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions, baudRate, GPLINK_BAUD_RATE);
   
     // addonOptions.analogADS1115Options
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1115Options, enabled, !!I2C_ANALOG1115_ENABLED);
@@ -1791,6 +1799,12 @@ void gpioMappingsMigrationCore(Config& config)
         markAddonPinIfUsed(config.addonOptions.heTriggerOptions.selectPin1);
         markAddonPinIfUsed(config.addonOptions.heTriggerOptions.selectPin2);
         markAddonPinIfUsed(config.addonOptions.heTriggerOptions.selectPin3);
+    }
+
+    // GP-Link UART pins belong to the addon while enabled
+    if (config.addonOptions.gplinkOptions.enabled) {
+        markAddonPinIfUsed(config.addonOptions.gplinkOptions.txPin);
+        markAddonPinIfUsed(config.addonOptions.gplinkOptions.rxPin);
     }
 
 
