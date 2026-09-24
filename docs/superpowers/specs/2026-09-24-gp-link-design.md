@@ -75,22 +75,28 @@ in `FEATURE_REQ`-negotiated extension blocks, never by widening v1.
 
 ## 6b. Companion-local GPIO (extra pins on the ESP32)
 
-A companion's own GPIOs (buttons, and later its ADC sticks) are
-first-class inputs, not an afterthought:
+Companion GPIO integrates like the existing IO-expander addons
+(PCF8575 pattern), not as a special case: a companion-GPIO addon on
+the main board owns virtual pins with direction/action config, and the
+core loop reads them exactly like expander pins. BT pads (which only
+ever produce pad-state) keep using §6 virtual-pad `INPUT_STATE`s.
 
-- The companion debounces its local GPIO itself, translates to button/
-  axis states, and emits `INPUT_STATE` under its own device id(s) —
-  no new message types. A device id may be a BT pad *or* a virtual pad
-  sourced from companion GPIO; the main board treats both identically.
-- Merge point on the main board is pre-addon (OR into gamepad state,
-  mirroring the HE-trigger pattern), so SOCD, hotkeys, macros and
-  turbo apply to companion inputs exactly like local ones.
+- New types: `GPIO_CONFIG` (main→companion: pin, direction, pull),
+  `GPIO_READ` (companion→main: pin-level bitmask per device, poll
+  rate), `GPIO_WRITE` (main→companion: output levels, e.g. LEDs).
+  Companion ADC sticks later ride the same addon as axis reads (new
+  types only if v1's `INPUT_STATE` axes prove insufficient — prefer
+  reuse).
+- The main board debounces and action-maps companion pins in its own
+  pipeline (same as PCF8575), so profiles, SOCD, hotkeys, macros and
+  turbo apply with no companion-side input logic beyond sampling.
 - Pin numbering stays source-local: companion pins are qualified by
   device id and never merged into the main board's pin numbers (no
   `Mask_t` collisions, per-board validity checks intact). The classic
   ESP32's ~34 GPIOs and 18 ADC channels are all eligible.
 - Advertised via the `COMPANION_GPIO` caps bit; webconfig (§9) shows
-  companion pins as a separate source section when present.
+  companion pins as a separate source section when present, configured
+  like the PCF8575 pin table.
 
 ## 7. Link supervision
 
