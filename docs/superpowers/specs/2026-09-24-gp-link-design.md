@@ -46,12 +46,12 @@ len(1)`. `seq` wraps; gaps are informational only (see §7).
 - Protocol `major.minor` in every header `ver` nibble-pair (high 4 bits
   major, low 4 minor). Minor additions must be ignorable by older peers
   (unknown types are dropped, never NAKed); major bumps may break wire.
-- On link-up each side sends `HELLO(major, minor, caps-bitmask,
+- On link-up each side sends   `HELLO(major, minor, caps-bitmask,
   device-id-count)`. Caps bits below are append-only; new bits get the
   next free number plus one line here. `RUMBLE=0`, `PLAYER_LEDS=1`,
   `BATTERY=2`, `IMU=3`, `MULTI_PAD=4`, `DISPLAY_HINTS=5` (reserved),
-  `HTTP_TUNNEL=6` (§10). Intersection = active feature set; a side
-  never sends what the peer didn't advertise.
+  `HTTP_TUNNEL=6` (§10), `COMPANION_GPIO=7` (§6b). Intersection =
+  active feature set; a side never sends what the peer didn't advertise.
 - `device-id-count` (1–4) declares how many pads this link can carry;
   Bluepad32 multi-pad arrives without re-specifying the protocol.
 
@@ -72,6 +72,25 @@ extensions; 0xF0–0xFF for transport testing (ping/throughput).
 GPIO mapping, profiles, macros and turbo all resolve upstream, so BT
 output inherits every webconfig feature free. Future axes/sensors ride
 in `FEATURE_REQ`-negotiated extension blocks, never by widening v1.
+
+## 6b. Companion-local GPIO (extra pins on the ESP32)
+
+A companion's own GPIOs (buttons, and later its ADC sticks) are
+first-class inputs, not an afterthought:
+
+- The companion debounces its local GPIO itself, translates to button/
+  axis states, and emits `INPUT_STATE` under its own device id(s) —
+  no new message types. A device id may be a BT pad *or* a virtual pad
+  sourced from companion GPIO; the main board treats both identically.
+- Merge point on the main board is pre-addon (OR into gamepad state,
+  mirroring the HE-trigger pattern), so SOCD, hotkeys, macros and
+  turbo apply to companion inputs exactly like local ones.
+- Pin numbering stays source-local: companion pins are qualified by
+  device id and never merged into the main board's pin numbers (no
+  `Mask_t` collisions, per-board validity checks intact). The classic
+  ESP32's ~34 GPIOs and 18 ADC channels are all eligible.
+- Advertised via the `COMPANION_GPIO` caps bit; webconfig (§9) shows
+  companion pins as a separate source section when present.
 
 ## 7. Link supervision
 
@@ -106,8 +125,10 @@ radio-less main boards (plain RP2040) reached through a companion.
 
 Transport indicator (link type/rate/errors, like the network status
 line), pairing UI (scan/pair/unpair + bonded list, modeled on the WiFi
-scan picker), per-device-id mapping. No config-universe fork: BT output
-is a driver; pairing state is BT-stack data surfaced read-mostly.
+scan picker), per-device-id mapping, and a companion-pins source
+section (§6b) when `COMPANION_GPIO` is advertised. No config-universe
+fork: BT output is a driver; pairing state is BT-stack data surfaced
+read-mostly.
 
 Companion v1 serves only its own status page (link state, paired pads,
 BT output mode); full configuration stays on RP2040 USB webconfig.
