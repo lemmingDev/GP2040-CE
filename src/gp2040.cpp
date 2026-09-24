@@ -251,15 +251,10 @@ void GP2040::setup() {
 	if ((s3ApRequested || s3StaWanted) && startWifiS3(s3ApRequested, s3ApRequested)) {
 		startWebconfigServer();
 	}
-	// USB-webconfig pivot: USB networking is active for AlwaysOn, or for
-	// ConfigModeOnly on a config-mode boot (CONFIG boot serves standalone
-	// RNDIS; gamepad modes never expose it). The bring-up (Task 4) runs
-	// independent of WiFi state; invalid stored subnets fall back to
-	// compiled defaults inside the bring-up, so the boot is never failed
-	// here.
-	bool s3UsbActive =
-		webConfigOptions.usbNetworkMode == USB_NETWORK_ALWAYS_ON ||
-		(webConfigOptions.usbNetworkMode == USB_NETWORK_CONFIG_MODE_ONLY && s3ConfigBoot);
+	// USB-webconfig: always on in CONFIG (RNDIS/NCM choice, no Off).
+	// The bring-up runs independent of WiFi state; invalid stored subnets
+	// fall back to compiled defaults, so the boot is never failed here.
+	bool s3UsbActive = s3ConfigBoot;
 	// USB-webconfig pivot: publish the resolution for the CONFIG driver
 	// (standalone RNDIS vs HID fallback). Set unconditionally so a stale
 	// true can never survive a boot that resolves false.

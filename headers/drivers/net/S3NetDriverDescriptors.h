@@ -27,7 +27,9 @@ enum
   S3_ITF_NUM_TOTAL
 };
 
-// Single configuration (NCM test branch).
+// Single configuration — runtime choice between RNDIS and NCM.
+// Both use the same EP triple and MISC device class; host picks driver.
+#define S3_RNDIS_CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_RNDIS_DESC_LEN)
 #define S3_NCM_CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_CDC_NCM_DESC_LEN)
 
 // Same EP triple (NCM uses the same bulk pair; driver is ncm_device.c).
@@ -54,6 +56,15 @@ static const uint8_t s3net_device_descriptor[] =
 };
 
 static const uint8_t s3net_configuration_descriptor[] =
+{
+	// Config number, interface count, string index, total length, attribute, power in mA
+	TUD_CONFIG_DESCRIPTOR(1, S3_ITF_NUM_TOTAL, 0, S3_RNDIS_CONFIG_TOTAL_LEN, 0, 100),
+
+	// RNDIS: interface, MAC string, notif EP, bulk pair.
+	TUD_RNDIS_DESCRIPTOR(S3_ITF_NUM_CDC, S3_STRID_INTERFACE, S3_EPNUM_NET_NOTIF, 8, S3_EPNUM_NET_OUT, S3_EPNUM_NET_IN, 64),
+};
+
+static const uint8_t s3net_ncm_configuration_descriptor[] =
 {
 	// Config number, interface count, string index, total length, attribute, power in mA
 	TUD_CONFIG_DESCRIPTOR(1, S3_ITF_NUM_TOTAL, 0, S3_NCM_CONFIG_TOTAL_LEN, 0, 100),

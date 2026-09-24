@@ -205,7 +205,7 @@
 #define DEFAULT_STA_MODE STA_OFF
 #endif
 #ifndef DEFAULT_USB_NETWORK_MODE
-#define DEFAULT_USB_NETWORK_MODE USB_NETWORK_OFF
+#define DEFAULT_USB_NETWORK_MODE USB_NETWORK_RNDIS
 #endif
 #ifndef DEFAULT_AP_SUBNET
 #define DEFAULT_AP_SUBNET "192.168.4.0"
@@ -609,10 +609,13 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY_STR(config.webConfigOptions, staPassphrase, DEFAULT_STA_PASSPHRASE);
     INIT_UNSET_PROPERTY(config.webConfigOptions, staMode, DEFAULT_STA_MODE);
     INIT_UNSET_PROPERTY(config.webConfigOptions, usbNetworkMode, DEFAULT_USB_NETWORK_MODE);
-    // USB-network pivot: AlwaysOn (1) was removed; map legacy 1 -> ConfigOnly (2).
+    // USB-network: RNDIS/NCM choice (3/4) replaced the old Off/AlwaysOn/ConfigOnly
+    // (0/1/2). Map any legacy value to RNDIS so S2-hold always works.
     if (config.webConfigOptions.has_usbNetworkMode &&
-        config.webConfigOptions.usbNetworkMode == USB_NETWORK_ALWAYS_ON) {
-        config.webConfigOptions.usbNetworkMode = USB_NETWORK_CONFIG_MODE_ONLY;
+        (config.webConfigOptions.usbNetworkMode == USB_NETWORK_OFF ||
+         config.webConfigOptions.usbNetworkMode == USB_NETWORK_ALWAYS_ON ||
+         config.webConfigOptions.usbNetworkMode == USB_NETWORK_CONFIG_MODE_ONLY)) {
+        config.webConfigOptions.usbNetworkMode = USB_NETWORK_RNDIS;
     }
     INIT_UNSET_PROPERTY_STR(config.webConfigOptions, apSubnet, DEFAULT_AP_SUBNET);
     INIT_UNSET_PROPERTY_STR(config.webConfigOptions, usbSubnet, DEFAULT_USB_SUBNET);

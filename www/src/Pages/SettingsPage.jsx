@@ -311,12 +311,11 @@ const STA_MODES = [
 	{ labelKey: 'sta-mode-options.always-on', value: 2 },
 ];
 
-// S3 USB network mode: Off vs Config-mode-only. Always-on was removed:
-// after the CONFIG-only pivot, AlwaysOn == ConfigOnly (both mean RNDIS in
-// CONFIG boot only), so the extra option was redundant.
+// S3 USB network mode: RNDIS vs NCM (both CONFIG-only, always on in CONFIG).
+// No Off — you always need S2 access.
 const USB_NETWORK_MODES = [
-	{ labelKey: 'usb-network-mode-options.off', value: 0 },
-	{ labelKey: 'usb-network-mode-options.config-only', value: 2 },
+	{ labelKey: 'usb-network-mode-options.rndis', value: 3 },
+	{ labelKey: 'usb-network-mode-options.ncm', value: 4 },
 ];
 
 // Private /24 subnet check shared by the apSubnet/usbSubnet validators.

@@ -179,9 +179,10 @@
 //------------- CLASS -------------//
 #define CFG_TUD_CDC              0
 #if defined(ESP_PLATFORM)
-// S3 NCM test branch: CDC-NCM (not RNDIS) for the standalone CONFIG RNDIS
-// device. Same bring-up glue, different class driver (ncm_device.c).
-#define CFG_TUD_ECM_RNDIS        0
+// S3 USB-network: both RNDIS and NCM drivers compiled in; CONFIG-mode
+// S3NetDriver picks at runtime (RNDIS vs NCM). Patched net_device.h allows
+// both (see s3-ncm-test branch note).
+#define CFG_TUD_ECM_RNDIS        1
 #define CFG_TUD_NCM              1
 #else
 #define CFG_TUD_ECM_RNDIS        1

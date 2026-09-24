@@ -25,7 +25,9 @@ typedef enum _StaMode {
 typedef enum _UsbNetworkMode {
     USB_NETWORK_OFF = 0,
     USB_NETWORK_ALWAYS_ON = 1,
-    USB_NETWORK_CONFIG_MODE_ONLY = 2
+    USB_NETWORK_CONFIG_MODE_ONLY = 2,
+    USB_NETWORK_RNDIS = 3,
+    USB_NETWORK_NCM = 4
 } UsbNetworkMode;
 
 /* Struct definitions */
@@ -1619,11 +1621,13 @@ extern "C" {
 #define StaMode_STA_ALWAYS_ON STA_ALWAYS_ON
 
 #define _UsbNetworkMode_MIN USB_NETWORK_OFF
-#define _UsbNetworkMode_MAX USB_NETWORK_CONFIG_MODE_ONLY
-#define _UsbNetworkMode_ARRAYSIZE ((UsbNetworkMode)(USB_NETWORK_CONFIG_MODE_ONLY+1))
+#define _UsbNetworkMode_MAX USB_NETWORK_NCM
+#define _UsbNetworkMode_ARRAYSIZE ((UsbNetworkMode)(USB_NETWORK_NCM+1))
 #define UsbNetworkMode_USB_NETWORK_OFF USB_NETWORK_OFF
 #define UsbNetworkMode_USB_NETWORK_ALWAYS_ON USB_NETWORK_ALWAYS_ON
 #define UsbNetworkMode_USB_NETWORK_CONFIG_MODE_ONLY USB_NETWORK_CONFIG_MODE_ONLY
+#define UsbNetworkMode_USB_NETWORK_RNDIS USB_NETWORK_RNDIS
+#define UsbNetworkMode_USB_NETWORK_NCM USB_NETWORK_NCM
 
 
 /* Enum values (GP2040-CE extension) */
@@ -1639,7 +1643,9 @@ X(STA_ALWAYS_ON, 2)
 #define UsbNetworkMode_VALUELIST(X) \
 X(USB_NETWORK_OFF, 0) \
 X(USB_NETWORK_ALWAYS_ON, 1) \
-X(USB_NETWORK_CONFIG_MODE_ONLY, 2)
+X(USB_NETWORK_CONFIG_MODE_ONLY, 2) \
+X(USB_NETWORK_RNDIS, 3) \
+X(USB_NETWORK_NCM, 4)
 
 
 /* Defines to allow user code to refer to enum type of a specific field */

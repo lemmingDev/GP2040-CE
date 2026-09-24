@@ -1006,6 +1006,8 @@ enum UsbNetworkMode {
     USB_NETWORK_OFF = 0;
     USB_NETWORK_ALWAYS_ON = 1;
     USB_NETWORK_CONFIG_MODE_ONLY = 2;
+    USB_NETWORK_RNDIS = 3;
+    USB_NETWORK_NCM = 4;
 }
 message WebConfigOptions {
     optional bool apEnabled = 1;

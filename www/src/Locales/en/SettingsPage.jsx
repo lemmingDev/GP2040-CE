@@ -222,12 +222,11 @@ export default {
 	'sta-scan-placeholder': 'Select a network…',
 	'usb-network-header-text': 'USB Network',
 	'usb-network-s3-note':
-		'These settings control the ESP32-S3 USB network (RNDIS) and are ignored on other boards. RNDIS is available in CONFIG mode only; changes take effect after reboot.',
+		'These settings control the ESP32-S3 USB network (RNDIS/NCM) and are ignored on other boards. USB network is available in CONFIG mode only; changes take effect after reboot.',
 	'usb-network-mode-label': 'USB Network Mode',
 	'usb-network-mode-options': {
-		off: 'Off',
-		'always-on': 'Always-on',
-		'config-only': 'Config-mode-only',
+		rndis: 'RNDIS',
+		ncm: 'NCM',
 	},
 	'ap-subnet-label': 'AP Subnet',
 	'usb-subnet-label': 'USB Subnet',

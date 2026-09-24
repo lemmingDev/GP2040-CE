@@ -4,6 +4,7 @@
 #include "drivers/net/S3NetDriverDescriptors.h"
 #include "class/net/net_device.h"
 #include "storagemanager.h"
+#include "config.pb.h"
 
 static uint16_t _s3_desc_str[32];
 
@@ -95,6 +96,10 @@ const uint8_t * S3NetDriver::get_hid_descriptor_report_cb(uint8_t itf) {
 
 const uint8_t * S3NetDriver::get_descriptor_configuration_cb(uint8_t index) {
 	(void) index;
+	// Runtime RNDIS/NCM choice: NCM (4) vs RNDIS (0/1/2/3). Off/AlwaysOn/ConfigOnly
+	// all map to RNDIS for backward compat; only NCM selects the NCM descriptor.
+	auto mode = Storage::getInstance().getConfig().webConfigOptions.usbNetworkMode;
+	if (mode == USB_NETWORK_NCM) return s3net_ncm_configuration_descriptor;
 	return s3net_configuration_descriptor;
 }
 
