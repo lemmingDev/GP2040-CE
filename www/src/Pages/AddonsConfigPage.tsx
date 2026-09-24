@@ -75,6 +75,7 @@ import HETrigger, {
 	HETriggerScheme,
 	HETriggerState,
 } from '../Addons/HETrigger';
+import GPLink, { gplinkScheme, gplinkState } from '../Addons/GPLink';
 
 export type AddonPropTypes = {
 	values: typeof DEFAULT_VALUES;
@@ -107,6 +108,7 @@ const schema = yup.object().shape({
 	...reactiveLEDScheme,
 	...gamepadUSBHostScheme,
 	...HETriggerScheme,
+	...gplinkScheme,
 });
 
 export const DEFAULT_VALUES = {
@@ -134,6 +136,7 @@ export const DEFAULT_VALUES = {
 	...reactiveLEDState,
 	...gamepadUSBHostState,
 	...HETriggerState,
+	...gplinkState,
 } as const;
 
 const ADDONS = [
@@ -161,6 +164,7 @@ const ADDONS = [
 	DRV8833Rumble,
 	ReactiveLED,
 	HETrigger,
+	GPLink,
 ];
 
 const FormContext = ({ setStoredData }) => {

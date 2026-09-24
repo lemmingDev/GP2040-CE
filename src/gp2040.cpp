@@ -35,6 +35,7 @@
 #include "addons/he_trigger.h"
 #include "addons/tg16_input.h"
 #include "addons/slider_profile.h"
+#include "addons/gplink.h"
 
 // Pico includes
 #include "pico/bootrom.h"
@@ -125,6 +126,7 @@ void GP2040::setup() {
 	addons.LoadAddon(new ReverseInput());
 	addons.LoadAddon(new TurboInput()); // Turbo overrides button states and should be close to the end
 	addons.LoadAddon(new InputMacro());
+	addons.LoadAddon(new GPLinkAddon()); // Companion link: mirrors final inputs over UART, never modifies them
 
 	// Use the old method of selecting input mode via mapped button, i.e. AFTER initializing GPIO
 	// pins with the currently active profile. Calling this even if the GPIO-mapped selection is

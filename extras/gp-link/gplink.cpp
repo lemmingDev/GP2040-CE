@@ -3,11 +3,16 @@
 #include "CRC32.h"
 
 size_t gplink_encode(uint8_t type, const uint8_t *payload, uint8_t payload_len, uint8_t *out) {
+    return gplink_encode_seq(type, payload, payload_len, 0, out);
+}
+
+size_t gplink_encode_seq(uint8_t type, const uint8_t *payload, uint8_t payload_len, uint8_t seq, uint8_t *out) {
+    if (payload == NULL && payload_len > 0) return 0;
     if (payload_len > GPLINK_MAX_PAYLOAD) return 0;
     uint8_t raw[4 + GPLINK_MAX_PAYLOAD + 4];
     raw[0] = GPLINK_VERSION_BYTE;
     raw[1] = type;
-    raw[2] = 0; // seq: managed by transport users, 0 here
+    raw[2] = seq;
     raw[3] = payload_len;
     for (uint8_t i = 0; i < payload_len; i++) raw[4 + i] = payload[i];
     uint32_t crc = CRC32::calculate(raw, (uint16_t)(4 + payload_len));
@@ -69,6 +74,7 @@ static bool gplink_decode_frame(const uint8_t *cobs, uint16_t cobsLen, gplink_fr
                    ((uint32_t)raw[7 + payloadLen] << 24);
     if (CRC32::calculate(raw, (uint16_t)(4 + payloadLen)) != crc) return false;
     out->type = raw[1];
+    out->seq = raw[2];
     out->len = payloadLen;
     for (uint8_t k = 0; k < payloadLen; k++) out->payload[k] = raw[4 + k];
     return true;
