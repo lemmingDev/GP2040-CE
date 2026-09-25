@@ -100,11 +100,14 @@ const pinOptions = (
 	usedPins: number[] | undefined,
 ) =>
 	pins
-		.filter((pin) => pin === current || !usedPins?.includes(pin))
+		.filter(
+			(pin) =>
+				pin === Number(current) || !usedPins?.includes(pin),
+		)
 		.map((pin) => (
 			<option key={pin} value={pin}>
 				{pin}
-				{usedPins?.includes(pin) && pin !== current ? ' (in use)' : ''}
+				{usedPins?.includes(pin) && pin !== Number(current) ? ' (in use)' : ''}
 			</option>
 		));
 
@@ -118,7 +121,7 @@ const GPLink = ({
 	const { t } = useTranslation();
 	const { usedPins } = useContext(AppContext);
 
-	const instance = values.gplinkUartInstance === 0 ? 0 : 1;
+	const instance = Number(values.gplinkUartInstance) === 0 ? 0 : 1;
 	const uartPins = GPLINK_UART_PINS[instance];
 
 	const [status, setStatus] = useState(null);
@@ -154,7 +157,9 @@ const GPLink = ({
 		setFieldValue('gplinkUartInstance', next);
 		setFieldValue('gplinkTxPin', GPLINK_DEFAULT_PINS[next].tx);
 		setFieldValue('gplinkRxPin', GPLINK_DEFAULT_PINS[next].rx);
-		handleChange(e);
+		// NOTE: no handleChange(e) here — it would overwrite the numeric
+		// instance above with the raw select string ("0" !== 0) and the
+		// dropdown would snap back to UART1.
 	};
 
 	const handleTest = async () => {
