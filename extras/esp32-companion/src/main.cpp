@@ -190,7 +190,9 @@ static void handleGpioWrite(uint8_t devid, uint64_t mask) {
     (void)devid; // single virtual device in M1; devid carried for future use
     for (uint8_t pin = 0; pin < 64; pin++) {
         if (s_dir[pin] != 1) continue;
-        digitalWrite(pin, (mask & (1ULL << pin)) ? HIGH : LOW);
+        bool level = (mask & (1ULL << pin)) != 0;
+        if (s_invert[pin]) level = !level;
+        digitalWrite(pin, level ? HIGH : LOW);
     }
 }
 

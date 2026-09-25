@@ -79,6 +79,7 @@ private:
     void sendHello();
     void sendGpioConfigs();
     void applyGpioMask(uint64_t mask);
+    void sendOutputMask(uint64_t mask);
     void sendInputState(const GamepadState &state);
     void sendHeartbeat();
     void pumpRx(uint32_t now);
@@ -102,6 +103,8 @@ private:
     uint32_t handledFrames;     // inbound GPIO_READ frames applied to state
     uint32_t seqGaps;           // inbound sequence gaps observed
     uint64_t lastMask;          // last GPIO_READ mask, re-applied every poll
+    uint64_t lastOutputMask;    // last GPIO_WRITE mask sent to companion
+    uint32_t lastOutputMs;      // last GPIO_WRITE send (5 s backstop)
 };
 
 GPLinkAddon *GPLink_GetAddon(); // null until the addon is constructed
