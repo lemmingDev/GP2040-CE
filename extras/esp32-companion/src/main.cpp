@@ -196,6 +196,8 @@ static void handleGpioConfig(uint8_t devid, uint8_t pin, uint8_t dir, uint8_t pu
         applyPinMode(pin);
         persistPinConfig();
     }
+    Serial.printf("%lu GPLink: GPIO_CONFIG dev %u pin %u %s pull %u\n",
+                  (unsigned long)millis(), devid, pin, dir ? "out" : "in", pull);
 }
 
 static void handleAnalogConfig(uint8_t devid, uint8_t pin, uint8_t enable) {
@@ -247,9 +249,6 @@ static void pumpAnalog(uint32_t now) {
     uint8_t payload[32];
     size_t len = gplink_pack_analog_read(0, count, pins, values, payload);
     if (len > 0) sendFrame(GPLINK_TYPE_ANALOG_READ, payload, len);
-}
-    Serial.printf("%lu GPLink: GPIO_CONFIG dev %u pin %u %s pull %u\n",
-                  (unsigned long)millis(), devid, pin, dir ? "out" : "in", pull);
 }
 
 static void handleGpioWrite(uint8_t devid, uint64_t mask) {
