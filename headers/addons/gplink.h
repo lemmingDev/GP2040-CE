@@ -105,6 +105,10 @@ private:
     uint64_t lastMask;          // last GPIO_READ mask, re-applied every poll
     uint64_t lastOutputMask;    // last GPIO_WRITE mask sent to companion
     uint32_t lastOutputMs;      // last GPIO_WRITE send (5 s backstop)
+    uint8_t lastLedMask;        // last PLAYER_LED_SET mask sent
+    uint8_t lastWeak;           // last RUMBLE_SET weak intensity sent
+    uint8_t lastStrong;         // last RUMBLE_SET strong intensity sent
+    uint32_t lastActMs;         // last actuation send (5 s backstop)
 };
 
 GPLinkAddon *GPLink_GetAddon(); // null until the addon is constructed
