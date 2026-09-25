@@ -23,6 +23,17 @@ int main() {
     CHECK(pins != nullptr);
     CHECK(count == 24);
 
+#ifdef COMPANION_BOARD_R32
+    // R32 keeps the full GPIO2 input path (unmeasured LED situation).
+    CHECK(has(2, GPLINK_PINCAP_INPUT | GPLINK_PINCAP_ADC));
+#else
+    // Devkit GPIO2 is LED-clamped near 0 V (measured): output-only.
+    CHECK(has(2, GPLINK_PINCAP_OUTPUT | GPLINK_PINCAP_PWM | GPLINK_PINCAP_STRAPPING));
+    CHECK(!has(2, GPLINK_PINCAP_INPUT));
+    CHECK(!has(2, GPLINK_PINCAP_PULL));
+    CHECK(!has(2, GPLINK_PINCAP_ADC));
+#endif
+
     // Every entry offers input or output; reserved bit never set.
     for (size_t i = 0; i < count; i++) {
         CHECK(pins[i].caps & (GPLINK_PINCAP_INPUT | GPLINK_PINCAP_OUTPUT));
@@ -49,8 +60,12 @@ int main() {
     CHECK(has(33, GPLINK_PINCAP_OUTPUT | GPLINK_PINCAP_ADC));
 
     // ADC2 (WiFi-blocked, still capable): 0, 2, 4, 12-15, 25-27.
-    const uint8_t adc2[] = {0, 2, 4, 12, 13, 14, 15, 25, 26, 27};
+    // (Devkit GPIO2 is output-only now, so it carries no ADC bit there.)
+    const uint8_t adc2[] = {0, 4, 12, 13, 14, 15, 25, 26, 27};
     for (size_t i = 0; i < sizeof(adc2); i++) CHECK(has(adc2[i], GPLINK_PINCAP_ADC));
+#ifdef COMPANION_BOARD_R32
+    CHECK(has(2, GPLINK_PINCAP_ADC));
+#endif
 
     // Strapping: 0, 2, 5, 12, 15 — and only those.
     const uint8_t straps[] = {0, 2, 5, 12, 15};

@@ -61,6 +61,7 @@ const capsTags = (caps: number | undefined) => {
 	const tags = [];
 	if (caps & PINCAP_ADC) tags.push('ADC');
 	if (caps & PINCAP_INPUT && !(caps & PINCAP_OUTPUT)) tags.push('in-only');
+	if (caps & PINCAP_OUTPUT && !(caps & PINCAP_INPUT)) tags.push('out-only');
 	if (caps & PINCAP_STRAPPING) tags.push('⚠strap');
 	return tags.length ? ` ${tags.join(' ')}` : '';
 };
@@ -165,11 +166,25 @@ const GPLink = ({
 	};
 
 	// Rows come from discovery when available (companion-reported pins),
-	// otherwise all 64 slots are shown for offline configuration.
-	const rowPins =
-		discovery?.found && discovery?.capsPins?.length
-			? discovery.capsPins
-			: Array.from({ length: GPLINK_PIN_COUNT }, (_, i) => i);
+	// otherwise all 64 slots are shown for offline configuration. Only
+	// input-capable pins are listed, plus any already-configured slots so
+	// nothing becomes un-editable if discovery stops reporting it.
+	const rowPins = (() => {
+		const saved = [];
+		const stored = pins.gplink?.[0] ?? {};
+		for (let i = 0; i < GPLINK_PIN_COUNT; i++) {
+			if ((stored[pinName(i)]?.option ?? -10) > 0) saved.push(i);
+		}
+		let listed =
+			discovery?.found && discovery?.capsPins?.length
+				? discovery.capsPins.filter(
+						(pin, i) =>
+							!discovery?.capsCaps ||
+							(discovery.capsCaps[i] & PINCAP_INPUT) !== 0,
+					)
+				: Array.from({ length: GPLINK_PIN_COUNT }, (_, i) => i);
+		return [...new Set([...listed, ...saved])].sort((a, b) => a - b);
+	})();
 	const capsByPin = {};
 	if (discovery?.found && discovery?.capsPins && discovery?.capsCaps) {
 		discovery.capsPins.forEach((pin, i) => {
