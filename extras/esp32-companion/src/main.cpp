@@ -240,9 +240,15 @@ static void pumpDacSweep(uint32_t now) {
     if (!s_dacSweep || (now - s_dacMs) < 20) return;
     s_dacMs = now;
     dacWrite(25, s_dacVal);
-    if (s_dacVal == 255) s_dacDir = -1;
-    else if (s_dacVal == 0) s_dacDir = 1;
-    s_dacVal = (uint8_t)((int)s_dacVal + 4 * s_dacDir);
+    int v = (int)s_dacVal + 4 * s_dacDir;
+    if (v >= 255) {
+        v = 255;
+        s_dacDir = -1;
+    } else if (v <= 0) {
+        v = 0;
+        s_dacDir = 1;
+    }
+    s_dacVal = (uint8_t)v;
 }
 
 static void pumpAnalog(uint32_t now) {
