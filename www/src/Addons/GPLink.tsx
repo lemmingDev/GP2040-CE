@@ -128,6 +128,7 @@ const GPLink = ({
 
 	const [discovery, setDiscovery] = useState(null);
 	const [testing, setTesting] = useState(false);
+	const [pinsSaved, setPinsSaved] = useState(false);
 	const { pins, fetchPins, setPinAction, setPinDirection, setPinPull, setPinInverted, savePins } =
 		useExpansionPinStore();
 
@@ -155,8 +156,9 @@ const GPLink = ({
 
 	// Rows come from discovery when available (companion-reported pins),
 	// otherwise all 64 slots are shown for offline configuration. Only
-	// input-capable pins are listed, plus any already-configured slots so
-	// nothing becomes un-editable if discovery stops reporting it.
+	// usable pins are listed (input- or output-capable), plus any
+	// already-configured slots so nothing becomes un-editable if
+	// discovery stops reporting it.
 	const rowPins = (() => {
 		const saved = [];
 		const stored = pins.gplink?.[0] ?? {};
@@ -168,7 +170,7 @@ const GPLink = ({
 				? discovery.capsPins.filter(
 						(pin, i) =>
 							!discovery?.capsCaps ||
-							(discovery.capsCaps[i] & PINCAP_INPUT) !== 0,
+							(discovery.capsCaps[i] & (PINCAP_INPUT | PINCAP_OUTPUT)) !== 0,
 					)
 				: Array.from({ length: GPLINK_PIN_COUNT }, (_, i) => i);
 		return [...new Set([...listed, ...saved])].sort((a, b) => a - b);
@@ -319,24 +321,43 @@ const GPLink = ({
 						if (outOnly) {
 							return (
 								<div key={`gplink-${name}`} className="col-sm-3 mb-2">
-									<div className="fw-bold">
-										{`Pin ${pin}${capsTags(caps)}`}
-									</div>
-									<div className="text-muted">
-										{t('AddonsConfig:gplink-output-only-text')}
-										{assigned && (
-											<>
-												{' '}
-												<Button
-													size="sm"
-													variant="link"
-													onClick={() => setPinAction('gplink', 0, name, -10)}
-												>
-													{t('AddonsConfig:gplink-clear-label')}
-												</Button>
-											</>
-										)}
-									</div>
+									<FormSelect
+										label={`Pin ${pin}${capsTags(caps)}`}
+										name={`gplink-${name}`}
+										className="form-select-sm"
+										value={current}
+										onChange={(e) => {
+											const v = parseInt(e.target.value, 10);
+											setPinAction('gplink', 0, name, v);
+											if (v > 0) setPinDirection('gplink', 0, name, 1);
+										}}
+									>
+										{Object.entries(BUTTON_ACTIONS)
+											.filter(([, value]) =>
+												SELECTABLE_BUTTON_ACTIONS.includes(value),
+											)
+											.map(([key, value]) => (
+												<option key={`gplink-${name}-${value}`} value={value}>
+													{key}
+												</option>
+											))}
+									</FormSelect>
+									{assigned && (
+										<div className="d-flex gap-2 mt-1 align-items-end">
+											<span className="text-muted">
+												{t('AddonsConfig:gplink-direction-output')}
+											</span>
+											<FormCheck
+												label={t('AddonsConfig:gplink-invert-label')}
+												type="checkbox"
+												id={`gplink-${name}-inverted`}
+												checked={Boolean(inverted)}
+												onChange={(e) =>
+													setPinInverted('gplink', 0, name, e.target.checked)
+												}
+											/>
+										</div>
+									)}
 								</div>
 							);
 						}
@@ -430,12 +451,19 @@ const GPLink = ({
 					<div className="col-sm-12 mt-2">
 						<Button
 							size="sm"
-							onClick={() => {
-								savePins();
+							onClick={async () => {
+								await savePins();
+								setPinsSaved(true);
+								setTimeout(() => setPinsSaved(false), 2500);
 							}}
 						>
 							{t('AddonsConfig:gplink-pins-save-label')}
 						</Button>
+						{pinsSaved && (
+							<span className="alert alert-success ms-2 px-2 py-1">
+								{t('Common:saved-success-message')}
+							</span>
+						)}
 					</div>
 				</Row>
 			</div>
