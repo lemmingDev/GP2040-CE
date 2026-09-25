@@ -34,12 +34,20 @@ int main() {
     CHECK(!has(2, GPLINK_PINCAP_ADC));
 #endif
 
-    // Every entry offers input or output; reserved bit never set.
+    // Every entry offers input or output.
     for (size_t i = 0; i < count; i++) {
         CHECK(pins[i].caps & (GPLINK_PINCAP_INPUT | GPLINK_PINCAP_OUTPUT));
-        CHECK((pins[i].caps & 0x80) == 0);
         // Table sorted by GPIO number (stable discovery order).
         if (i > 0) CHECK(pins[i - 1].gpio < pins[i].gpio);
+    }
+
+    // ADC_RADIO_SAFE marks WiFi/BT-concurrent channels only (ADC1: 32-39).
+    const uint8_t adcSafe[] = {32, 33, 34, 35, 36, 39};
+    for (size_t i = 0; i < count; i++) {
+        bool expected = false;
+        for (size_t k = 0; k < sizeof(adcSafe); k++) expected |= (pins[i].gpio == adcSafe[k]);
+        CHECK(((pins[i].caps & GPLINK_PINCAP_ADC_SAFE) != 0) == expected);
+        if (expected) CHECK(pins[i].caps & GPLINK_PINCAP_ADC);
     }
 
     // Reserved / absent GPIOs must not be advertised.

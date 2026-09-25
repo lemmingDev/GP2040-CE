@@ -49,6 +49,7 @@ const PINCAP_INPUT = 0x01;
 const PINCAP_OUTPUT = 0x02;
 const PINCAP_ADC = 0x08;
 const PINCAP_STRAPPING = 0x20;
+const PINCAP_ADC_SAFE = 0x80;
 
 const GPLINK_PULLS = [
 	{ label: 'None', value: 0 },
@@ -59,7 +60,8 @@ const GPLINK_PULLS = [
 const capsTags = (caps: number | undefined) => {
 	if (caps === undefined) return '';
 	const tags = [];
-	if (caps & PINCAP_ADC) tags.push('ADC');
+	if (caps & PINCAP_ADC_SAFE) tags.push('ADC');
+	else if (caps & PINCAP_ADC) tags.push('ADC*');
 	if (caps & PINCAP_INPUT && !(caps & PINCAP_OUTPUT)) tags.push('in-only');
 	if (caps & PINCAP_OUTPUT && !(caps & PINCAP_INPUT)) tags.push('out-only');
 	if (caps & PINCAP_STRAPPING) tags.push('⚠strap');

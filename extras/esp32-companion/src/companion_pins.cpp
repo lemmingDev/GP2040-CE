@@ -6,6 +6,7 @@ namespace {
 const uint8_t IO = GPLINK_PINCAP_INPUT | GPLINK_PINCAP_OUTPUT |
                    GPLINK_PINCAP_PULL | GPLINK_PINCAP_PWM;
 const uint8_t ADC = GPLINK_PINCAP_ADC;
+const uint8_t ADCSAFE = GPLINK_PINCAP_ADC | GPLINK_PINCAP_ADC_SAFE;
 const uint8_t STRAP = GPLINK_PINCAP_STRAPPING;
 // Output-only, PWM + strapping: devkit GPIO2 (blue LED clamps it near 0 V,
 // measured; unusable as input, ideal as LED/player-light output).
@@ -30,12 +31,12 @@ const CompanionPin kPinsDevkit[] = {
     {25, (uint8_t)(IO | ADC)},
     {26, (uint8_t)(IO | ADC)},
     {27, (uint8_t)(IO | ADC)},
-    {32, (uint8_t)(IO | ADC)},
-    {33, (uint8_t)(IO | ADC)},
-    {34, (uint8_t)(GPLINK_PINCAP_INPUT | ADC)},
-    {35, (uint8_t)(GPLINK_PINCAP_INPUT | ADC)},
-    {36, (uint8_t)(GPLINK_PINCAP_INPUT | ADC)},
-    {39, (uint8_t)(GPLINK_PINCAP_INPUT | ADC)},
+    {32, (uint8_t)(IO | ADCSAFE)},
+    {33, (uint8_t)(IO | ADCSAFE)},
+    {34, (uint8_t)(GPLINK_PINCAP_INPUT | ADCSAFE)},
+    {35, (uint8_t)(GPLINK_PINCAP_INPUT | ADCSAFE)},
+    {36, (uint8_t)(GPLINK_PINCAP_INPUT | ADCSAFE)},
+    {39, (uint8_t)(GPLINK_PINCAP_INPUT | ADCSAFE)},
 };
 const CompanionPin kPinsR32[] = {
     {0, (uint8_t)(IO | ADC | STRAP)},
@@ -56,12 +57,12 @@ const CompanionPin kPinsR32[] = {
     {25, (uint8_t)(IO | ADC)},
     {26, (uint8_t)(IO | ADC)},
     {27, (uint8_t)(IO | ADC)},
-    {32, (uint8_t)(IO | ADC)},
-    {33, (uint8_t)(IO | ADC)},
-    {34, (uint8_t)(GPLINK_PINCAP_INPUT | ADC)},
-    {35, (uint8_t)(GPLINK_PINCAP_INPUT | ADC)},
-    {36, (uint8_t)(GPLINK_PINCAP_INPUT | ADC)},
-    {39, (uint8_t)(GPLINK_PINCAP_INPUT | ADC)},
+    {32, (uint8_t)(IO | ADCSAFE)},
+    {33, (uint8_t)(IO | ADCSAFE)},
+    {34, (uint8_t)(GPLINK_PINCAP_INPUT | ADCSAFE)},
+    {35, (uint8_t)(GPLINK_PINCAP_INPUT | ADCSAFE)},
+    {36, (uint8_t)(GPLINK_PINCAP_INPUT | ADCSAFE)},
+    {39, (uint8_t)(GPLINK_PINCAP_INPUT | ADCSAFE)},
 };
 #ifdef COMPANION_BOARD_R32
 const CompanionPin *kActive = kPinsR32;
