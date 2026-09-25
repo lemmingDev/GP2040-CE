@@ -122,14 +122,22 @@ void GPLinkAddon::setup() {
     sendAnalogConfigs();
 }
 
-// Tell the companion which ADC pins feed our sticks (by companion GPIO
-// number, -1 = unused). Values arrive normalized full-range u16.
+// Tell the companion which ADC pins feed our sticks and triggers (by
+// companion GPIO number, -1 = unused). Values arrive normalized full-range
+// u16. Trigger pins must be included or the companion never samples them
+// (unsampled pins read back constant MID).
 void GPLinkAddon::sendAnalogConfigs() {
     const GPLinkAnalogOptions& options = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
     if (!options.enabled) return;
-    const int32_t pins[4] = {options.lxPin, options.lyPin, options.rxPin, options.ryPin};
-    for (uint8_t i = 0; i < 4; i++) {
+    const int32_t pins[6] = {options.lxPin, options.lyPin, options.rxPin, options.ryPin,
+                             options.ltPin, options.rtPin};
+    for (uint8_t i = 0; i < 6; i++) {
         if (pins[i] < 0 || pins[i] >= GPLINK_PIN_COUNT) continue;
+        bool dup = false;
+        for (uint8_t j = 0; j < i; j++) {
+            if (pins[j] == pins[i]) { dup = true; break; }
+        }
+        if (dup) continue;
         uint8_t payload[8];
         size_t len = gplink_pack_analog_config(/*devid=*/0, (uint8_t)pins[i], /*enable=*/1, payload);
         if (len > 0) sendFrame(GPLINK_TYPE_ANALOG_CONFIG, payload, len);
