@@ -3,6 +3,10 @@
 #include "gplink.h"
 
 namespace {
+const uint8_t IO = GPLINK_PINCAP_INPUT | GPLINK_PINCAP_OUTPUT |
+                   GPLINK_PINCAP_PULL | GPLINK_PINCAP_PWM;
+const uint8_t ADC = GPLINK_PINCAP_ADC;
+const uint8_t STRAP = GPLINK_PINCAP_STRAPPING;
 // Output-only, PWM + strapping: devkit GPIO2 (blue LED clamps it near 0 V,
 // measured; unusable as input, ideal as LED/player-light output).
 const uint8_t LED_OUT = GPLINK_PINCAP_OUTPUT | GPLINK_PINCAP_PWM |
