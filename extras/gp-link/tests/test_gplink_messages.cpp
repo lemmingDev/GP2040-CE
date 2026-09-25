@@ -75,19 +75,26 @@ static void test_hello() {
 
 static void test_gpio_config() {
     uint8_t payload[16] = {0};
-    size_t n = gplink_pack_gpio_config(1, 13, 1, 1, payload);
-    assert(n == 4);
+    size_t n = gplink_pack_gpio_config(1, 13, 1, 1, GPLINK_GPIO_FLAG_INVERTED, payload);
+    assert(n == 5);
     gplink_frame f;
     wire_roundtrip(GPLINK_TYPE_GPIO_CONFIG, payload, (uint8_t)n, &f);
-    uint8_t devid = 0, pin = 0, dir = 0, pull = 0;
-    assert(gplink_unpack_gpio_config(&f, &devid, &pin, &dir, &pull));
+    uint8_t devid = 0, pin = 0, dir = 0, pull = 0, flags = 0;
+    assert(gplink_unpack_gpio_config(&f, &devid, &pin, &dir, &pull, &flags));
     assert(devid == 1 && pin == 13 && dir == 1 && pull == 1);
+    assert(flags == GPLINK_GPIO_FLAG_INVERTED);
     gplink_frame wrong = f;
     wrong.type = GPLINK_TYPE_HELLO;
-    assert(!gplink_unpack_gpio_config(&wrong, &devid, &pin, &dir, &pull));
+    assert(!gplink_unpack_gpio_config(&wrong, &devid, &pin, &dir, &pull, &flags));
     gplink_frame trunc = f;
     trunc.len = 3;
-    assert(!gplink_unpack_gpio_config(&trunc, &devid, &pin, &dir, &pull));
+    assert(!gplink_unpack_gpio_config(&trunc, &devid, &pin, &dir, &pull, &flags));
+    // Legacy 4-byte form still unpacks with flags defaulted to 0.
+    uint8_t legacy[4] = {2, 7, 0, 1};
+    gplink_frame lf;
+    wire_roundtrip(GPLINK_TYPE_GPIO_CONFIG, legacy, sizeof(legacy), &lf);
+    assert(gplink_unpack_gpio_config(&lf, &devid, &pin, &dir, &pull, &flags));
+    assert(devid == 2 && pin == 7 && dir == 0 && pull == 1 && flags == 0);
 }
 
 static void test_gpio_mask() {

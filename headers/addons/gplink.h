@@ -20,6 +20,11 @@
 #define GPLINK_PIN_COUNT 64
 #endif
 
+// Default pull for companion inputs (buttons-to-GND convention).
+#ifndef GPLINK_PIN_PULL_DEFAULT
+#define GPLINK_PIN_PULL_DEFAULT 1
+#endif
+
 #ifndef GPLINK_UART_INSTANCE
 #define GPLINK_UART_INSTANCE GPLINK_UART_DEFAULT_INST
 #endif

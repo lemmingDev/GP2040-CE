@@ -49,6 +49,13 @@
 #define GPLINK_PINCAP_FIVE_VOLT (1u << 6)
 // bit 7 reserved, must be 0
 
+// GPIO_CONFIG pull values and flags byte (v1.1; unpackers accept 4-byte
+// legacy payloads with flags defaulting to 0)
+#define GPLINK_GPIO_PULL_NONE 0
+#define GPLINK_GPIO_PULL_UP 1
+#define GPLINK_GPIO_PULL_DOWN 2
+#define GPLINK_GPIO_FLAG_INVERTED (1u << 0)
+
 size_t gplink_encode(uint8_t type, const uint8_t *payload, uint8_t payload_len, uint8_t *out);
 size_t gplink_encode_seq(uint8_t type, const uint8_t *payload, uint8_t payload_len, uint8_t seq, uint8_t *out);
 
@@ -71,7 +78,7 @@ bool gplink_feed(gplink_decoder *d, uint8_t byte, gplink_frame *out);
 // each unpacker returns false unless type and exact length match).
 size_t gplink_pack_input_state(uint8_t devid, uint32_t buttons, uint8_t dpad, uint16_t lx, uint16_t ly, uint16_t rx, uint16_t ry, uint8_t lt, uint8_t rt, uint8_t aux, uint8_t *payload_out);
 size_t gplink_pack_hello(uint8_t major, uint8_t minor, uint32_t caps, uint8_t devcount, uint8_t *payload_out);
-size_t gplink_pack_gpio_config(uint8_t devid, uint8_t pin, uint8_t dir, uint8_t pull, uint8_t *payload_out);
+size_t gplink_pack_gpio_config(uint8_t devid, uint8_t pin, uint8_t dir, uint8_t pull, uint8_t flags, uint8_t *payload_out);
 size_t gplink_pack_gpio_mask(uint8_t devid, uint64_t mask, uint8_t *payload_out);
 size_t gplink_pack_gpio_nak(uint8_t devid, uint8_t pin, uint8_t code, uint8_t *payload_out);
 size_t gplink_pack_rumble(uint8_t devid, uint8_t weak, uint8_t strong, uint16_t duration_ms, uint8_t *payload_out);
@@ -79,7 +86,7 @@ size_t gplink_pack_player_led(uint8_t devid, uint8_t mask, uint8_t *payload_out)
 size_t gplink_pack_battery(uint8_t devid, uint8_t pct, uint8_t charging, uint8_t *payload_out);
 bool gplink_unpack_input_state(const gplink_frame *f, uint8_t *devid, uint32_t *buttons, uint8_t *dpad, uint16_t *lx, uint16_t *ly, uint16_t *rx, uint16_t *ry, uint8_t *lt, uint8_t *rt, uint8_t *aux);
 bool gplink_unpack_hello(const gplink_frame *f, uint8_t *major, uint8_t *minor, uint32_t *caps, uint8_t *devcount);
-bool gplink_unpack_gpio_config(const gplink_frame *f, uint8_t *devid, uint8_t *pin, uint8_t *dir, uint8_t *pull);
+bool gplink_unpack_gpio_config(const gplink_frame *f, uint8_t *devid, uint8_t *pin, uint8_t *dir, uint8_t *pull, uint8_t *flags);
 bool gplink_unpack_gpio_mask(const gplink_frame *f, uint8_t *devid, uint64_t *mask);
 bool gplink_unpack_gpio_nak(const gplink_frame *f, uint8_t *devid, uint8_t *pin, uint8_t *code);
 bool gplink_unpack_rumble(const gplink_frame *f, uint8_t *devid, uint8_t *weak, uint8_t *strong, uint16_t *duration_ms);

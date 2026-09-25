@@ -95,8 +95,9 @@ void GPLinkAddon::setup() {
     sendGpioConfigs();
 }
 
-// Tell the companion which of its pins we use as button inputs (dir 0=input,
-// pull 1=up). Mask bits read back as 1 mean pressed (active-high semantics).
+// Tell the companion which of its pins we use as button inputs, with each
+// pin's electrical config (pull + invert flag). Mask bits read back as 1
+// mean pressed (companion maps levels per these settings).
 void GPLinkAddon::sendGpioConfigs() {
     const GPLinkOptions& options = Storage::getInstance().getAddonOptions().gplinkOptions;
     uint32_t count = options.gplinkPins_count;
@@ -106,8 +107,10 @@ void GPLinkAddon::sendGpioConfigs() {
         if (pin.action == GpioAction::NONE || pin.action == GpioAction::RESERVED ||
                 pin.action == GpioAction::ASSIGNED_TO_ADDON) continue;
         if (pin.direction != GpioDirection::GPIO_DIRECTION_INPUT) continue; // outputs: later phase
+        uint8_t pull = (pin.pull <= GPLINK_GPIO_PULL_DOWN) ? (uint8_t)pin.pull : GPLINK_GPIO_PULL_UP;
+        uint8_t flags = pin.inverted ? GPLINK_GPIO_FLAG_INVERTED : 0;
         uint8_t payload[8];
-        size_t len = gplink_pack_gpio_config(/*devid=*/0, i, /*dir=*/0, /*pull=*/1, payload);
+        size_t len = gplink_pack_gpio_config(/*devid=*/0, i, /*dir=*/0, pull, flags, payload);
         if (len > 0) sendFrame(GPLINK_TYPE_GPIO_CONFIG, payload, len);
     }
 }

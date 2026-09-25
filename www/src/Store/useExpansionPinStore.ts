@@ -10,6 +10,8 @@ type State = {
 				[key: string]: {
 					option: PinActionValues;
 					direction: PinDirectionValues;
+					pull: number;
+					inverted: boolean;
 				};
 			},
 		];
@@ -31,6 +33,20 @@ type Actions = {
 		pin: string,
 		dir: PinDirectionValues,
 	) => void;
+	setPinPull: (expansion: string, index: number, pin: string, pull: number) => void;
+	setPinInverted: (
+		expansion: string,
+		index: number,
+		pin: string,
+		inverted: boolean,
+	) => void;
+	setPinField: (
+		expansion: string,
+		index: number,
+		pin: string,
+		field: string,
+		value: number | boolean,
+	) => void;
 	savePins: () => Promise<object>;
 };
 
@@ -42,6 +58,8 @@ const makeGplinkPins = () => {
 		pins[`pin${String(i).padStart(2, '0')}`] = {
 			option: -10,
 			direction: 0,
+			pull: 1,
+			inverted: false,
 		};
 	}
 	return pins;
@@ -132,6 +150,36 @@ const useExpansionPinStore = create<State & Actions>()((set, get) => ({
 				pins: newPins,
 			};
 		});
+	},
+	setPinField: (expansion, index, pin, field, value) => {
+		set((state) => {
+			const newPins = { ...state.pins };
+
+			if (
+				newPins[expansion] &&
+				newPins[expansion][index] &&
+				newPins[expansion][index][pin]
+			) {
+				newPins[expansion][index] = {
+					...newPins[expansion][index],
+					[pin]: {
+						...newPins[expansion][index][pin],
+						[field]: value,
+					},
+				};
+			}
+
+			return {
+				...state,
+				pins: newPins,
+			};
+		});
+	},
+	setPinPull: (expansion, index, pin, pull) => {
+		get().setPinField(expansion, index, pin, 'pull', pull);
+	},
+	setPinInverted: (expansion, index, pin, inverted) => {
+		get().setPinField(expansion, index, pin, 'inverted', inverted);
 	},
 	savePins: async () => WebApi.setExpansionPins(get()),
 }));

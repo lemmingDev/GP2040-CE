@@ -210,6 +210,10 @@ message GpioMappingInfo
     optional GpioDirection direction = 2;
     optional uint32 customDpadMask = 3;
     optional uint32 customButtonMask = 4;
+    // Companion/expander electrical config (ignored by bank0 pins):
+    // pull 0=none/float, 1=up, 2=down; inverted flips pressed polarity.
+    optional uint32 pull = 5;
+    optional bool inverted = 6 [default = false];
 }
 
 message GpioMappings
