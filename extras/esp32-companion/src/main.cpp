@@ -307,8 +307,8 @@ void setup() {
     gplink_link_init(&s_link, millis());
     s_lastTxMs = millis();
     s_lastSampleMs = millis();
-    Serial.printf("GPLink companion %s up (UART2 %d/%d @ %d)\n", COMPANION_BOARD_NAME,
-                  GPLINK_UART_RX, GPLINK_UART_TX, GPLINK_BAUD);
+    Serial.printf("GPLink companion %s up (UART2 %d/%d @ %d) fw " __DATE__ " " __TIME__ "\n",
+                  COMPANION_BOARD_NAME, GPLINK_UART_RX, GPLINK_UART_TX, GPLINK_BAUD);
     Serial.println("GPLink: send 't' over console to toggle input self-test");
     sendHello();
 }
