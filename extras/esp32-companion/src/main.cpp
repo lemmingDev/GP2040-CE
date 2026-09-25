@@ -224,6 +224,23 @@ static void handleAnalogConfig(uint8_t devid, uint8_t pin, uint8_t enable) {
 #define COMPANION_ADC_MAX 4095
 #define COMPANION_ADC_DEADBAND 8
 
+// DAC sweep test aid: triangular 0-255 on GPIO25 (~2.5 s period) for the
+// ADC loopback check (jumper GPIO25 to an ADC pin mapped to a stick).
+// Console 'd' toggles. Proves modulation end to end with no pots.
+static bool s_dacSweep = false;
+static uint32_t s_dacMs = 0;
+static uint8_t s_dacVal = 0;
+static int8_t s_dacDir = 1;
+
+static void pumpDacSweep(uint32_t now) {
+    if (!s_dacSweep || (now - s_dacMs) < 20) return;
+    s_dacMs = now;
+    dacWrite(25, s_dacVal);
+    if (s_dacVal == 255) s_dacDir = -1;
+    else if (s_dacVal == 0) s_dacDir = 1;
+    s_dacVal = (uint8_t)((int)s_dacVal + 4 * s_dacDir);
+}
+
 static void pumpAnalog(uint32_t now) {
     static uint32_t lastPushMs = 0;
     bool force = (now - lastPushMs) >= 1000;
@@ -396,6 +413,9 @@ void loop() {
             ledOn = !ledOn;
             digitalWrite(COMPANION_PLAYER_LED_PIN, ledOn ? HIGH : LOW);
             Serial.printf("GPLink: player LED direct %s\n", ledOn ? "ON" : "OFF");
+        } else if (c == 'd' || c == 'D') {
+            s_dacSweep = !s_dacSweep;
+            Serial.printf("GPLink: DAC sweep %s (GPIO25)\n", s_dacSweep ? "ON" : "OFF");
         } else if (c == 'g' || c == 'G') {
             // Manual GPIO_READ probe: pack + encode + write a fixed mask
             // frame with every intermediate value printed. Bypasses the
@@ -416,6 +436,7 @@ void loop() {
     }
     pumpLink();
     pumpAnalog(now);
+    pumpDacSweep(now);
     if (now - s_lastSampleMs >= COMPANION_SAMPLE_MS) {
         s_lastSampleMs = now;
         uint64_t mask = sampleConfiguredInputs();
