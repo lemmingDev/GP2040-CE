@@ -47,7 +47,7 @@
 #define GPLINK_PINCAP_PWM (1u << 4)
 #define GPLINK_PINCAP_STRAPPING (1u << 5)
 #define GPLINK_PINCAP_FIVE_VOLT (1u << 6)
-// bit 7 reserved, must be 0
+#define GPLINK_PINCAP_ADC_SAFE (1u << 7)
 
 // GPIO_CONFIG pull values and flags byte (v1.1; unpackers accept 4-byte
 // legacy payloads with flags defaulting to 0)

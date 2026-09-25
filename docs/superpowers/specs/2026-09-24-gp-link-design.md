@@ -118,8 +118,9 @@ ever produce pad-state) keep using §6 virtual-pad `INPUT_STATE`s.
   `2`=output-on-input-only, `3`=not-adc-capable):
   - ADC1 (works with WiFi): GPIO32–39 — i.e. 8 channels, and the easy
     way to add a lot more analog to a controller.
-  - ADC2 (blocked while WiFi runs, same caveat as S3): GPIO0,2,4,
-    12–15,25–27 (10 channels).
+  - ADC2 (blocked while wireless runs — WiFi, and Classic BT once the
+    companion hosts pads — so these carry ADC_CAPABLE without
+    ADC_RADIO_SAFE): GPIO0,2,4,12–15,25–27 (10 channels).
   - Input-only, no internal pullup/down: GPIO34,35,36,39 — output
     direction rejected; inputs need external pull resistors.
 - Strapping (sampled at reset only; normal GPIO after boot —
@@ -181,7 +182,7 @@ Each `caps` byte (bit set = capable; `0x00` = unknown, never filter on it):
 | 4 | PWM_CAPABLE | Hardware PWM/LEDC (future LED/motor outputs) |
 | 5 | STRAPPING | Boot-strapping pin — UI warns against driving it at boot |
 | 6 | FIVE_VOLT_TOLERANT | 5 V-safe input (AVR yes, ESP32 no — wiring note) |
-| 7 | — | Reserved, must be 0 |
+| 7 | ADC_RADIO_SAFE | Analog channel stays usable with wireless on (ESP32 ADC1; ADC2-class channels go blind while WiFi or Classic BT runs, so they carry ADC_CAPABLE without this bit) |
 
 Advertisement mirrors enforcement: `GPIO_NAK` codes are the same
 vocabulary in the other direction (`1`=not-a-pin, `2`=output-on-input-only,
