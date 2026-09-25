@@ -648,6 +648,9 @@ const GPLinkAnalog = ({
 					handleChange(e);
 				}}
 			/>
+			<div className="mt-2">
+				<Button type="submit">{t('Common:button-save-label')}</Button>
+			</div>
 		</Section>
 	);
 };
