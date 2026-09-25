@@ -192,6 +192,16 @@ void GPLinkAddon::applyAnalogAxes() {
         if (options.invertEnabled & (GPLINK_ANALOG_AXIS_FLAG_START >> i)) {
             axis[i] = GAMEPAD_JOYSTICK_MAX - axis[i];
         }
+        // EMA smoothing before deadzones, mirroring AnalogInput (alpha is
+        // thousandths; history persists while disabled, official behavior).
+        bool smooth = (i < 2) ? options.smoothingEnabled : options.smoothingEnabled2;
+        if (smooth) {
+            uint32_t factor = (i < 2) ? options.smoothingFactor : options.smoothingFactor2;
+            float alpha = (float)factor / 1000.0f;
+            float norm = (float)axis[i] / (float)GAMEPAD_JOYSTICK_MAX;
+            analogEma[i] = alpha * norm + (1.0f - alpha) * analogEma[i];
+            axis[i] = (uint16_t)(analogEma[i] * (float)GAMEPAD_JOYSTICK_MAX);
+        }
         // TODO apply auto calibration (also TODO upstream)
     }
     if (options.leftStickDeadzoneEnabled) {
@@ -208,11 +218,41 @@ void GPLinkAddon::applyAnalogAxes() {
             axis[3] = GAMEPAD_JOYSTICK_MID;
         }
     }
+    // Forced circularity: clamp each stick's offset vector to the inscribed
+    // circle so diagonals can't reach the square corners (official caps the
+    // radial scaling factor at center for the same effect).
+    const bool circular[2] = {options.forcedCircularity, options.forcedCircularity2};
+    for (uint8_t s = 0; s < 2; s++) {
+        if (!circular[s]) continue;
+        float dx = (float)((int32_t)axis[2 * s] - GAMEPAD_JOYSTICK_MID);
+        float dy = (float)((int32_t)axis[2 * s + 1] - GAMEPAD_JOYSTICK_MID);
+        float mag = sqrtf(dx * dx + dy * dy);
+        if (mag > (float)GAMEPAD_JOYSTICK_MID && mag > 0.0f) {
+            float k = (float)GAMEPAD_JOYSTICK_MID / mag;
+            axis[2 * s] = (uint16_t)((float)GAMEPAD_JOYSTICK_MID + dx * k);
+            axis[2 * s + 1] = (uint16_t)((float)GAMEPAD_JOYSTICK_MID + dy * k);
+        }
+    }
     Gamepad *gamepad = Storage::getInstance().GetGamepad();
     gamepad->state.lx = axis[0];
     gamepad->state.ly = axis[1];
     gamepad->state.rx = axis[2];
     gamepad->state.ry = axis[3];
+    // Analog triggers mirror the ADS1256 addon: normalized full-range
+    // companion values mapped straight to lt/rt, asserted every poll (our
+    // addon runs last, so this wins over addons that clear the flag).
+    if (options.triggersEnabled) {
+        bool anyTrigger = false;
+        if (options.ltPin >= 0 && options.ltPin < GPLINK_PIN_COUNT) {
+            gamepad->state.lt = (uint8_t)(analogValues[options.ltPin] >> 8);
+            anyTrigger = true;
+        }
+        if (options.rtPin >= 0 && options.rtPin < GPLINK_PIN_COUNT) {
+            gamepad->state.rt = (uint8_t)(analogValues[options.rtPin] >> 8);
+            anyTrigger = true;
+        }
+        if (anyTrigger) gamepad->hasAnalogTriggers = true;
+    }
 }
 
 // Tell the companion which of its pins we use (inputs and outputs), with

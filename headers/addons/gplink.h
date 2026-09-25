@@ -131,6 +131,7 @@ private:
     uint64_t lastOutputMask;    // last GPIO_WRITE mask sent to companion
     uint32_t lastOutputMs;      // last GPIO_WRITE send (5 s backstop)
     uint16_t analogValues[64];  // last ANALOG_READ values by companion pin
+    float analogEma[4] = {};  // EMA history per axis (official inits 0.0f)
     uint8_t lastLedMask;        // last PLAYER_LED_SET mask sent
     uint8_t lastWeak;           // last RUMBLE_SET weak intensity sent
     uint8_t lastStrong;         // last RUMBLE_SET strong intensity sent
