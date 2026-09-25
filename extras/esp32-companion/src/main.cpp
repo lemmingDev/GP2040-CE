@@ -170,6 +170,10 @@ static void handleGpioConfig(uint8_t devid, uint8_t pin, uint8_t dir, uint8_t pu
         sendNak(devid, pin, 2); // output-on-input-only
         return;
     }
+    if (dir == 0 && !(entry->caps & GPLINK_PINCAP_INPUT)) {
+        sendNak(devid, pin, 4); // input-on-output-only
+        return;
+    }
     bool inverted = (flags & GPLINK_GPIO_FLAG_INVERTED) != 0;
     if (s_dir[pin] != dir || s_pull[pin] != pull || s_invert[pin] != (uint8_t)inverted) {
         s_dir[pin] = dir;
