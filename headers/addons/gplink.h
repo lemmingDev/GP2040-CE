@@ -94,6 +94,8 @@ public:
     // Queue a PIN_CAPS_REQ discovery round (RSP arrives via pumpRx in gamepad
     // mode; the /api/testGPLink handler drains synchronously in config mode).
     bool requestCaps();
+    // Raw stored value for a companion pin (MID if never received).
+    uint16_t getAnalogPinValue(uint8_t pin);
 
 private:
     void sendHello();

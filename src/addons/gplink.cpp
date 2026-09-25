@@ -67,6 +67,11 @@ bool GPLinkAddon::requestCaps() {
     return sendFrame(GPLINK_TYPE_PIN_CAPS_REQ, payload, len);
 }
 
+uint16_t GPLinkAddon::getAnalogPinValue(uint8_t pin) {
+    if (pin >= GPLINK_PIN_COUNT) return GAMEPAD_JOYSTICK_MID;
+    return analogValues[pin];
+}
+
 bool GPLinkAddon::available() {
     const AddonOptions& options = Storage::getInstance().getAddonOptions();
     if (!options.gplinkOptions.enabled && !options.gplinkAnalogOptions.enabled) return false;
@@ -163,11 +168,17 @@ void GPLinkAddon::applyAnalogAxes() {
     const uint32_t outerDz[4] = {options.axis0OuterDeadzone, options.axis1OuterDeadzone,
                                  options.axis2OuterDeadzone, options.axis3OuterDeadzone};
     uint16_t axis[4];
+    const uint32_t centers[4] = {options.lxCenter, options.lyCenter,
+                                 options.rxCenter, options.ryCenter};
     for (uint8_t i = 0; i < 4; i++) {
-        axis[i] = (pins[i] >= 0 && pins[i] < GPLINK_PIN_COUNT)
-                      ? std::clamp(analogValues[pins[i]],
-                                   (uint16_t)GAMEPAD_JOYSTICK_MIN, (uint16_t)GAMEPAD_JOYSTICK_MAX)
-                      : GAMEPAD_JOYSTICK_MID;
+        if (pins[i] >= 0 && pins[i] < GPLINK_PIN_COUNT) {
+            int32_t centered = (int32_t)analogValues[pins[i]] - (int32_t)centers[i]
+                               + GAMEPAD_JOYSTICK_MID;
+            axis[i] = (uint16_t)std::clamp(centered, (int32_t)GAMEPAD_JOYSTICK_MIN,
+                                           (int32_t)GAMEPAD_JOYSTICK_MAX);
+        } else {
+            axis[i] = GAMEPAD_JOYSTICK_MID;
+        }
         int32_t offset = (int32_t)axis[i] - GAMEPAD_JOYSTICK_MID;
         uint32_t inner = innerDz[i] * (1 << 16) / 100;
         uint32_t outer = outerDz[i] * (1 << 16) / 100;
