@@ -262,6 +262,11 @@ const TRIGGERS = [
 	},
 ];
 
+// Active tab cache, module-level so a save (which unmounts the section
+// behind the loading spinner and remounts it) returns to the tab you were
+// on instead of falling back to stick1.
+let gplinkAnalogActiveTab = 'stick1';
+
 const GPLinkAnalog = ({
 	values,
 	errors,
@@ -281,8 +286,10 @@ const GPLinkAnalog = ({
 		lt: 0,
 		rt: 0,
 	});
+	const [activeTab, setActiveTab] = useState(gplinkAnalogActiveTab);
 	useEffect(() => {
 		let alive = true;
+		let id: ReturnType<typeof setInterval> | null = null;
 		const fetchLive = async () => {
 			const data = await WebApi.getGPLinkAnalogValues();
 			if (alive && data) {
@@ -295,11 +302,27 @@ const GPLinkAnalog = ({
 				});
 			}
 		};
-		fetchLive();
-		const id = setInterval(fetchLive, 500);
+		const start = () => {
+			fetchLive();
+			if (id === null) id = setInterval(fetchLive, 500);
+		};
+		const stop = () => {
+			if (id !== null) {
+				clearInterval(id);
+				id = null;
+			}
+		};
+		// Pause polling while the browser tab is hidden; resume on return.
+		const onVisibility = () => {
+			if (document.hidden) stop();
+			else if (alive) start();
+		};
+		document.addEventListener('visibilitychange', onVisibility);
+		if (!document.hidden) start();
 		return () => {
 			alive = false;
-			clearInterval(id);
+			stop();
+			document.removeEventListener('visibilitychange', onVisibility);
 		};
 	}, []);
 
@@ -340,7 +363,13 @@ const GPLinkAnalog = ({
 					{t('AddonsConfig:gplink-analog-sub-header-text')}
 				</div>
 				<Tabs
-					defaultActiveKey="stick1"
+					activeKey={activeTab}
+					onSelect={(k) => {
+						if (k) {
+							gplinkAnalogActiveTab = k;
+							setActiveTab(k);
+						}
+					}}
 					id="gplinkAnalogTabs"
 					className="mb-3 pb-0"
 					fill
