@@ -262,10 +262,11 @@ static int8_t s_synthDir = 1;
 static void pumpAnalog(uint32_t now) {
     static uint32_t lastPushMs = 0;
     // Synthetic triangle advances here so every configured channel shares
-    // one phase (~5 s period, full 12-bit swing).
-    if (s_analogSynth && (now - s_synthMs) >= 20) {
+    // one phase. 2 ms steps (not 20 ms): coarser steps beat against a 60 Hz
+    // display and read as judder, which looks exactly like link jitter.
+    if (s_analogSynth && (now - s_synthMs) >= 2) {
         s_synthMs = now;
-        int v = (int)s_synthRaw + 32 * (int)s_synthDir;
+        int v = (int)s_synthRaw + 3 * (int)s_synthDir;
         if (v >= (int)COMPANION_ADC_MAX) {
             v = COMPANION_ADC_MAX;
             s_synthDir = -1;
