@@ -122,6 +122,8 @@ export default {
 	'gplink-pins-sub-header-text':
 		'Assign gamepad actions to companion pins. Run the test above to list reported pins, or configure all slots manually. ADC* pins go blind while wireless runs.',
 	'gplink-pins-save-label': 'Save Pin Assignments',
+	'gplink-output-only-text': 'Output only — inputs not offered.',
+	'gplink-clear-label': 'Clear',
 	'gplink-pull-label': 'Pull',
 	'gplink-pull-none': 'None',
 	'gplink-pull-up': 'Up',

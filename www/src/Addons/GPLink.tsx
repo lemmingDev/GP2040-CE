@@ -344,6 +344,35 @@ const GPLink = ({
 						const pull = entry.pull ?? 1;
 						const inverted = entry.inverted ?? false;
 						const assigned = current > 0;
+						const caps = capsByPin[pin];
+						const outOnly =
+							caps !== undefined &&
+							!(caps & PINCAP_INPUT) &&
+							(caps & PINCAP_OUTPUT) !== 0;
+						if (outOnly) {
+							return (
+								<div key={`gplink-${name}`} className="col-sm-3 mb-2">
+									<div className="fw-bold">
+										{`Pin ${pin}${capsTags(caps)}`}
+									</div>
+									<div className="text-muted">
+										{t('AddonsConfig:gplink-output-only-text')}
+										{assigned && (
+											<>
+												{' '}
+												<Button
+													size="sm"
+													variant="link"
+													onClick={() => setPinAction('gplink', 0, name, -10)}
+												>
+													{t('AddonsConfig:gplink-clear-label')}
+												</Button>
+											</>
+										)}
+									</div>
+								</div>
+							);
+						}
 						return (
 							<div key={`gplink-${name}`} className="col-sm-3 mb-2">
 								<FormSelect
