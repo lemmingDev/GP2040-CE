@@ -61,6 +61,10 @@ static uint8_t s_invert[64];
 // Analog-enabled channels (ANALOG_CONFIG), persisted like pin config.
 static uint8_t s_analog[64];
 static uint16_t s_analogLast[64];
+// EMA smoothing state per channel (0xFFFF = unseeded). ESP32 ADC noise
+// (±tens of LSB) walks straight through a deadband alone; the HE-trigger
+// addon smooths the same way.
+static uint16_t s_analogSm[64];
 static uint32_t s_analogMs = 0;
 static Preferences s_prefs;
 
@@ -88,7 +92,7 @@ static void restorePinConfig() {
     memset(s_pull, 0, sizeof(s_pull));
     memset(s_invert, 0, sizeof(s_invert));
     memset(s_analog, 0, sizeof(s_analog));
-    memset(s_analogLast, 0, sizeof(s_analogLast));
+    memset(s_analogSm, 0xff, sizeof(s_analogSm));
     s_prefs.begin("gplink", true);
     size_t n = s_prefs.getBytes("dir", s_dir, sizeof(s_dir));
     size_t m = s_prefs.getBytes("pull", s_pull, sizeof(s_pull));
@@ -250,14 +254,21 @@ static void pumpAnalog(uint32_t now) {
     for (uint8_t pin = 0; pin < 64 && count < 8; pin++) {
         if (!s_analog[pin]) continue;
         uint16_t raw = (uint16_t)analogRead(pin);
-        uint16_t norm = (uint16_t)(((uint32_t)raw * 65535 + COMPANION_ADC_MAX / 2) / COMPANION_ADC_MAX);
-        uint16_t lastRaw = s_analogLast[pin] & 0x0FFF;
-        uint16_t curRaw = raw & 0x0FFF;
-        uint16_t diff = (curRaw > lastRaw) ? (uint16_t)(curRaw - lastRaw) : (uint16_t)(lastRaw - curRaw);
-        if (force || diff >= COMPANION_ADC_DEADBAND) {
+        if (s_analogSm[pin] == 0xFFFF) {
+            // Seed baseline silently (no glitch frame on enable).
+            s_analogSm[pin] = raw;
             s_analogLast[pin] = raw;
+            continue;
+        }
+        int step = (int)raw - (int)s_analogSm[pin];
+        s_analogSm[pin] = (uint16_t)((int)s_analogSm[pin] + ((step + (step >= 0 ? 2 : -2)) >> 2));
+        uint16_t sm = s_analogSm[pin];
+        uint16_t last = s_analogLast[pin];
+        uint16_t diff = (sm > last) ? (uint16_t)(sm - last) : (uint16_t)(last - sm);
+        if (force || diff >= COMPANION_ADC_DEADBAND) {
+            s_analogLast[pin] = sm;
             pins[count] = pin;
-            values[count] = norm;
+            values[count] = (uint16_t)(((uint32_t)sm * 65535 + COMPANION_ADC_MAX / 2) / COMPANION_ADC_MAX);
             count++;
         }
     }
