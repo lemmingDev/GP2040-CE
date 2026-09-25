@@ -1998,7 +1998,6 @@ std::string setExpansionPins()
             gplinkPins[pin].inverted = doc["pins"]["gplink"][0][pinName]["inverted"];
         }
     }
-    }
     Storage::getInstance().getAddonOptions().gplinkOptions.gplinkPins_count = GPLINK_PIN_COUNT;
 
     EventManager::getInstance().triggerEvent(new GPStorageSaveEvent(true));
