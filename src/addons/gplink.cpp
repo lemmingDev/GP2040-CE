@@ -241,18 +241,17 @@ void GPLinkAddon::applyAnalogAxes() {
     // Analog triggers mirror the ADS1256 addon: normalized full-range
     // companion values mapped straight to lt/rt, asserted every poll (our
     // addon runs last, so this wins over addons that clear the flag).
-    if (options.triggersEnabled) {
-        bool anyTrigger = false;
-        if (options.ltPin >= 0 && options.ltPin < GPLINK_PIN_COUNT) {
-            gamepad->state.lt = (uint8_t)(analogValues[options.ltPin] >> 8);
-            anyTrigger = true;
-        }
-        if (options.rtPin >= 0 && options.rtPin < GPLINK_PIN_COUNT) {
-            gamepad->state.rt = (uint8_t)(analogValues[options.rtPin] >> 8);
-            anyTrigger = true;
-        }
-        if (anyTrigger) gamepad->hasAnalogTriggers = true;
+    // An unmapped pin (-1) disables that trigger; nothing is written.
+    bool anyTrigger = false;
+    if (options.ltPin >= 0 && options.ltPin < GPLINK_PIN_COUNT) {
+        gamepad->state.lt = (uint8_t)(analogValues[options.ltPin] >> 8);
+        anyTrigger = true;
     }
+    if (options.rtPin >= 0 && options.rtPin < GPLINK_PIN_COUNT) {
+        gamepad->state.rt = (uint8_t)(analogValues[options.rtPin] >> 8);
+        anyTrigger = true;
+    }
+    if (anyTrigger) gamepad->hasAnalogTriggers = true;
 }
 
 // Tell the companion which of its pins we use (inputs and outputs), with

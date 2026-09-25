@@ -849,7 +849,6 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, smoothingEnabled2, false);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, smoothingFactor2, 5);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, forcedCircularity2, false);
-    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, triggersEnabled, false);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, ltPin, -1);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rtPin, -1);
   

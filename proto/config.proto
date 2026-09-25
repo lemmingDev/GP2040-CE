@@ -1001,7 +1001,9 @@ message GPLinkAnalogOptions
     optional bool smoothingEnabled2 = 29;
     optional uint32 smoothingFactor2 = 30;
     optional bool forcedCircularity2 = 31;
-    optional bool triggersEnabled = 32;
+    // No enable flag: an unmapped pin (-1) means that trigger is disabled,
+    // same convention as the stick axes above. Field 32 was a short-lived
+    // triggers enable, removed before release; do not reuse the number.
     optional int32 ltPin = 33;
     optional int32 rtPin = 34;
 }

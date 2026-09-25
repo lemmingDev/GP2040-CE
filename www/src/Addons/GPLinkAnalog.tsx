@@ -129,10 +129,6 @@ export const gplinkAnalogScheme = {
 		.number()
 		.label('GPLink Force Circularity 2')
 		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 1),
-	gplinkAnalogTriggersEnabled: yup
-		.number()
-		.label('GPLink Triggers Enabled')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 1),
 	gplinkAnalogLtPin: yup
 		.number()
 		.label('GPLink Left Trigger Pin')
@@ -175,7 +171,6 @@ export const gplinkAnalogState = {
 	gplinkAnalogSmoothingEnabled2: 0,
 	gplinkAnalogSmoothingFactor2: 5,
 	gplinkAnalogForcedCircularity2: 0,
-	gplinkAnalogTriggersEnabled: 0,
 	gplinkAnalogLtPin: -1,
 	gplinkAnalogRtPin: -1,
 };
@@ -460,18 +455,6 @@ const GPLinkAnalog = ({
 							</div>
 						</Row>
 						<Row className="mb-3">
-							<FormCheck
-								label={t('AddonsConfig:gplink-analog-triggers-enabled-label')}
-								type="switch"
-								id="GPLinkAnalogTriggersEnabled"
-								className="col-sm-3 ms-3"
-								isInvalid={false}
-								checked={Boolean(values.gplinkAnalogTriggersEnabled)}
-								onChange={(e) => {
-									handleCheckbox('gplinkAnalogTriggersEnabled');
-									handleChange(e);
-								}}
-							/>
 							<FormControl
 								type="number"
 								label={t('AddonsConfig:gplink-analog-lt-pin-label')}

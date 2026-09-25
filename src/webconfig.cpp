@@ -2399,7 +2399,6 @@ std::string setAddonOptions()
     docToValue(gplinkAnalogOptions.smoothingEnabled2, doc, "gplinkAnalogSmoothingEnabled2");
     docToValue(gplinkAnalogOptions.smoothingFactor2, doc, "gplinkAnalogSmoothingFactor2");
     docToValue(gplinkAnalogOptions.forcedCircularity2, doc, "gplinkAnalogForcedCircularity2");
-    docToValue(gplinkAnalogOptions.triggersEnabled, doc, "gplinkAnalogTriggersEnabled");
     docToValue(gplinkAnalogOptions.ltPin, doc, "gplinkAnalogLtPin");
     docToValue(gplinkAnalogOptions.rtPin, doc, "gplinkAnalogRtPin");
     // TX/RX default to valid pins that may never pass through docToPin (the UI
@@ -2943,7 +2942,6 @@ std::string getAddonOptions()
     writeDoc(doc, "gplinkAnalogSmoothingEnabled2", gplinkAnalogOptions.smoothingEnabled2);
     writeDoc(doc, "gplinkAnalogSmoothingFactor2", gplinkAnalogOptions.smoothingFactor2);
     writeDoc(doc, "gplinkAnalogForcedCircularity2", gplinkAnalogOptions.forcedCircularity2);
-    writeDoc(doc, "gplinkAnalogTriggersEnabled", gplinkAnalogOptions.triggersEnabled);
     writeDoc(doc, "gplinkAnalogLtPin", gplinkAnalogOptions.ltPin);
     writeDoc(doc, "gplinkAnalogRtPin", gplinkAnalogOptions.rtPin);
 
