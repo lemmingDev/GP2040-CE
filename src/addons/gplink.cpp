@@ -377,9 +377,13 @@ void GPLinkAddon::process() {
     // Console-driven actuation for the companion (dedicated messages, never
     // the pin table): player LED mask from player ID, rumble intensities
     // from haptic actuators. Change-driven + 5 s backstop like outputs.
+    // NOTE: auxState lives on the PROCESSED pad (drivers write it during
+    // inputDriver->process, after addons run — same object DRV8833 reads);
+    // buttons/sticks above intentionally stay on the raw pad (final state).
     {
-        uint8_t ledMask = (uint8_t)(gamepad->auxState.playerID.ledValue & 0xFF);
-        const auto &hap = gamepad->auxState.haptics;
+        Gamepad *processed = Storage::getInstance().GetProcessedGamepad();
+        uint8_t ledMask = (uint8_t)(processed->auxState.playerID.ledValue & 0xFF);
+        const auto &hap = processed->auxState.haptics;
         // Intensities are already 0-255 (see motorToDuty); active gates them.
         uint8_t weak = (hap.leftActuator.active && hap.leftActuator.enabled)
                            ? (uint8_t)(hap.leftActuator.intensity > 255 ? 255 : hap.leftActuator.intensity)
