@@ -251,20 +251,47 @@ static void pumpDacSweep(uint32_t now) {
     s_dacVal = (uint8_t)v;
 }
 
+// Synthetic analog stimulus ('a' toggles): triangular 12-bit wave fed into
+// configured channels INSTEAD of ADC reads. Bisects cleanly against the DAC
+// loopback: smooth motion here + jitter there = source-side physics.
+static bool s_analogSynth = false;
+static uint32_t s_synthMs = 0;
+static uint16_t s_synthRaw = 0;
+static int8_t s_synthDir = 1;
+
 static void pumpAnalog(uint32_t now) {
     static uint32_t lastPushMs = 0;
+    // Synthetic triangle advances here so every configured channel shares
+    // one phase (~5 s period, full 12-bit swing).
+    if (s_analogSynth && (now - s_synthMs) >= 20) {
+        s_synthMs = now;
+        int v = (int)s_synthRaw + 32 * (int)s_synthDir;
+        if (v >= (int)COMPANION_ADC_MAX) {
+            v = COMPANION_ADC_MAX;
+            s_synthDir = -1;
+        } else if (v <= 0) {
+            v = 0;
+            s_synthDir = 1;
+        }
+        s_synthRaw = (uint16_t)v;
+    }
     bool force = (now - lastPushMs) >= 1000;
     uint8_t pins[8];
     uint16_t values[8];
     uint8_t count = 0;
     for (uint8_t pin = 0; pin < 64 && count < 8; pin++) {
         if (!s_analog[pin]) continue;
-        // Oversampled read: 8 conversions averaged (~80 us) to kill white
-        // noise spikes a single conversion catches whole. Then EMA (1/8)
-        // plus deadband, same shaping family as the HE-trigger addon.
-        uint32_t acc = 0;
-        for (uint8_t k = 0; k < 8; k++) acc += analogRead(pin);
-        uint16_t raw = (uint16_t)(acc >> 3);
+        uint16_t raw;
+        if (s_analogSynth) {
+            raw = s_synthRaw;
+        } else {
+            // Oversampled read: 8 conversions averaged (~80 us) to kill white
+            // noise spikes a single conversion catches whole. Then EMA (1/8)
+            // plus deadband, same shaping family as the HE-trigger addon.
+            uint32_t acc = 0;
+            for (uint8_t k = 0; k < 8; k++) acc += analogRead(pin);
+            raw = (uint16_t)(acc >> 3);
+        }
         if (s_analogSm[pin] == 0xFFFF) {
             // Seed baseline silently (no glitch frame on enable).
             s_analogSm[pin] = raw;
@@ -416,7 +443,7 @@ void setup() {
     s_lastSampleMs = millis();
     Serial.printf("GPLink companion %s up (UART2 %d/%d @ %d) fw " __DATE__ " " __TIME__ "\n",
                   COMPANION_BOARD_NAME, GPLINK_UART_RX, GPLINK_UART_TX, GPLINK_BAUD);
-    Serial.println("GPLink: send 't' over console to toggle input self-test");
+    Serial.println("GPLink: console keys: t = input self-test, a = analog synth, d = DAC sweep, g = frame probe, l = LED");
     sendHello();
 }
 
@@ -438,6 +465,10 @@ void loop() {
         } else if (c == 'd' || c == 'D') {
             s_dacSweep = !s_dacSweep;
             Serial.printf("GPLink: DAC sweep %s (GPIO25)\n", s_dacSweep ? "ON" : "OFF");
+        } else if (c == 'a' || c == 'A') {
+            s_analogSynth = !s_analogSynth;
+            if (!s_analogSynth) memset(s_analogSm, 0xff, sizeof(s_analogSm));
+            Serial.printf("GPLink: analog synth %s\n", s_analogSynth ? "ON" : "OFF");
         } else if (c == 'g' || c == 'G') {
             // Manual GPIO_READ probe: pack + encode + write a fixed mask
             // frame with every intermediate value printed. Bypasses the
