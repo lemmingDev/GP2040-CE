@@ -58,6 +58,10 @@ static bool s_selftestOn = false;
 static uint8_t s_dir[64];
 static uint8_t s_pull[64];
 static uint8_t s_invert[64];
+// Analog-enabled channels (ANALOG_CONFIG), persisted like pin config.
+static uint8_t s_analog[64];
+static uint16_t s_analogLast[64];
+static uint32_t s_analogMs = 0;
 static Preferences s_prefs;
 
 // Pin config is user configuration: persist to NVS so serial-monitor opens
@@ -68,6 +72,7 @@ static void persistPinConfig() {
     s_prefs.putBytes("dir", s_dir, sizeof(s_dir));
     s_prefs.putBytes("pull", s_pull, sizeof(s_pull));
     s_prefs.putBytes("inv", s_invert, sizeof(s_invert));
+    s_prefs.putBytes("ana", s_analog, sizeof(s_analog));
     s_prefs.end();
 }
 
@@ -82,15 +87,20 @@ static void restorePinConfig() {
     memset(s_dir, 0xff, sizeof(s_dir));
     memset(s_pull, 0, sizeof(s_pull));
     memset(s_invert, 0, sizeof(s_invert));
+    memset(s_analog, 0, sizeof(s_analog));
+    memset(s_analogLast, 0, sizeof(s_analogLast));
     s_prefs.begin("gplink", true);
     size_t n = s_prefs.getBytes("dir", s_dir, sizeof(s_dir));
     size_t m = s_prefs.getBytes("pull", s_pull, sizeof(s_pull));
     size_t k = s_prefs.getBytes("inv", s_invert, sizeof(s_invert));
+    size_t a = s_prefs.getBytes("ana", s_analog, sizeof(s_analog));
     s_prefs.end();
-    if (n != sizeof(s_dir) || m != sizeof(s_pull) || k != sizeof(s_invert)) {
+    if (n != sizeof(s_dir) || m != sizeof(s_pull) || k != sizeof(s_invert) ||
+            a != sizeof(s_analog)) {
         memset(s_dir, 0xff, sizeof(s_dir));
         memset(s_pull, 0, sizeof(s_pull));
         memset(s_invert, 0, sizeof(s_invert));
+        memset(s_analog, 0, sizeof(s_analog));
         return;
     }
     for (uint8_t pin = 0; pin < 64; pin++) {
@@ -186,6 +196,58 @@ static void handleGpioConfig(uint8_t devid, uint8_t pin, uint8_t dir, uint8_t pu
         applyPinMode(pin);
         persistPinConfig();
     }
+}
+
+static void handleAnalogConfig(uint8_t devid, uint8_t pin, uint8_t enable) {
+    const CompanionPin *entry = companionPinLookup(pin);
+    if (!entry) {
+        sendNak(devid, pin, 1); // not-a-pin
+        return;
+    }
+    if (enable && !(entry->caps & GPLINK_PINCAP_ADC)) {
+        sendNak(devid, pin, 3); // not-adc-capable
+        return;
+    }
+    uint8_t on = enable ? 1 : 0;
+    if (s_analog[pin] != on) {
+        s_analog[pin] = on;
+        persistPinConfig();
+    }
+    Serial.printf("%lu GPLink: ANALOG_CONFIG dev %u pin %u %s\n",
+                  (unsigned long)millis(), devid, pin, on ? "on" : "off");
+}
+
+// Normalized full-range u16 ADC read (companion scales its native width;
+// ESP32 Arduino analogRead is 12-bit).
+#define COMPANION_ADC_MAX 4095
+#define COMPANION_ADC_DEADBAND 8
+
+static void pumpAnalog(uint32_t now) {
+    static uint32_t lastPushMs = 0;
+    bool force = (now - lastPushMs) >= 1000;
+    uint8_t pins[8];
+    uint16_t values[8];
+    uint8_t count = 0;
+    for (uint8_t pin = 0; pin < 64 && count < 8; pin++) {
+        if (!s_analog[pin]) continue;
+        uint16_t raw = (uint16_t)analogRead(pin);
+        uint16_t norm = (uint16_t)(((uint32_t)raw * 65535 + COMPANION_ADC_MAX / 2) / COMPANION_ADC_MAX);
+        uint16_t lastRaw = s_analogLast[pin] & 0x0FFF;
+        uint16_t curRaw = raw & 0x0FFF;
+        uint16_t diff = (curRaw > lastRaw) ? (uint16_t)(curRaw - lastRaw) : (uint16_t)(lastRaw - curRaw);
+        if (force || diff >= COMPANION_ADC_DEADBAND) {
+            s_analogLast[pin] = raw;
+            pins[count] = pin;
+            values[count] = norm;
+            count++;
+        }
+    }
+    if (count == 0) return;
+    if (force) lastPushMs = now;
+    uint8_t payload[32];
+    size_t len = gplink_pack_analog_read(0, count, pins, values, payload);
+    if (len > 0) sendFrame(GPLINK_TYPE_ANALOG_READ, payload, len);
+}
     Serial.printf("%lu GPLink: GPIO_CONFIG dev %u pin %u %s pull %u\n",
                   (unsigned long)millis(), devid, pin, dir ? "out" : "in", pull);
 }
@@ -249,6 +311,20 @@ static void pumpLink() {
                 uint8_t devid;
                 uint64_t mask;
                 if (gplink_unpack_gpio_mask(&frame, &devid, &mask)) handleGpioWrite(devid, mask);
+                break;
+            }
+            case GPLINK_TYPE_ANALOG_CONFIG: {
+                uint8_t devid, pin, enable;
+                if (gplink_unpack_analog_config(&frame, &devid, &pin, &enable)) {
+                    handleAnalogConfig(devid, pin, enable);
+                }
+                break;
+            }
+            case GPLINK_TYPE_ANALOG_CONFIG: {
+                uint8_t devid, pin, enable;
+                if (gplink_unpack_analog_config(&frame, &devid, &pin, &enable)) {
+                    handleAnalogConfig(devid, pin, enable);
+                }
                 break;
             }
             case GPLINK_TYPE_PLAYER_LED_SET: {
@@ -347,6 +423,7 @@ void loop() {
         }
     }
     pumpLink();
+    pumpAnalog(now);
     if (now - s_lastSampleMs >= COMPANION_SAMPLE_MS) {
         s_lastSampleMs = now;
         uint64_t mask = sampleConfiguredInputs();

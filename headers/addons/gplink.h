@@ -14,6 +14,26 @@
 #define GPLINK_ENABLED 0
 #endif
 
+#ifndef GPLINK_ANALOG_ENABLED
+#define GPLINK_ANALOG_ENABLED 0
+#endif
+
+#ifndef GPLINK_ANALOG_LX_PIN
+#define GPLINK_ANALOG_LX_PIN -1
+#endif
+
+#ifndef GPLINK_ANALOG_LY_PIN
+#define GPLINK_ANALOG_LY_PIN -1
+#endif
+
+#ifndef GPLINK_ANALOG_RX_PIN
+#define GPLINK_ANALOG_RX_PIN -1
+#endif
+
+#ifndef GPLINK_ANALOG_RY_PIN
+#define GPLINK_ANALOG_RY_PIN -1
+#endif
+
 // Companion GPIO table size (matches GPLinkOptions.gplinkPins max_count).
 // Indexed by companion GPIO number (covers ESP32-S3 GPIO 48).
 #ifndef GPLINK_PIN_COUNT
@@ -78,7 +98,9 @@ public:
 private:
     void sendHello();
     void sendGpioConfigs();
+    void sendAnalogConfigs();
     void applyGpioMask(uint64_t mask);
+    void applyAnalogPin(uint8_t pin, uint16_t value);
     void sendOutputMask(uint64_t mask);
     void sendInputState(const GamepadState &state);
     void sendHeartbeat();
@@ -105,6 +127,7 @@ private:
     uint64_t lastMask;          // last GPIO_READ mask, re-applied every poll
     uint64_t lastOutputMask;    // last GPIO_WRITE mask sent to companion
     uint32_t lastOutputMs;      // last GPIO_WRITE send (5 s backstop)
+    uint16_t analogValues[64];  // last ANALOG_READ values by companion pin
     uint8_t lastLedMask;        // last PLAYER_LED_SET mask sent
     uint8_t lastWeak;           // last RUMBLE_SET weak intensity sent
     uint8_t lastStrong;         // last RUMBLE_SET strong intensity sent

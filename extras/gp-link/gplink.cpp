@@ -163,6 +163,26 @@ size_t gplink_pack_gpio_nak(uint8_t devid, uint8_t pin, uint8_t code, uint8_t *p
     return 3;
 }
 
+size_t gplink_pack_analog_config(uint8_t devid, uint8_t pin, uint8_t enable, uint8_t *payload_out) {
+    if (!payload_out) return 0;
+    payload_out[0] = devid;
+    payload_out[1] = pin;
+    payload_out[2] = enable ? 1 : 0;
+    return 3;
+}
+
+size_t gplink_pack_analog_read(uint8_t devid, uint8_t count, const uint8_t *pins, const uint16_t *values, uint8_t *payload_out) {
+    if (!payload_out || !pins || !values) return 0;
+    if ((size_t)2 + (size_t)3 * count > GPLINK_MAX_PAYLOAD) return 0;
+    payload_out[0] = devid;
+    payload_out[1] = count;
+    for (uint8_t i = 0; i < count; i++) {
+        payload_out[2 + 3 * i] = pins[i];
+        gplink_put_u16(&payload_out[3 + 3 * i], values[i]);
+    }
+    return (size_t)2 + (size_t)3 * count;
+}
+
 size_t gplink_pack_rumble(uint8_t devid, uint8_t weak, uint8_t strong, uint16_t duration_ms, uint8_t *payload_out) {
     if (!payload_out) return 0;
     payload_out[0] = devid;
@@ -240,6 +260,30 @@ bool gplink_unpack_gpio_nak(const gplink_frame *f, uint8_t *devid, uint8_t *pin,
     *devid = f->payload[0];
     *pin = f->payload[1];
     *code = f->payload[2];
+    return true;
+}
+
+bool gplink_unpack_analog_config(const gplink_frame *f, uint8_t *devid, uint8_t *pin, uint8_t *enable) {
+    if (!f || f->type != GPLINK_TYPE_ANALOG_CONFIG || f->len != 3) return false;
+    if (!devid || !pin || !enable) return false;
+    *devid = f->payload[0];
+    *pin = f->payload[1];
+    *enable = f->payload[2] ? 1 : 0;
+    return true;
+}
+
+bool gplink_unpack_analog_read(const gplink_frame *f, uint8_t *devid, uint8_t *count, uint8_t *pins_out, uint16_t *values_out, uint8_t maxCount) {
+    if (!f || f->type != GPLINK_TYPE_ANALOG_READ || f->len < 2) return false;
+    if (!devid || !count || !pins_out || !values_out) return false;
+    uint8_t c = f->payload[1];
+    if (c > maxCount) return false;
+    if (f->len != (uint8_t)(2 + 3 * c)) return false;
+    *devid = f->payload[0];
+    *count = c;
+    for (uint8_t i = 0; i < c; i++) {
+        pins_out[i] = f->payload[2 + 3 * i];
+        values_out[i] = gplink_get_u16(&f->payload[3 + 3 * i]);
+    }
     return true;
 }
 

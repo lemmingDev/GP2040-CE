@@ -2346,6 +2346,13 @@ std::string setAddonOptions()
     docToPin(gplinkOptions.txPin, doc, "gplinkTxPin");
     docToPin(gplinkOptions.rxPin, doc, "gplinkRxPin");
     docToValue(gplinkOptions.baudRate, doc, "gplinkBaudRate");
+
+    GPLinkAnalogOptions& gplinkAnalogOptions = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
+    docToValue(gplinkAnalogOptions.enabled, doc, "GPLinkAnalogEnabled");
+    docToValue(gplinkAnalogOptions.lxPin, doc, "gplinkAnalogLxPin");
+    docToValue(gplinkAnalogOptions.lyPin, doc, "gplinkAnalogLyPin");
+    docToValue(gplinkAnalogOptions.rxPin, doc, "gplinkAnalogRxPin");
+    docToValue(gplinkAnalogOptions.ryPin, doc, "gplinkAnalogRyPin");
     // TX/RX default to valid pins that may never pass through docToPin (the UI
     // only POSTs changed values), so mark/unmark on enable/disable as well.
     {
@@ -2854,6 +2861,13 @@ std::string getAddonOptions()
     writeDoc(doc, "gplinkTxPin", cleanPin(gplinkOptions.txPin));
     writeDoc(doc, "gplinkRxPin", cleanPin(gplinkOptions.rxPin));
     writeDoc(doc, "gplinkBaudRate", gplinkOptions.baudRate);
+
+    const GPLinkAnalogOptions& gplinkAnalogOptions = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
+    writeDoc(doc, "GPLinkAnalogEnabled", gplinkAnalogOptions.enabled);
+    writeDoc(doc, "gplinkAnalogLxPin", gplinkAnalogOptions.lxPin);
+    writeDoc(doc, "gplinkAnalogLyPin", gplinkAnalogOptions.lyPin);
+    writeDoc(doc, "gplinkAnalogRxPin", gplinkAnalogOptions.rxPin);
+    writeDoc(doc, "gplinkAnalogRyPin", gplinkAnalogOptions.ryPin);
 
     const OnBoardLedOptions& onBoardLedOptions = Storage::getInstance().getAddonOptions().onBoardLedOptions;
     writeDoc(doc, "onBoardLedMode", onBoardLedOptions.mode);

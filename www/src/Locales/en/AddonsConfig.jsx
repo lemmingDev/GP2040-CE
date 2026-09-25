@@ -115,6 +115,13 @@ export default {
 	'gplink-pins-sub-header-text':
 		'Assign gamepad actions to companion pins. Run the test above to list reported pins, or configure all slots manually. ADC* pins do digital always; their analog needs wireless off.',
 	'gplink-pins-save-label': 'Save Pin Assignments',
+	'gplink-analog-header-text': 'GP-Link Analog',
+	'gplink-analog-sub-header-text':
+		'Map companion ADC pins (by companion GPIO number, -1 = none) to sticks. Values arrive normalized full-range; use Test & discover on GP-Link Companion to list ADC-capable pins.',
+	'gplink-analog-lx-pin-label': 'Left Stick X Companion Pin',
+	'gplink-analog-ly-pin-label': 'Left Stick Y Companion Pin',
+	'gplink-analog-rx-pin-label': 'Right Stick X Companion Pin',
+	'gplink-analog-ry-pin-label': 'Right Stick Y Companion Pin',
 	'gplink-pull-label': 'Pull',
 	'gplink-pull-none': 'None',
 	'gplink-pull-up': 'Up',

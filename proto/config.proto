@@ -960,6 +960,15 @@ message GPLinkOptions
     repeated GpioMappingInfo gplinkPins = 6 [(nanopb).max_count = 64];
 }
 
+message GPLinkAnalogOptions
+{
+    optional bool enabled = 1;
+    optional int32 lxPin = 2;
+    optional int32 lyPin = 3;
+    optional int32 rxPin = 4;
+    optional int32 ryPin = 5;
+}
+
 message AddonOptions
 {
     optional BootselButtonOptions bootselButtonOptions = 1;
@@ -995,6 +1004,7 @@ message AddonOptions
     optional ProfileSliderOptions profileSliderOptions = 31;
     optional AnalogADS1115Options analogADS1115Options = 32;
     optional GPLinkOptions gplinkOptions = 33;
+    optional GPLinkAnalogOptions gplinkAnalogOptions = 34;
 }
 
 message MigrationHistory

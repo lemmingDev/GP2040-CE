@@ -814,6 +814,13 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     }
     // reminder that this must be set or else nanopb won't retain anything
     config.addonOptions.gplinkOptions.gplinkPins_count = GPLINK_PIN_COUNT;
+
+    // addonOptions.gplinkAnalogOptions
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, enabled, !!GPLINK_ANALOG_ENABLED);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, lxPin, GPLINK_ANALOG_LX_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, lyPin, GPLINK_ANALOG_LY_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rxPin, GPLINK_ANALOG_RX_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, ryPin, GPLINK_ANALOG_RY_PIN);
   
     // addonOptions.analogADS1115Options
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1115Options, enabled, !!I2C_ANALOG1115_ENABLED);

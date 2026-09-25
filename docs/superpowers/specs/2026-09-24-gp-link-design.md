@@ -72,7 +72,7 @@ Assigned v1 type numbers (backported from `extras/gp-link/gplink.h`):
 `PIN_CAPS_REQ=0x0D`, `PIN_CAPS_RSP=0x0E`, `HTTP_REQ=0x10`,
 `HTTP_RESP=0x11`, `HTTP_FRAG=0x12`, `GPIO_NAK=0x13` (codes:
 `1`=not-a-pin, `2`=output-on-input-only, `3`=not-adc-capable,
-`4`=input-on-output-only).
+`4`=input-on-output-only), `ANALOG_READ=0x14`, `ANALOG_CONFIG=0x15`.
 
 Caps: max payload 240 B (`GPLINK_MAX_PAYLOAD`), max encoded frame
 256 B (`GPLINK_ENCODED_MAX`).
@@ -160,6 +160,26 @@ ever produce pad-state) keep using §6 virtual-pad `INPUT_STATE`s.
   - DAC outputs (not ADC inputs): GPIO25,26.
   - Everything else commonly broken out (4,5,13,14,16–19,21–23,27,
     32,33) is full digital IO with pullups.
+
+## 6d. Companion analog (ADC channels as sticks)
+
+Companion ADC follows the IO-expander pattern, not the gamepad one: the
+main board names stick pins, the companion streams readings. (BT-pad
+sticks keep using §6 `INPUT_STATE`s under Phase 2 merge — this section
+is for wired pots/voltage inputs.)
+
+- New types: `ANALOG_CONFIG` (main→companion: device, pin, enable —
+  NAK `1`/`3` as usual; analog on ADC2-class pins while wireless runs
+  is a companion-local refusal), `ANALOG_READ` (companion→main:
+  device, count, then per channel pin + `u16` value).
+- Values are normalized full-range `u16` (companion scales its native
+  ADC width itself), so the main board never learns ADC widths.
+  Companion applies a small deadband (~8 LSB at 12 bit) against noise
+  churn and pushes on change plus a 1 s backstop; the main board maps
+  configured pins straight onto lx/ly/rx/ry (deadzone/calibration ride
+  a later pass, mirroring the ADS1115 pages).
+- Validation without pots: ESP32 DAC (GPIO25/26) looped into an ADC pin
+  synthesizes known voltages end to end.
 
 ## 6c. Pin capability advertisement (PIN_CAPS)
 
