@@ -120,7 +120,7 @@ export default {
 		'No capability response (companion may not support discovery yet).',
 	'gplink-pins-header-text': 'Companion GPIO Inputs',
 	'gplink-pins-sub-header-text':
-		'Assign gamepad actions to companion pins. Run the test above to list reported pins, or configure all slots manually. ADC* pins go blind while wireless runs.',
+		'Assign gamepad actions to companion pins. Run the test above to list reported pins, or configure all slots manually. ADC* pins do digital always; their analog needs wireless off.',
 	'gplink-pins-save-label': 'Save Pin Assignments',
 	'gplink-output-only-text': 'Output only — inputs not offered.',
 	'gplink-clear-label': 'Clear',

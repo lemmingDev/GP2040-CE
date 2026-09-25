@@ -118,8 +118,8 @@ ever produce pad-state) keep using §6 virtual-pad `INPUT_STATE`s.
   `2`=output-on-input-only, `3`=not-adc-capable):
   - ADC1 (works with WiFi): GPIO32–39 — i.e. 8 channels, and the easy
     way to add a lot more analog to a controller.
-  - ADC2 (blocked while wireless runs — WiFi, and Classic BT once the
-    companion hosts pads — so these carry ADC_CAPABLE without
+  - ADC2 (analog function blocked while wireless runs — WiFi, and Classic BT once the
+    companion hosts pads — digital use is unaffected, so these carry ADC_CAPABLE without
     ADC_RADIO_SAFE): GPIO0,2,4,12–15,25–27 (10 channels).
   - Input-only, no internal pullup/down: GPIO34,35,36,39 — output
     direction rejected; inputs need external pull resistors.
