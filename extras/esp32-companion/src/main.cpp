@@ -258,6 +258,12 @@ static bool s_analogSynth = false;
 static uint32_t s_synthMs = 0;
 static uint16_t s_synthRaw = 0;
 static int8_t s_synthDir = 1;
+// Known-value mode ('k'): every configured channel reports a constant
+// mid-scale RAW reading (2048 ≈ 32776 normalized). Any display movement
+// under a constant source is definitively downstream (wire/decode/apply/
+// USB/tester), never source noise.
+static bool s_analogKnown = false;
+#define COMPANION_KNOWN_RAW 2048
 
 static void pumpAnalog(uint32_t now) {
     static uint32_t lastPushMs = 0;
@@ -283,7 +289,9 @@ static void pumpAnalog(uint32_t now) {
     for (uint8_t pin = 0; pin < 64 && count < 8; pin++) {
         if (!s_analog[pin]) continue;
         uint16_t raw;
-        if (s_analogSynth) {
+        if (s_analogKnown) {
+            raw = COMPANION_KNOWN_RAW;
+        } else if (s_analogSynth) {
             raw = s_synthRaw;
         } else {
             // Oversampled read: 8 conversions averaged (~80 us) to kill white
@@ -444,7 +452,7 @@ void setup() {
     s_lastSampleMs = millis();
     Serial.printf("GPLink companion %s up (UART2 %d/%d @ %d) fw " __DATE__ " " __TIME__ "\n",
                   COMPANION_BOARD_NAME, GPLINK_UART_RX, GPLINK_UART_TX, GPLINK_BAUD);
-    Serial.println("GPLink: console keys: t = input self-test, a = analog synth, d = DAC sweep, g = frame probe, l = LED");
+    Serial.println("GPLink: console keys: t = input self-test, a = analog synth, k = known value, d = DAC sweep, g = frame probe, l = LED");
     sendHello();
 }
 
@@ -468,8 +476,14 @@ void loop() {
             Serial.printf("GPLink: DAC sweep %s (GPIO25)\n", s_dacSweep ? "ON" : "OFF");
         } else if (c == 'a' || c == 'A') {
             s_analogSynth = !s_analogSynth;
-            if (!s_analogSynth) memset(s_analogSm, 0xff, sizeof(s_analogSm));
+            if (s_analogSynth) s_analogKnown = false;
+            if (!s_analogSynth && !s_analogKnown) memset(s_analogSm, 0xff, sizeof(s_analogSm));
             Serial.printf("GPLink: analog synth %s\n", s_analogSynth ? "ON" : "OFF");
+        } else if (c == 'k' || c == 'K') {
+            s_analogKnown = !s_analogKnown;
+            if (s_analogKnown) s_analogSynth = false;
+            if (!s_analogSynth && !s_analogKnown) memset(s_analogSm, 0xff, sizeof(s_analogSm));
+            Serial.printf("GPLink: known-value %s\n", s_analogKnown ? "ON" : "OFF");
         } else if (c == 'g' || c == 'G') {
             // Manual GPIO_READ probe: pack + encode + write a fixed mask
             // frame with every intermediate value printed. Bypasses the
