@@ -253,7 +253,12 @@ static void pumpAnalog(uint32_t now) {
     uint8_t count = 0;
     for (uint8_t pin = 0; pin < 64 && count < 8; pin++) {
         if (!s_analog[pin]) continue;
-        uint16_t raw = (uint16_t)analogRead(pin);
+        // Oversampled read: 8 conversions averaged (~80 us) to kill white
+        // noise spikes a single conversion catches whole. Then EMA (1/8)
+        // plus deadband, same shaping family as the HE-trigger addon.
+        uint32_t acc = 0;
+        for (uint8_t k = 0; k < 8; k++) acc += analogRead(pin);
+        uint16_t raw = (uint16_t)(acc >> 3);
         if (s_analogSm[pin] == 0xFFFF) {
             // Seed baseline silently (no glitch frame on enable).
             s_analogSm[pin] = raw;
@@ -261,7 +266,7 @@ static void pumpAnalog(uint32_t now) {
             continue;
         }
         int step = (int)raw - (int)s_analogSm[pin];
-        s_analogSm[pin] = (uint16_t)((int)s_analogSm[pin] + ((step + (step >= 0 ? 2 : -2)) >> 2));
+        s_analogSm[pin] = (uint16_t)((int)s_analogSm[pin] + ((step + (step >= 0 ? 4 : -4)) >> 3));
         uint16_t sm = s_analogSm[pin];
         uint16_t last = s_analogLast[pin];
         uint16_t diff = (sm > last) ? (uint16_t)(sm - last) : (uint16_t)(last - sm);
