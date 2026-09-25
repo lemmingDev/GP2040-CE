@@ -85,6 +85,9 @@ private:
     uint8_t rxPin;              // active RX pin (for mux diagnostics)
     uint32_t processCalls;      // process() invocations (dispatch watchdog)
     uint32_t rxBytes;           // total bytes drained from RX FIFO
+    uint32_t lastDebugMs;       // last DEBUG_TEXT telemetry beacon
+    bool wasAlive;              // link state last poll (CONFIG resend on rise)
+    uint32_t lastConfigMs;      // last periodic GPIO_CONFIG refresh
     gplink_decoder decoder;     // streaming COBS decoder for inbound bytes
     gplink_link link;           // liveness / heartbeat / sequence tracking
     uint8_t txSeq;              // next outbound sequence number
@@ -93,6 +96,7 @@ private:
     uint32_t ignoredFrames;     // inbound frames parsed but not acted on (v1 scope)
     uint32_t handledFrames;     // inbound GPIO_READ frames applied to state
     uint32_t seqGaps;           // inbound sequence gaps observed
+    uint64_t lastMask;          // last GPIO_READ mask, re-applied every poll
 };
 
 GPLinkAddon *GPLink_GetAddon(); // null until the addon is constructed

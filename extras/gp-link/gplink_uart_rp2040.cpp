@@ -40,10 +40,18 @@ bool gplink_uart_init(uint8_t uart, uint8_t tx, uint8_t rx, uint32_t baud) {
 
 size_t gplink_uart_write(const uint8_t *data, size_t len) {
     if (s_uart == NULL) return 0;
+    // Chunked drain: the TX FIFO holds 32 B; a single burst longer than that
+    // must ride successive FIFO drains, not one atomic fill. Bounded spins
+    // keep this non-blocking: unwritten tail is reported, caller drops.
     size_t n = 0;
-    while (n < len && uart_is_writable(GPLINK_UART_INST)) {
-        uart_putc(GPLINK_UART_INST, (char)data[n]);
-        n++;
+    uint32_t spins = 0;
+    while (n < len && spins < 100000) {
+        if (uart_is_writable(GPLINK_UART_INST)) {
+            uart_putc(GPLINK_UART_INST, (char)data[n]);
+            n++;
+        } else {
+            spins++;
+        }
     }
     return n;
 }
@@ -53,10 +61,11 @@ int gplink_uart_read(void) {
     return uart_getc(GPLINK_UART_INST);
 }
 
-bool gplink_uart_loopback_test(void) {
-    if (s_uart == NULL || s_tx == s_rx) return false;
+int gplink_uart_loopback_test(void) {
+    if (s_uart == NULL || s_tx == s_rx) return -1;
     // Drop both pins to SIO: TX push-pull out, RX in with pull-down so an
-    // unconnected pin reads a stable 0. A jumper must pull RX up with TX.
+    // unconnected pin reads a stable 0. A jumper must pull RX up with TX;
+    // a live peer idles its TX high, which reads back as "driven".
     gpio_init(s_tx);
     gpio_init(s_rx);
     gpio_set_dir(s_tx, GPIO_OUT);
@@ -72,6 +81,8 @@ bool gplink_uart_loopback_test(void) {
     gpio_disable_pulls(s_rx);
     gpio_set_function(s_tx, GPIO_FUNC_UART);
     gpio_set_function(s_rx, GPIO_FUNC_UART);
-    return low_ok && high_ok;
+    if (low_ok && high_ok) return 1;
+    if (!low_ok) return 2;
+    return 0;
 }
 #endif

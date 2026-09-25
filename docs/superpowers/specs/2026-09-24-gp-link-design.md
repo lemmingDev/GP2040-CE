@@ -194,6 +194,14 @@ down each side parks outputs at neutral (sticks center, buttons clear,
 rumble off) — the failsafe. Reconnect re-runs `HELLO`; no bonded state
 is kept on the wire (bonding stays in the BT stack).
 
+Two hard-won handshake rules (both learned from a real HELLO storm):
+inbound `HELLO` is answered with a fresh `GPIO_CONFIG` round, never
+with a `HELLO` reply (mutual hello-replies ping-pong forever); and the
+main board re-applies its sticky companion-input mask every poll rather
+than only on frame arrival, because its own pipeline rebuilds button
+state from physical pins each iteration (same reason PCF8575 re-reads
+its expander every call).
+
 ## 8. Roles / topologies (all served by §§3–7)
 
 - Companion-host: ESP32 runs Bluepad32, forwards pad INPUT_STATEs.
