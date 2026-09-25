@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, FormCheck, Row, Tab, Tabs } from 'react-bootstrap';
 import * as yup from 'yup';
@@ -137,6 +138,22 @@ export const gplinkAnalogScheme = {
 		.number()
 		.label('GPLink Right Trigger Pin')
 		.validateRangeWhenValue('GPLinkAnalogEnabled', -1, 63),
+	gplinkAnalogLtMin: yup
+		.number()
+		.label('GPLink Left Trigger Min')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+	gplinkAnalogLtMax: yup
+		.number()
+		.label('GPLink Left Trigger Max')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+	gplinkAnalogRtMin: yup
+		.number()
+		.label('GPLink Right Trigger Min')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+	gplinkAnalogRtMax: yup
+		.number()
+		.label('GPLink Right Trigger Max')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
 };
 
 export const gplinkAnalogState = {
@@ -173,6 +190,10 @@ export const gplinkAnalogState = {
 	gplinkAnalogForcedCircularity2: 0,
 	gplinkAnalogLtPin: -1,
 	gplinkAnalogRtPin: -1,
+	gplinkAnalogLtMin: 0,
+	gplinkAnalogLtMax: 65535,
+	gplinkAnalogRtMin: 0,
+	gplinkAnalogRtMax: 65535,
 };
 
 // Stick tabs mirror the core Analog page: pins + deadzones + one-click
@@ -220,6 +241,27 @@ const STICKS = [
 	},
 ];
 
+// Trigger rows mirror the stick center capture: pin + calibration window
+// with one-click rest/full capture from the live raw value.
+const TRIGGERS = [
+	{
+		key: 'lt',
+		name: 'LT',
+		pin: 'gplinkAnalogLtPin',
+		min: 'gplinkAnalogLtMin',
+		max: 'gplinkAnalogLtMax',
+		pinLabel: 'AddonsConfig:gplink-analog-lt-pin-label',
+	},
+	{
+		key: 'rt',
+		name: 'RT',
+		pin: 'gplinkAnalogRtPin',
+		min: 'gplinkAnalogRtMin',
+		max: 'gplinkAnalogRtMax',
+		pinLabel: 'AddonsConfig:gplink-analog-rt-pin-label',
+	},
+];
+
 const GPLinkAnalog = ({
 	values,
 	errors,
@@ -229,6 +271,38 @@ const GPLinkAnalog = ({
 }: AddonPropTypes) => {
 	const { t } = useTranslation();
 
+	// Live raw companion values for debugging/calibration, polled while the
+	// page is open. Keys match /api/getGPLinkAnalogValues (lx/ly/rx/ry/lt/rt).
+	const [liveValues, setLiveValues] = useState<Record<string, number>>({
+		lx: 32767,
+		ly: 32767,
+		rx: 32767,
+		ry: 32767,
+		lt: 0,
+		rt: 0,
+	});
+	useEffect(() => {
+		let alive = true;
+		const fetchLive = async () => {
+			const data = await WebApi.getGPLinkAnalogValues();
+			if (alive && data) {
+				setLiveValues((prev) => {
+					const next = { ...prev };
+					for (const k of ['lx', 'ly', 'rx', 'ry', 'lt', 'rt'] as const) {
+						if (typeof data[k] === 'number') next[k] = data[k];
+					}
+					return next;
+				});
+			}
+		};
+		fetchLive();
+		const id = setInterval(fetchLive, 500);
+		return () => {
+			alive = false;
+			clearInterval(id);
+		};
+	}, []);
+
 	const calibrateStick = async (stick: (typeof STICKS)[number]) => {
 		const data = await WebApi.getGPLinkAnalogValues();
 		if (!data) return;
@@ -237,6 +311,25 @@ const GPLinkAnalog = ({
 		}
 		if (typeof data[stick.valueY] === 'number') {
 			setFieldValue(stick.centerY, data[stick.valueY]);
+		}
+	};
+
+	// Capture a trigger window edge from the live value with a ±1% margin so
+	// noise can't peek over the edges. Cross-clamped to keep min < max.
+	const captureTrigger = async (
+		valueKey: 'lt' | 'rt',
+		minField: string,
+		maxField: string,
+		isRest: boolean,
+	) => {
+		const data = await WebApi.getGPLinkAnalogValues();
+		if (!data || typeof data[valueKey] !== 'number') return;
+		const sample = data[valueKey] as number;
+		const margin = 655;
+		if (isRest) {
+			setFieldValue(minField, Math.min(sample + margin, values[maxField] - 1));
+		} else {
+			setFieldValue(maxField, Math.max(sample - margin, values[minField] + 1));
 		}
 	};
 
@@ -399,6 +492,12 @@ const GPLinkAnalog = ({
 											x: values[stick.centerX],
 											y: values[stick.centerY],
 										})}
+									</span>{' '}
+									<span className="text-muted">
+										{t('AddonsConfig:gplink-analog-live-text', {
+											x: liveValues[stick.valueX],
+											y: liveValues[stick.valueY],
+										})}
 									</span>
 								</div>
 							</Row>
@@ -454,34 +553,86 @@ const GPLinkAnalog = ({
 								</div>
 							</div>
 						</Row>
-						<Row className="mb-3">
-							<FormControl
-								type="number"
-								label={t('AddonsConfig:gplink-analog-lt-pin-label')}
-								name="gplinkAnalogLtPin"
-								className="form-control-sm"
-								groupClassName="col-sm-3 mb-3"
-								value={values.gplinkAnalogLtPin}
-								error={errors.gplinkAnalogLtPin}
-								isInvalid={Boolean(errors.gplinkAnalogLtPin)}
-								onChange={handleChange}
-								min={-1}
-								max={63}
-							/>
-							<FormControl
-								type="number"
-								label={t('AddonsConfig:gplink-analog-rt-pin-label')}
-								name="gplinkAnalogRtPin"
-								className="form-control-sm"
-								groupClassName="col-sm-3 mb-3"
-								value={values.gplinkAnalogRtPin}
-								error={errors.gplinkAnalogRtPin}
-								isInvalid={Boolean(errors.gplinkAnalogRtPin)}
-								onChange={handleChange}
-								min={-1}
-								max={63}
-							/>
-						</Row>
+						{TRIGGERS.map((trigger) => (
+							<Row className="mb-3" key={trigger.key}>
+								<FormControl
+									type="number"
+									label={t(trigger.pinLabel)}
+									name={trigger.pin}
+									className="form-control-sm"
+									groupClassName="col-sm-2 mb-3"
+									value={values[trigger.pin]}
+									error={errors[trigger.pin]}
+									isInvalid={Boolean(errors[trigger.pin])}
+									onChange={handleChange}
+									min={-1}
+									max={63}
+								/>
+								<FormControl
+									type="number"
+									label={t('AddonsConfig:gplink-analog-trigger-min-label', {
+										name: trigger.name,
+									})}
+									name={trigger.min}
+									className="form-control-sm"
+									groupClassName="col-sm-2 mb-3"
+									value={values[trigger.min]}
+									error={errors[trigger.min]}
+									isInvalid={Boolean(errors[trigger.min])}
+									onChange={handleChange}
+									min={0}
+									max={65535}
+								/>
+								<FormControl
+									type="number"
+									label={t('AddonsConfig:gplink-analog-trigger-max-label', {
+										name: trigger.name,
+									})}
+									name={trigger.max}
+									className="form-control-sm"
+									groupClassName="col-sm-2 mb-3"
+									value={values[trigger.max]}
+									error={errors[trigger.max]}
+									isInvalid={Boolean(errors[trigger.max])}
+									onChange={handleChange}
+									min={0}
+									max={65535}
+								/>
+								<div className="col-sm-6">
+									<Button
+										size="sm"
+										onClick={() =>
+											captureTrigger(
+												trigger.key as 'lt' | 'rt',
+												trigger.min,
+												trigger.max,
+												true,
+											)
+										}
+									>
+										{t('AddonsConfig:gplink-analog-trigger-rest-label')}
+									</Button>{' '}
+									<Button
+										size="sm"
+										onClick={() =>
+											captureTrigger(
+												trigger.key as 'lt' | 'rt',
+												trigger.min,
+												trigger.max,
+												false,
+											)
+										}
+									>
+										{t('AddonsConfig:gplink-analog-trigger-full-label')}
+									</Button>{' '}
+									<span className="text-muted">
+										{t('AddonsConfig:gplink-analog-trigger-live-text', {
+											v: liveValues[trigger.key],
+										})}
+									</span>
+								</div>
+							</Row>
+						))}
 					</Tab>
 				</Tabs>
 			</div>
