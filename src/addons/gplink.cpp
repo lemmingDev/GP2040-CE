@@ -85,6 +85,12 @@ void GPLinkAddon::setup() {
     uint32_t now = getMillis();
     gplink_decoder_init(&decoder);
     gplink_link_init(&link, now);
+    // This board's rumble output path is the companion: enable the haptic
+    // actuators (same contract as DRV8833 for its motors) so USB drivers
+    // actually populate active/intensity instead of dropping reports.
+    Gamepad *processed = Storage::getInstance().GetProcessedGamepad();
+    processed->auxState.haptics.leftActuator.enabled = true;
+    processed->auxState.haptics.rightActuator.enabled = true;
     txSeq = 0;
     haveLastSent = false;
     ignoredFrames = 0;
