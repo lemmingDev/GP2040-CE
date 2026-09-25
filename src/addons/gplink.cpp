@@ -147,6 +147,16 @@ static uint16_t gplinkMagnitudeXY(uint16_t channelX, uint16_t channelY) {
     return (uint16_t)sqrt((xOffset * xOffset) + (yOffset * yOffset));
 }
 
+// Map a raw companion trigger value through a calibrated [min, max] window
+// to 0-255, clamping outside. A degenerate window falls back to identity.
+static uint8_t gplinkTriggerValue(uint16_t raw, uint32_t vmin, uint32_t vmax) {
+    if (vmax <= vmin) return (uint8_t)(raw >> 8);
+    int32_t t = ((int32_t)raw - (int32_t)vmin) * 255 / ((int32_t)vmax - (int32_t)vmin);
+    if (t < 0) t = 0;
+    if (t > 255) t = 255;
+    return (uint8_t)t;
+}
+
 // Modifier pipeline mirroring I2CAnalog1115Input: per-axis inner/outer
 // deadzones, invert, then radial per-stick deadzones. Runs every poll over
 // the stored channel values so shaping holds between frames (same sticky
@@ -244,11 +254,13 @@ void GPLinkAddon::applyAnalogAxes() {
     // An unmapped pin (-1) disables that trigger; nothing is written.
     bool anyTrigger = false;
     if (options.ltPin >= 0 && options.ltPin < GPLINK_PIN_COUNT) {
-        gamepad->state.lt = (uint8_t)(analogValues[options.ltPin] >> 8);
+        gamepad->state.lt = gplinkTriggerValue(analogValues[options.ltPin],
+                                               options.ltMin, options.ltMax);
         anyTrigger = true;
     }
     if (options.rtPin >= 0 && options.rtPin < GPLINK_PIN_COUNT) {
-        gamepad->state.rt = (uint8_t)(analogValues[options.rtPin] >> 8);
+        gamepad->state.rt = gplinkTriggerValue(analogValues[options.rtPin],
+                                               options.rtMin, options.rtMax);
         anyTrigger = true;
     }
     if (anyTrigger) gamepad->hasAnalogTriggers = true;

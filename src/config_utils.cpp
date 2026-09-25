@@ -851,6 +851,10 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, forcedCircularity2, false);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, ltPin, -1);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rtPin, -1);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, ltMin, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, ltMax, GAMEPAD_JOYSTICK_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rtMin, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rtMax, GAMEPAD_JOYSTICK_MAX);
   
     // addonOptions.analogADS1115Options
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1115Options, enabled, !!I2C_ANALOG1115_ENABLED);

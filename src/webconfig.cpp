@@ -432,11 +432,12 @@ std::string getUsedPins()
     return serialize_json(doc);
 }
 
-// Live companion analog values for stick calibration (raw mapped values,
-// pre-deadzone, so the true center is visible). MID when nothing received.
+// Live companion analog values for calibration (raw mapped values,
+// pre-deadzone, so the true center/rest is visible). Sticks read MID and
+// triggers 0 when unmapped or nothing received.
 std::string getGPLinkAnalogValues()
 {
-    const size_t capacity = JSON_OBJECT_SIZE(4);
+    const size_t capacity = JSON_OBJECT_SIZE(6);
     DynamicJsonDocument doc(capacity);
     const GPLinkAnalogOptions& options = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
     GPLinkAddon *addon = GPLink_GetAddon();
@@ -448,6 +449,15 @@ std::string getGPLinkAnalogValues()
             value = addon->getAnalogPinValue((uint8_t)pins[i]);
         }
         writeDoc(doc, keys[i], value);
+    }
+    const int32_t triggerPins[2] = {options.ltPin, options.rtPin};
+    const char *triggerKeys[2] = {"lt", "rt"};
+    for (uint8_t i = 0; i < 2; i++) {
+        uint16_t value = 0;
+        if (addon != nullptr && triggerPins[i] >= 0 && triggerPins[i] < GPLINK_PIN_COUNT) {
+            value = addon->getAnalogPinValue((uint8_t)triggerPins[i]);
+        }
+        writeDoc(doc, triggerKeys[i], value);
     }
     return serialize_json(doc);
 }
@@ -2401,6 +2411,10 @@ std::string setAddonOptions()
     docToValue(gplinkAnalogOptions.forcedCircularity2, doc, "gplinkAnalogForcedCircularity2");
     docToValue(gplinkAnalogOptions.ltPin, doc, "gplinkAnalogLtPin");
     docToValue(gplinkAnalogOptions.rtPin, doc, "gplinkAnalogRtPin");
+    docToValue(gplinkAnalogOptions.ltMin, doc, "gplinkAnalogLtMin");
+    docToValue(gplinkAnalogOptions.ltMax, doc, "gplinkAnalogLtMax");
+    docToValue(gplinkAnalogOptions.rtMin, doc, "gplinkAnalogRtMin");
+    docToValue(gplinkAnalogOptions.rtMax, doc, "gplinkAnalogRtMax");
     // TX/RX default to valid pins that may never pass through docToPin (the UI
     // only POSTs changed values), so mark/unmark on enable/disable as well.
     {
@@ -2944,6 +2958,10 @@ std::string getAddonOptions()
     writeDoc(doc, "gplinkAnalogForcedCircularity2", gplinkAnalogOptions.forcedCircularity2);
     writeDoc(doc, "gplinkAnalogLtPin", gplinkAnalogOptions.ltPin);
     writeDoc(doc, "gplinkAnalogRtPin", gplinkAnalogOptions.rtPin);
+    writeDoc(doc, "gplinkAnalogLtMin", gplinkAnalogOptions.ltMin);
+    writeDoc(doc, "gplinkAnalogLtMax", gplinkAnalogOptions.ltMax);
+    writeDoc(doc, "gplinkAnalogRtMin", gplinkAnalogOptions.rtMin);
+    writeDoc(doc, "gplinkAnalogRtMax", gplinkAnalogOptions.rtMax);
 
     const OnBoardLedOptions& onBoardLedOptions = Storage::getInstance().getAddonOptions().onBoardLedOptions;
     writeDoc(doc, "onBoardLedMode", onBoardLedOptions.mode);

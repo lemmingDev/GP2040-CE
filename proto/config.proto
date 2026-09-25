@@ -1006,6 +1006,12 @@ message GPLinkAnalogOptions
     // triggers enable, removed before release; do not reuse the number.
     optional int32 ltPin = 33;
     optional int32 rtPin = 34;
+    // Per-trigger calibration in raw companion units: values at/below min
+    // read 0, at/above max saturate to 255. Defaults are identity.
+    optional uint32 ltMin = 35;
+    optional uint32 ltMax = 36;
+    optional uint32 rtMin = 37;
+    optional uint32 rtMax = 38;
 }
 
 message AddonOptions
