@@ -138,13 +138,14 @@ size_t gplink_pack_hello(uint8_t major, uint8_t minor, uint32_t caps, uint8_t de
     return 7;
 }
 
-size_t gplink_pack_gpio_config(uint8_t devid, uint8_t pin, uint8_t dir, uint8_t pull, uint8_t *payload_out) {
+size_t gplink_pack_gpio_config(uint8_t devid, uint8_t pin, uint8_t dir, uint8_t pull, uint8_t flags, uint8_t *payload_out) {
     if (!payload_out) return 0;
     payload_out[0] = devid;
     payload_out[1] = pin;
     payload_out[2] = dir;
     payload_out[3] = pull;
-    return 4;
+    payload_out[4] = flags;
+    return 5;
 }
 
 size_t gplink_pack_gpio_mask(uint8_t devid, uint64_t mask, uint8_t *payload_out) {
@@ -212,13 +213,14 @@ bool gplink_unpack_hello(const gplink_frame *f, uint8_t *major, uint8_t *minor, 
     return true;
 }
 
-bool gplink_unpack_gpio_config(const gplink_frame *f, uint8_t *devid, uint8_t *pin, uint8_t *dir, uint8_t *pull) {
-    if (!f || f->type != GPLINK_TYPE_GPIO_CONFIG || f->len != 4) return false;
-    if (!devid || !pin || !dir || !pull) return false;
+bool gplink_unpack_gpio_config(const gplink_frame *f, uint8_t *devid, uint8_t *pin, uint8_t *dir, uint8_t *pull, uint8_t *flags) {
+    if (!f || f->type != GPLINK_TYPE_GPIO_CONFIG || (f->len != 4 && f->len != 5)) return false;
+    if (!devid || !pin || !dir || !pull || !flags) return false;
     *devid = f->payload[0];
     *pin = f->payload[1];
     *dir = f->payload[2];
     *pull = f->payload[3];
+    *flags = (f->len == 5) ? f->payload[4] : 0;
     return true;
 }
 

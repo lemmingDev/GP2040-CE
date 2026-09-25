@@ -122,6 +122,11 @@ export default {
 	'gplink-pins-sub-header-text':
 		'Assign gamepad actions to companion pins. Run the test above to list reported pins, or configure all slots manually.',
 	'gplink-pins-save-label': 'Save Pin Assignments',
+	'gplink-pull-label': 'Pull',
+	'gplink-pull-none': 'None',
+	'gplink-pull-up': 'Up',
+	'gplink-pull-down': 'Down',
+	'gplink-invert-label': 'Invert',
 	'input-reverse-header-text': 'Input Reverse',
 	'input-reverse-led-pin-label': 'Reverse Input LED GPIO Pin',
 	'input-reverse-action-up-label': 'Reverse Up',

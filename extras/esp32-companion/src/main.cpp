@@ -53,6 +53,7 @@ static bool s_selftestOn = false;
 // Configured direction per companion GPIO number (0xff = unconfigured).
 static uint8_t s_dir[64];
 static uint8_t s_pull[64];
+static uint8_t s_invert[64];
 static Preferences s_prefs;
 
 // Pin config is user configuration: persist to NVS so serial-monitor opens
@@ -62,32 +63,39 @@ static void persistPinConfig() {
     s_prefs.begin("gplink", false);
     s_prefs.putBytes("dir", s_dir, sizeof(s_dir));
     s_prefs.putBytes("pull", s_pull, sizeof(s_pull));
+    s_prefs.putBytes("inv", s_invert, sizeof(s_invert));
     s_prefs.end();
+}
+
+static void applyPinMode(uint8_t pin) {
+    if (s_dir[pin] == 1) pinMode(pin, OUTPUT);
+    else if (s_pull[pin] == GPLINK_GPIO_PULL_DOWN) pinMode(pin, INPUT_PULLDOWN);
+    else if (s_pull[pin] == GPLINK_GPIO_PULL_UP) pinMode(pin, INPUT_PULLUP);
+    else pinMode(pin, INPUT);
 }
 
 static void restorePinConfig() {
     memset(s_dir, 0xff, sizeof(s_dir));
     memset(s_pull, 0, sizeof(s_pull));
+    memset(s_invert, 0, sizeof(s_invert));
     s_prefs.begin("gplink", true);
     size_t n = s_prefs.getBytes("dir", s_dir, sizeof(s_dir));
     size_t m = s_prefs.getBytes("pull", s_pull, sizeof(s_pull));
+    size_t k = s_prefs.getBytes("inv", s_invert, sizeof(s_invert));
     s_prefs.end();
-    if (n != sizeof(s_dir) || m != sizeof(s_pull)) {
+    if (n != sizeof(s_dir) || m != sizeof(s_pull) || k != sizeof(s_invert)) {
         memset(s_dir, 0xff, sizeof(s_dir));
         memset(s_pull, 0, sizeof(s_pull));
+        memset(s_invert, 0, sizeof(s_invert));
         return;
     }
     for (uint8_t pin = 0; pin < 64; pin++) {
         if (s_dir[pin] == 0xff) continue;
-        const CompanionPin *entry = companionPinLookup(pin);
-        if (!entry) {
+        if (!companionPinLookup(pin)) {
             s_dir[pin] = 0xff;
             continue;
         }
-        if (s_dir[pin] == 1) pinMode(pin, OUTPUT);
-        else if (s_pull[pin] == 2) pinMode(pin, INPUT_PULLDOWN);
-        else if (s_pull[pin] == 1) pinMode(pin, INPUT_PULLUP);
-        else pinMode(pin, INPUT);
+        applyPinMode(pin);
     }
     Serial.println("GPLink: restored pin config from NVS");
 }
@@ -152,7 +160,7 @@ static void sendNak(uint8_t devid, uint8_t pin, uint8_t code) {
     Serial.printf("GPLink: NAK dev %u pin %u code %u\n", devid, pin, code);
 }
 
-static void handleGpioConfig(uint8_t devid, uint8_t pin, uint8_t dir, uint8_t pull) {
+static void handleGpioConfig(uint8_t devid, uint8_t pin, uint8_t dir, uint8_t pull, uint8_t flags) {
     const CompanionPin *entry = companionPinLookup(pin);
     if (!entry) {
         sendNak(devid, pin, 1); // not-a-pin
@@ -162,16 +170,12 @@ static void handleGpioConfig(uint8_t devid, uint8_t pin, uint8_t dir, uint8_t pu
         sendNak(devid, pin, 2); // output-on-input-only
         return;
     }
-    if (dir == 1) {
-        pinMode(pin, OUTPUT);
-    } else {
-        if (pull == 2) pinMode(pin, INPUT_PULLDOWN);
-        else if (pull == 1) pinMode(pin, INPUT_PULLUP);
-        else pinMode(pin, INPUT);
-    }
-    if (s_dir[pin] != dir || s_pull[pin] != pull) {
+    bool inverted = (flags & GPLINK_GPIO_FLAG_INVERTED) != 0;
+    if (s_dir[pin] != dir || s_pull[pin] != pull || s_invert[pin] != (uint8_t)inverted) {
         s_dir[pin] = dir;
         s_pull[pin] = pull;
+        s_invert[pin] = (uint8_t)inverted;
+        applyPinMode(pin);
         persistPinConfig();
     }
     Serial.printf("%lu GPLink: GPIO_CONFIG dev %u pin %u %s pull %u\n",
@@ -187,13 +191,15 @@ static void handleGpioWrite(uint8_t devid, uint64_t mask) {
 }
 
 // Pressed semantics match the main board (bit = pressed): pull-up inputs
-// invert (pressed = LOW), everything else reads level as-is.
+// invert (pressed = LOW), everything else reads level as-is; the per-pin
+// invert flag flips the result for active-high wiring.
 static uint64_t sampleConfiguredInputs() {
     uint64_t mask = 0;
     for (uint8_t pin = 0; pin < 64; pin++) {
         if (s_dir[pin] != 0) continue;
         int level = digitalRead(pin);
-        bool pressed = (s_pull[pin] == 1) ? (level == LOW) : (level == HIGH);
+        bool pressed = (s_pull[pin] == GPLINK_GPIO_PULL_UP) ? (level == LOW) : (level == HIGH);
+        if (s_invert[pin]) pressed = !pressed;
         if (pressed) mask |= (1ULL << pin);
     }
     return mask;
@@ -223,9 +229,9 @@ static void pumpLink() {
                 sendPinCaps();
                 break;
             case GPLINK_TYPE_GPIO_CONFIG: {
-                uint8_t devid, pin, dir, pull;
-                if (gplink_unpack_gpio_config(&frame, &devid, &pin, &dir, &pull)) {
-                    handleGpioConfig(devid, pin, dir, pull);
+                uint8_t devid, pin, dir, pull, flags;
+                if (gplink_unpack_gpio_config(&frame, &devid, &pin, &dir, &pull, &flags)) {
+                    handleGpioConfig(devid, pin, dir, pull, flags);
                 }
                 break;
             }

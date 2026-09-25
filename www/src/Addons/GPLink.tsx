@@ -43,6 +43,28 @@ const GPLINK_PIN_COUNT = 64;
 
 const pinName = (i: number) => `pin${String(i).padStart(2, '0')}`;
 
+// PIN_CAPS caps-byte bits. Source of truth: GPLINK_PINCAP_* in
+// extras/gp-link/gplink.h (spec section 6c).
+const PINCAP_INPUT = 0x01;
+const PINCAP_OUTPUT = 0x02;
+const PINCAP_ADC = 0x08;
+const PINCAP_STRAPPING = 0x20;
+
+const GPLINK_PULLS = [
+	{ label: 'None', value: 0 },
+	{ label: 'Up', value: 1 },
+	{ label: 'Down', value: 2 },
+];
+
+const capsTags = (caps: number | undefined) => {
+	if (caps === undefined) return '';
+	const tags = [];
+	if (caps & PINCAP_ADC) tags.push('ADC');
+	if (caps & PINCAP_INPUT && !(caps & PINCAP_OUTPUT)) tags.push('in-only');
+	if (caps & PINCAP_STRAPPING) tags.push('⚠strap');
+	return tags.length ? ` ${tags.join(' ')}` : '';
+};
+
 export const gplinkScheme = {
 	GPLinkEnabled: yup.number().required().label('GPLink Enabled'),
 	gplinkUartInstance: yup
@@ -101,7 +123,8 @@ const GPLink = ({
 	const [status, setStatus] = useState(null);
 	const [discovery, setDiscovery] = useState(null);
 	const [testing, setTesting] = useState(false);
-	const { pins, fetchPins, setPinAction, savePins } = useExpansionPinStore();
+	const { pins, fetchPins, setPinAction, setPinPull, setPinInverted, savePins } =
+		useExpansionPinStore();
 
 	useEffect(() => {
 		fetchPins();
@@ -147,6 +170,12 @@ const GPLink = ({
 		discovery?.found && discovery?.capsPins?.length
 			? discovery.capsPins
 			: Array.from({ length: GPLINK_PIN_COUNT }, (_, i) => i);
+	const capsByPin = {};
+	if (discovery?.found && discovery?.capsPins && discovery?.capsCaps) {
+		discovery.capsPins.forEach((pin, i) => {
+			capsByPin[pin] = discovery.capsCaps[i];
+		});
+	}
 
 	return (
 		<Section
@@ -288,35 +317,71 @@ const GPLink = ({
 					</div>
 					{rowPins.map((pin) => {
 						const name = pinName(pin);
-						const current =
-							pins.gplink?.[0]?.[name]?.option ?? -10;
+						const entry = pins.gplink?.[0]?.[name] ?? {};
+						const current = entry.option ?? -10;
+						const pull = entry.pull ?? 1;
+						const inverted = entry.inverted ?? false;
+						const assigned = current > 0;
 						return (
-							<FormSelect
-								key={`gplink-${name}`}
-								label={`Pin ${pin}`}
-								name={`gplink-${name}`}
-								className="form-select-sm"
-								groupClassName="col-sm-3 mb-2"
-								value={current}
-								onChange={(e) =>
-									setPinAction(
-										'gplink',
-										0,
-										name,
-										parseInt(e.target.value, 10),
-									)
-								}
-							>
-								{Object.entries(BUTTON_ACTIONS)
-									.filter(([, value]) =>
-										SELECTABLE_BUTTON_ACTIONS.includes(value),
-									)
-									.map(([key, value]) => (
-										<option key={`gplink-${name}-${value}`} value={value}>
-											{key}
-										</option>
-									))}
-							</FormSelect>
+							<div key={`gplink-${name}`} className="col-sm-3 mb-2">
+								<FormSelect
+									label={`Pin ${pin}${capsTags(capsByPin[pin])}`}
+									name={`gplink-${name}`}
+									className="form-select-sm"
+									value={current}
+									onChange={(e) =>
+										setPinAction(
+											'gplink',
+											0,
+											name,
+											parseInt(e.target.value, 10),
+										)
+									}
+								>
+									{Object.entries(BUTTON_ACTIONS)
+										.filter(([, value]) =>
+											SELECTABLE_BUTTON_ACTIONS.includes(value),
+										)
+										.map(([key, value]) => (
+											<option key={`gplink-${name}-${value}`} value={value}>
+												{key}
+											</option>
+										))}
+								</FormSelect>
+								{assigned && (
+									<div className="d-flex gap-2 mt-1">
+										<FormSelect
+											label={t('AddonsConfig:gplink-pull-label')}
+											name={`gplink-${name}-pull`}
+											className="form-select-sm"
+											value={pull}
+											onChange={(e) =>
+												setPinPull(
+													'gplink',
+													0,
+													name,
+													parseInt(e.target.value, 10),
+												)
+											}
+										>
+											{GPLINK_PULLS.map((o) => (
+												<option key={`gplink-${name}-pull-${o.value}`} value={o.value}>
+													{t(`AddonsConfig:gplink-pull-${o.label.toLowerCase()}`)}
+												</option>
+											))}
+										</FormSelect>
+										<FormCheck
+											label={t('AddonsConfig:gplink-invert-label')}
+											type="checkbox"
+											id={`gplink-${name}-inverted`}
+											checked={Boolean(inverted)}
+											onChange={(e) =>
+												setPinInverted('gplink', 0, name, e.target.checked)
+											}
+										/>
+									</div>
+								)}
+							</div>
 						);
 					})}
 					<div className="col-sm-12 mt-2">

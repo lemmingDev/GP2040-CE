@@ -1958,6 +1958,8 @@ std::string getExpansionPins()
         const std::string key(gplinkPinName);
         writeDoc(doc, "pins", "gplink", 0, key, "option", gplinkPins[pin].action);
         writeDoc(doc, "pins", "gplink", 0, key, "direction", gplinkPins[pin].direction);
+        writeDoc(doc, "pins", "gplink", 0, key, "pull", gplinkPins[pin].pull);
+        writeDoc(doc, "pins", "gplink", 0, key, "inverted", gplinkPins[pin].inverted);
     }
     return serialize_json(doc);
 }
@@ -1992,7 +1994,10 @@ std::string setExpansionPins()
                 (GpioAction)doc["pins"]["gplink"][0][pinName]["option"] != GpioAction::ASSIGNED_TO_ADDON) {
             gplinkPins[pin].action = (GpioAction)doc["pins"]["gplink"][0][pinName]["option"];
             gplinkPins[pin].direction = (GpioDirection)doc["pins"]["gplink"][0][pinName]["direction"];
+            gplinkPins[pin].pull = doc["pins"]["gplink"][0][pinName]["pull"];
+            gplinkPins[pin].inverted = doc["pins"]["gplink"][0][pinName]["inverted"];
         }
+    }
     }
     Storage::getInstance().getAddonOptions().gplinkOptions.gplinkPins_count = GPLINK_PIN_COUNT;
 
