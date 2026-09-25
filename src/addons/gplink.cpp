@@ -31,7 +31,7 @@ GPLinkAddon::GPLinkAddon() : started(false), uartInst(GPLINK_UART_INSTANCE),
         txPin(GPLINK_TX_PIN), rxPin(GPLINK_RX_PIN),
         processCalls(0), rxBytes(0), lastDebugMs(0), wasAlive(false), lastConfigMs(0),
         txSeq(0), haveLastSent(false), ignoredFrames(0), handledFrames(0), seqGaps(0),
-        lastMask(0) {
+        lastMask(0), lastOutputMask(0), lastOutputMs(0) {
     s_instance = this;
 }
 
@@ -90,14 +90,16 @@ void GPLinkAddon::setup() {
     handledFrames = 0;
     seqGaps = 0;
     lastMask = 0;
+    lastOutputMask = 0;
+    lastOutputMs = 0;
     started = true;
     sendHello();
     sendGpioConfigs();
 }
 
-// Tell the companion which of its pins we use as button inputs, with each
-// pin's electrical config (pull + invert flag). Mask bits read back as 1
-// mean pressed (companion maps levels per these settings).
+// Tell the companion which of its pins we use (inputs and outputs), with
+// each pin's electrical config (pull + invert flag). Mask bits read back
+// as 1 mean pressed (companion maps levels per these settings).
 void GPLinkAddon::sendGpioConfigs() {
     const GPLinkOptions& options = Storage::getInstance().getAddonOptions().gplinkOptions;
     uint32_t count = options.gplinkPins_count;
@@ -106,13 +108,60 @@ void GPLinkAddon::sendGpioConfigs() {
         const GpioMappingInfo &pin = options.gplinkPins[i];
         if (pin.action == GpioAction::NONE || pin.action == GpioAction::RESERVED ||
                 pin.action == GpioAction::ASSIGNED_TO_ADDON) continue;
-        if (pin.direction != GpioDirection::GPIO_DIRECTION_INPUT) continue; // outputs: later phase
+        uint8_t dir = (pin.direction == GpioDirection::GPIO_DIRECTION_OUTPUT) ? 1 : 0;
         uint8_t pull = (pin.pull <= GPLINK_GPIO_PULL_DOWN) ? (uint8_t)pin.pull : GPLINK_GPIO_PULL_UP;
         uint8_t flags = pin.inverted ? GPLINK_GPIO_FLAG_INVERTED : 0;
         uint8_t payload[8];
-        size_t len = gplink_pack_gpio_config(/*devid=*/0, i, /*dir=*/0, pull, flags, payload);
+        size_t len = gplink_pack_gpio_config(/*devid=*/0, i, dir, pull, flags, payload);
         if (len > 0) sendFrame(GPLINK_TYPE_GPIO_CONFIG, payload, len);
     }
+}
+
+// Level of a mapped action in the current state (for mirrored outputs).
+static bool gplinkActionLevel(GpioAction action, const GamepadState &state) {
+    switch (action) {
+        case GpioAction::BUTTON_PRESS_UP:    return (state.dpad & GAMEPAD_MASK_UP) != 0;
+        case GpioAction::BUTTON_PRESS_DOWN:  return (state.dpad & GAMEPAD_MASK_DOWN) != 0;
+        case GpioAction::BUTTON_PRESS_LEFT:  return (state.dpad & GAMEPAD_MASK_LEFT) != 0;
+        case GpioAction::BUTTON_PRESS_RIGHT: return (state.dpad & GAMEPAD_MASK_RIGHT) != 0;
+        case GpioAction::BUTTON_PRESS_B1:    return (state.buttons & GAMEPAD_MASK_B1) != 0;
+        case GpioAction::BUTTON_PRESS_B2:    return (state.buttons & GAMEPAD_MASK_B2) != 0;
+        case GpioAction::BUTTON_PRESS_B3:    return (state.buttons & GAMEPAD_MASK_B3) != 0;
+        case GpioAction::BUTTON_PRESS_B4:    return (state.buttons & GAMEPAD_MASK_B4) != 0;
+        case GpioAction::BUTTON_PRESS_L1:    return (state.buttons & GAMEPAD_MASK_L1) != 0;
+        case GpioAction::BUTTON_PRESS_R1:    return (state.buttons & GAMEPAD_MASK_R1) != 0;
+        case GpioAction::BUTTON_PRESS_L2:    return (state.buttons & GAMEPAD_MASK_L2) != 0;
+        case GpioAction::BUTTON_PRESS_R2:    return (state.buttons & GAMEPAD_MASK_R2) != 0;
+        case GpioAction::BUTTON_PRESS_S1:    return (state.buttons & GAMEPAD_MASK_S1) != 0;
+        case GpioAction::BUTTON_PRESS_S2:    return (state.buttons & GAMEPAD_MASK_S2) != 0;
+        case GpioAction::BUTTON_PRESS_L3:    return (state.buttons & GAMEPAD_MASK_L3) != 0;
+        case GpioAction::BUTTON_PRESS_R3:    return (state.buttons & GAMEPAD_MASK_R3) != 0;
+        case GpioAction::BUTTON_PRESS_A1:    return (state.buttons & GAMEPAD_MASK_A1) != 0;
+        case GpioAction::BUTTON_PRESS_A2:    return (state.buttons & GAMEPAD_MASK_A2) != 0;
+        case GpioAction::BUTTON_PRESS_A3:    return (state.buttons & GAMEPAD_MASK_A3) != 0;
+        case GpioAction::BUTTON_PRESS_A4:    return (state.buttons & GAMEPAD_MASK_A4) != 0;
+        case GpioAction::BUTTON_PRESS_E1:    return (state.buttons & GAMEPAD_MASK_E1) != 0;
+        case GpioAction::BUTTON_PRESS_E2:    return (state.buttons & GAMEPAD_MASK_E2) != 0;
+        case GpioAction::BUTTON_PRESS_E3:    return (state.buttons & GAMEPAD_MASK_E3) != 0;
+        case GpioAction::BUTTON_PRESS_E4:    return (state.buttons & GAMEPAD_MASK_E4) != 0;
+        case GpioAction::BUTTON_PRESS_E5:    return (state.buttons & GAMEPAD_MASK_E5) != 0;
+        case GpioAction::BUTTON_PRESS_E6:    return (state.buttons & GAMEPAD_MASK_E6) != 0;
+        case GpioAction::BUTTON_PRESS_E7:    return (state.buttons & GAMEPAD_MASK_E7) != 0;
+        case GpioAction::BUTTON_PRESS_E8:    return (state.buttons & GAMEPAD_MASK_E8) != 0;
+        case GpioAction::BUTTON_PRESS_E9:    return (state.buttons & GAMEPAD_MASK_E9) != 0;
+        case GpioAction::BUTTON_PRESS_E10:   return (state.buttons & GAMEPAD_MASK_E10) != 0;
+        case GpioAction::BUTTON_PRESS_E11:   return (state.buttons & GAMEPAD_MASK_E11) != 0;
+        case GpioAction::BUTTON_PRESS_E12:   return (state.buttons & GAMEPAD_MASK_E12) != 0;
+        case GpioAction::BUTTON_PRESS_FN:    return (state.aux & AUX_MASK_FUNCTION) != 0;
+        default: break;
+    }
+    return false;
+}
+
+void GPLinkAddon::sendOutputMask(uint64_t mask) {
+    uint8_t payload[16];
+    size_t len = gplink_pack_gpio_mask(/*devid=*/0, mask, payload);
+    if (len > 0) sendFrame(GPLINK_TYPE_GPIO_WRITE, payload, len);
 }
 
 void GPLinkAddon::applyGpioMask(uint64_t mask) {
@@ -292,6 +341,24 @@ void GPLinkAddon::process() {
     // survives this by re-reading its expander every call; we re-apply).
     applyGpioMask(lastMask);
     const GamepadState &state = gamepad->state;
+    // Mirror mapped output pins to the companion (change-driven + 5 s
+    // backstop so a lost frame can't stick an LED).
+    {
+        const GPLinkOptions& options = Storage::getInstance().getAddonOptions().gplinkOptions;
+        uint32_t count = options.gplinkPins_count;
+        if (count > GPLINK_PIN_COUNT) count = GPLINK_PIN_COUNT;
+        uint64_t outMask = 0;
+        for (uint8_t i = 0; i < count; i++) {
+            const GpioMappingInfo &pin = options.gplinkPins[i];
+            if (pin.direction != GpioDirection::GPIO_DIRECTION_OUTPUT) continue;
+            if (gplinkActionLevel(pin.action, state)) outMask |= (1ULL << i);
+        }
+        if (outMask != lastOutputMask || (now - lastOutputMs) >= 5000) {
+            lastOutputMask = outMask;
+            lastOutputMs = now;
+            sendOutputMask(outMask);
+        }
+    }
     if (!haveLastSent || gplinkStateChanged(state, lastSent)) {
         if (!haveLastSent || (now - link.last_tx_ms) >= GPLINK_MIN_REPORT_INTERVAL_MS) {
             sendInputState(state);

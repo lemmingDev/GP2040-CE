@@ -129,7 +129,7 @@ const GPLink = ({
 	const [status, setStatus] = useState(null);
 	const [discovery, setDiscovery] = useState(null);
 	const [testing, setTesting] = useState(false);
-	const { pins, fetchPins, setPinAction, setPinPull, setPinInverted, savePins } =
+	const { pins, fetchPins, setPinAction, setPinDirection, setPinPull, setPinInverted, savePins } =
 		useExpansionPinStore();
 
 	useEffect(() => {
@@ -343,10 +343,14 @@ const GPLink = ({
 						const current = entry.option ?? -10;
 						const pull = entry.pull ?? 1;
 						const inverted = entry.inverted ?? false;
+						const direction = entry.direction ?? 0;
 						const assigned = current > 0;
 						const caps = capsByPin[pin];
+						const capsKnown = caps !== undefined;
+						const canOutput = !capsKnown || (caps & PINCAP_OUTPUT) !== 0;
+						const isOutput = direction === 1;
 						const outOnly =
-							caps !== undefined &&
+							capsKnown &&
 							!(caps & PINCAP_INPUT) &&
 							(caps & PINCAP_OUTPUT) !== 0;
 						if (outOnly) {
@@ -402,12 +406,12 @@ const GPLink = ({
 								{assigned && (
 									<div className="d-flex gap-2 mt-1">
 										<FormSelect
-											label={t('AddonsConfig:gplink-pull-label')}
-											name={`gplink-${name}-pull`}
+											label={t('AddonsConfig:gplink-direction-label')}
+											name={`gplink-${name}-direction`}
 											className="form-select-sm"
-											value={pull}
+											value={direction}
 											onChange={(e) =>
-												setPinPull(
+												setPinDirection(
 													'gplink',
 													0,
 													name,
@@ -415,12 +419,37 @@ const GPLink = ({
 												)
 											}
 										>
-											{GPLINK_PULLS.map((o) => (
-												<option key={`gplink-${name}-pull-${o.value}`} value={o.value}>
-													{t(`AddonsConfig:gplink-pull-${o.label.toLowerCase()}`)}
+											<option value={0}>
+												{t('AddonsConfig:gplink-direction-input')}
+											</option>
+											{canOutput && (
+												<option value={1}>
+													{t('AddonsConfig:gplink-direction-output')}
 												</option>
-											))}
+											)}
 										</FormSelect>
+										{!isOutput && (
+											<FormSelect
+												label={t('AddonsConfig:gplink-pull-label')}
+												name={`gplink-${name}-pull`}
+												className="form-select-sm"
+												value={pull}
+												onChange={(e) =>
+													setPinPull(
+														'gplink',
+														0,
+														name,
+														parseInt(e.target.value, 10),
+													)
+												}
+											>
+												{GPLINK_PULLS.map((o) => (
+													<option key={`gplink-${name}-pull-${o.value}`} value={o.value}>
+														{t(`AddonsConfig:gplink-pull-${o.label.toLowerCase()}`)}
+													</option>
+												))}
+											</FormSelect>
+										)}
 										<FormCheck
 											label={t('AddonsConfig:gplink-invert-label')}
 											type="checkbox"
