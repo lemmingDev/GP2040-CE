@@ -101,13 +101,6 @@ export default {
 	'gplink-baud-label': 'Baud Rate',
 	'gplink-uart0-warning-text':
 		'UART0 shares GPIO 0/1 with the debug console. Disable stdio UART output or debug logs will corrupt link frames.',
-	'gplink-status-text':
-		'Link {{link}} — TX frames {{tx}}, RX frames {{rx}} ({{handled}} handled), sequence gaps {{gaps}}.',
-	'gplink-status-up': 'UP',
-	'gplink-status-down': 'DOWN',
-	'gplink-status-not-started-text':
-		'UART failed to start (check the selected pin pair).',
-	'gplink-status-loop-pass': 'PASS (pins are connected)',
 	'gplink-status-loop-pass': 'PASS (pins are connected)',
 	'gplink-status-loop-open': 'OPEN (pins are NOT connected — check the jumper)',
 	'gplink-status-loop-driven':
