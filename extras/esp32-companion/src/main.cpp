@@ -320,6 +320,14 @@ void loop() {
         if (c == 't' || c == 'T') {
             s_selftest = !s_selftest;
             Serial.printf("GPLink: input self-test %s\n", s_selftest ? "ON" : "OFF");
+        } else if (c == 'l' || c == 'L') {
+            // Player-LED hardware proof: drives the LED pin directly,
+            // bypassing the protocol (which currently only ever delivers
+            // mask 0 — the host never assigns a nonzero player LED here).
+            static bool ledOn = false;
+            ledOn = !ledOn;
+            digitalWrite(COMPANION_PLAYER_LED_PIN, ledOn ? HIGH : LOW);
+            Serial.printf("GPLink: player LED direct %s\n", ledOn ? "ON" : "OFF");
         } else if (c == 'g' || c == 'G') {
             // Manual GPIO_READ probe: pack + encode + write a fixed mask
             // frame with every intermediate value printed. Bypasses the
