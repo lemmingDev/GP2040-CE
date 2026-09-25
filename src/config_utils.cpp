@@ -821,6 +821,23 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, lyPin, GPLINK_ANALOG_LY_PIN);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rxPin, GPLINK_ANALOG_RX_PIN);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, ryPin, GPLINK_ANALOG_RY_PIN);
+    // Shaping defaults to off (passthrough), matching current behavior.
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, innerDeadzoneEnabled, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, outerDeadzoneEnabled, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, leftStickDeadzoneEnabled, false);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rightStickDeadzoneEnabled, false);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis0InnerDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis1InnerDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis2InnerDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis3InnerDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis0OuterDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis1OuterDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis2OuterDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis3OuterDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, leftStickDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rightStickDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, invertEnabled, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, autoCalibrate, 0);
   
     // addonOptions.analogADS1115Options
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1115Options, enabled, !!I2C_ANALOG1115_ENABLED);

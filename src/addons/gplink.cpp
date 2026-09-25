@@ -8,7 +8,13 @@
 #include "hardware/uart.h"
 #include "hardware/gpio.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
+#include <math.h>
+
+// Axis flag start (lx,ly,rx,ry order), same convention as ADS1115_CHANNEL_FLAG_START.
+#define GPLINK_ANALOG_AXIS_FLAG_START 0b1000
 
 // Report at most every 2 ms (500 Hz, spec section 2); heartbeats cover the idle.
 #define GPLINK_MIN_REPORT_INTERVAL_MS 2
@@ -128,13 +134,74 @@ void GPLinkAddon::sendAnalogConfigs() {
 void GPLinkAddon::applyAnalogPin(uint8_t pin, uint16_t value) {
     if (pin >= GPLINK_PIN_COUNT) return;
     analogValues[pin] = value;
+}
+
+static uint16_t gplinkMagnitudeXY(uint16_t channelX, uint16_t channelY) {
+    int16_t xOffset = channelX - GAMEPAD_JOYSTICK_MID;
+    int16_t yOffset = channelY - GAMEPAD_JOYSTICK_MID;
+    return (uint16_t)sqrt((xOffset * xOffset) + (yOffset * yOffset));
+}
+
+// Modifier pipeline mirroring I2CAnalog1115Input: per-axis inner/outer
+// deadzones, invert, then radial per-stick deadzones. Runs every poll over
+// the stored channel values so shaping holds between frames (same sticky
+// philosophy as the GPIO mask re-apply).
+void GPLinkAddon::applyAnalogAxes() {
     const GPLinkAnalogOptions& options = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
     if (!options.enabled) return;
+    const int32_t pins[4] = {options.lxPin, options.lyPin, options.rxPin, options.ryPin};
+    bool anyMapped = false;
+    for (uint8_t i = 0; i < 4; i++) {
+        if (pins[i] >= 0 && pins[i] < GPLINK_PIN_COUNT) {
+            anyMapped = true;
+            break;
+        }
+    }
+    if (!anyMapped) return; // enabled but nothing mapped: leave sticks alone
+    const uint32_t innerDz[4] = {options.axis0InnerDeadzone, options.axis1InnerDeadzone,
+                                 options.axis2InnerDeadzone, options.axis3InnerDeadzone};
+    const uint32_t outerDz[4] = {options.axis0OuterDeadzone, options.axis1OuterDeadzone,
+                                 options.axis2OuterDeadzone, options.axis3OuterDeadzone};
+    uint16_t axis[4];
+    for (uint8_t i = 0; i < 4; i++) {
+        axis[i] = (pins[i] >= 0 && pins[i] < GPLINK_PIN_COUNT)
+                      ? std::clamp(analogValues[pins[i]],
+                                   (uint16_t)GAMEPAD_JOYSTICK_MIN, (uint16_t)GAMEPAD_JOYSTICK_MAX)
+                      : GAMEPAD_JOYSTICK_MID;
+        int32_t offset = (int32_t)axis[i] - GAMEPAD_JOYSTICK_MID;
+        uint32_t inner = innerDz[i] * (1 << 16) / 100;
+        uint32_t outer = outerDz[i] * (1 << 16) / 100;
+        if (options.innerDeadzoneEnabled & (GPLINK_ANALOG_AXIS_FLAG_START >> i)) {
+            if (abs(offset) < (int32_t)inner) axis[i] = GAMEPAD_JOYSTICK_MID;
+        }
+        if (options.outerDeadzoneEnabled & (GPLINK_ANALOG_AXIS_FLAG_START >> i)) {
+            if (offset > (int32_t)outer) axis[i] = GAMEPAD_JOYSTICK_MAX;
+            else if (offset < -(int32_t)outer) axis[i] = 0;
+        }
+        if (options.invertEnabled & (GPLINK_ANALOG_AXIS_FLAG_START >> i)) {
+            axis[i] = GAMEPAD_JOYSTICK_MAX - axis[i];
+        }
+        // TODO apply auto calibration (also TODO upstream)
+    }
+    if (options.leftStickDeadzoneEnabled) {
+        uint32_t dz = options.leftStickDeadzone * (1 << 16) / 100;
+        if (gplinkMagnitudeXY(axis[0], axis[1]) < dz) {
+            axis[0] = GAMEPAD_JOYSTICK_MID;
+            axis[1] = GAMEPAD_JOYSTICK_MID;
+        }
+    }
+    if (options.rightStickDeadzoneEnabled) {
+        uint32_t dz = options.rightStickDeadzone * (1 << 16) / 100;
+        if (gplinkMagnitudeXY(axis[2], axis[3]) < dz) {
+            axis[2] = GAMEPAD_JOYSTICK_MID;
+            axis[3] = GAMEPAD_JOYSTICK_MID;
+        }
+    }
     Gamepad *gamepad = Storage::getInstance().GetGamepad();
-    if (pin == (uint8_t)options.lxPin) gamepad->state.lx = value;
-    if (pin == (uint8_t)options.lyPin) gamepad->state.ly = value;
-    if (pin == (uint8_t)options.rxPin) gamepad->state.rx = value;
-    if (pin == (uint8_t)options.ryPin) gamepad->state.ry = value;
+    gamepad->state.lx = axis[0];
+    gamepad->state.ly = axis[1];
+    gamepad->state.rx = axis[2];
+    gamepad->state.ry = axis[3];
 }
 
 // Tell the companion which of its pins we use (inputs and outputs), with
@@ -398,6 +465,8 @@ void GPLinkAddon::process() {
     // otherwise wipe injected inputs ~1 poll after they arrive (PCF8575
     // survives this by re-reading its expander every call; we re-apply).
     applyGpioMask(lastMask);
+    // Same sticky treatment for analog axes (shaped through deadzones).
+    applyAnalogAxes();
     const GamepadState &state = gamepad->state;
     // Mirror mapped output pins to the companion (change-driven + 5 s
     // backstop so a lost frame can't stick an LED).

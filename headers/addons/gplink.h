@@ -101,6 +101,7 @@ private:
     void sendAnalogConfigs();
     void applyGpioMask(uint64_t mask);
     void applyAnalogPin(uint8_t pin, uint16_t value);
+    void applyAnalogAxes();
     void sendOutputMask(uint64_t mask);
     void sendInputState(const GamepadState &state);
     void sendHeartbeat();

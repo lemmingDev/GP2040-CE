@@ -2353,6 +2353,22 @@ std::string setAddonOptions()
     docToValue(gplinkAnalogOptions.lyPin, doc, "gplinkAnalogLyPin");
     docToValue(gplinkAnalogOptions.rxPin, doc, "gplinkAnalogRxPin");
     docToValue(gplinkAnalogOptions.ryPin, doc, "gplinkAnalogRyPin");
+    docToValue(gplinkAnalogOptions.innerDeadzoneEnabled, doc, "gplinkAnalogInnerDeadzoneEnabled");
+    docToValue(gplinkAnalogOptions.outerDeadzoneEnabled, doc, "gplinkAnalogOuterDeadzoneEnabled");
+    docToValue(gplinkAnalogOptions.leftStickDeadzoneEnabled, doc, "gplinkAnalogLeftStickDeadzoneEnabled");
+    docToValue(gplinkAnalogOptions.rightStickDeadzoneEnabled, doc, "gplinkAnalogRightStickDeadzoneEnabled");
+    docToValue(gplinkAnalogOptions.axis0InnerDeadzone, doc, "gplinkAnalogAxis0InnerDeadzone");
+    docToValue(gplinkAnalogOptions.axis1InnerDeadzone, doc, "gplinkAnalogAxis1InnerDeadzone");
+    docToValue(gplinkAnalogOptions.axis2InnerDeadzone, doc, "gplinkAnalogAxis2InnerDeadzone");
+    docToValue(gplinkAnalogOptions.axis3InnerDeadzone, doc, "gplinkAnalogAxis3InnerDeadzone");
+    docToValue(gplinkAnalogOptions.axis0OuterDeadzone, doc, "gplinkAnalogAxis0OuterDeadzone");
+    docToValue(gplinkAnalogOptions.axis1OuterDeadzone, doc, "gplinkAnalogAxis1OuterDeadzone");
+    docToValue(gplinkAnalogOptions.axis2OuterDeadzone, doc, "gplinkAnalogAxis2OuterDeadzone");
+    docToValue(gplinkAnalogOptions.axis3OuterDeadzone, doc, "gplinkAnalogAxis3OuterDeadzone");
+    docToValue(gplinkAnalogOptions.leftStickDeadzone, doc, "gplinkAnalogLeftStickDeadzone");
+    docToValue(gplinkAnalogOptions.rightStickDeadzone, doc, "gplinkAnalogRightStickDeadzone");
+    docToValue(gplinkAnalogOptions.invertEnabled, doc, "gplinkAnalogInvertEnabled");
+    docToValue(gplinkAnalogOptions.autoCalibrate, doc, "gplinkAnalogAutoCalibrate");
     // TX/RX default to valid pins that may never pass through docToPin (the UI
     // only POSTs changed values), so mark/unmark on enable/disable as well.
     {
@@ -2868,6 +2884,22 @@ std::string getAddonOptions()
     writeDoc(doc, "gplinkAnalogLyPin", gplinkAnalogOptions.lyPin);
     writeDoc(doc, "gplinkAnalogRxPin", gplinkAnalogOptions.rxPin);
     writeDoc(doc, "gplinkAnalogRyPin", gplinkAnalogOptions.ryPin);
+    writeDoc(doc, "gplinkAnalogInnerDeadzoneEnabled", gplinkAnalogOptions.innerDeadzoneEnabled);
+    writeDoc(doc, "gplinkAnalogOuterDeadzoneEnabled", gplinkAnalogOptions.outerDeadzoneEnabled);
+    writeDoc(doc, "gplinkAnalogLeftStickDeadzoneEnabled", gplinkAnalogOptions.leftStickDeadzoneEnabled);
+    writeDoc(doc, "gplinkAnalogRightStickDeadzoneEnabled", gplinkAnalogOptions.rightStickDeadzoneEnabled);
+    writeDoc(doc, "gplinkAnalogAxis0InnerDeadzone", gplinkAnalogOptions.axis0InnerDeadzone);
+    writeDoc(doc, "gplinkAnalogAxis1InnerDeadzone", gplinkAnalogOptions.axis1InnerDeadzone);
+    writeDoc(doc, "gplinkAnalogAxis2InnerDeadzone", gplinkAnalogOptions.axis2InnerDeadzone);
+    writeDoc(doc, "gplinkAnalogAxis3InnerDeadzone", gplinkAnalogOptions.axis3InnerDeadzone);
+    writeDoc(doc, "gplinkAnalogAxis0OuterDeadzone", gplinkAnalogOptions.axis0OuterDeadzone);
+    writeDoc(doc, "gplinkAnalogAxis1OuterDeadzone", gplinkAnalogOptions.axis1OuterDeadzone);
+    writeDoc(doc, "gplinkAnalogAxis2OuterDeadzone", gplinkAnalogOptions.axis2OuterDeadzone);
+    writeDoc(doc, "gplinkAnalogAxis3OuterDeadzone", gplinkAnalogOptions.axis3OuterDeadzone);
+    writeDoc(doc, "gplinkAnalogLeftStickDeadzone", gplinkAnalogOptions.leftStickDeadzone);
+    writeDoc(doc, "gplinkAnalogRightStickDeadzone", gplinkAnalogOptions.rightStickDeadzone);
+    writeDoc(doc, "gplinkAnalogInvertEnabled", gplinkAnalogOptions.invertEnabled);
+    writeDoc(doc, "gplinkAnalogAutoCalibrate", gplinkAnalogOptions.autoCalibrate);
 
     const OnBoardLedOptions& onBoardLedOptions = Storage::getInstance().getAddonOptions().onBoardLedOptions;
     writeDoc(doc, "onBoardLedMode", onBoardLedOptions.mode);
