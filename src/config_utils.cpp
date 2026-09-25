@@ -10,6 +10,7 @@
 
 #include "BoardConfig.h"
 #include "GamepadConfig.h"
+#include "GamepadState.h"
 #include "version.h"
 #include "addons/analog.h"
 #include "addons/board_led.h"
@@ -838,6 +839,10 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rightStickDeadzone, 0);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, invertEnabled, 0);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, autoCalibrate, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, lxCenter, GAMEPAD_JOYSTICK_MID);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, lyCenter, GAMEPAD_JOYSTICK_MID);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rxCenter, GAMEPAD_JOYSTICK_MID);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, ryCenter, GAMEPAD_JOYSTICK_MID);
   
     // addonOptions.analogADS1115Options
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1115Options, enabled, !!I2C_ANALOG1115_ENABLED);

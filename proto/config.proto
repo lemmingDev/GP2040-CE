@@ -987,6 +987,10 @@ message GPLinkAnalogOptions
     optional uint32 rightStickDeadzone = 19;
     optional uint32 invertEnabled = 20;
     optional uint32 autoCalibrate = 21;
+    optional uint32 lxCenter = 22;
+    optional uint32 lyCenter = 23;
+    optional uint32 rxCenter = 24;
+    optional uint32 ryCenter = 25;
 }
 
 message AddonOptions

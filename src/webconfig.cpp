@@ -432,6 +432,26 @@ std::string getUsedPins()
     return serialize_json(doc);
 }
 
+// Live companion analog values for stick calibration (raw mapped values,
+// pre-deadzone, so the true center is visible). MID when nothing received.
+std::string getGPLinkAnalogValues()
+{
+    const size_t capacity = JSON_OBJECT_SIZE(4);
+    DynamicJsonDocument doc(capacity);
+    const GPLinkAnalogOptions& options = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
+    GPLinkAddon *addon = GPLink_GetAddon();
+    const int32_t pins[4] = {options.lxPin, options.lyPin, options.rxPin, options.ryPin};
+    const char *keys[4] = {"lx", "ly", "rx", "ry"};
+    for (uint8_t i = 0; i < 4; i++) {
+        uint16_t value = GAMEPAD_JOYSTICK_MID;
+        if (addon != nullptr && pins[i] >= 0 && pins[i] < GPLINK_PIN_COUNT) {
+            value = addon->getAnalogPinValue((uint8_t)pins[i]);
+        }
+        writeDoc(doc, keys[i], value);
+    }
+    return serialize_json(doc);
+}
+
 std::string getGPLinkStatus()
 {
     const size_t capacity = JSON_OBJECT_SIZE(14);
@@ -2369,6 +2389,10 @@ std::string setAddonOptions()
     docToValue(gplinkAnalogOptions.rightStickDeadzone, doc, "gplinkAnalogRightStickDeadzone");
     docToValue(gplinkAnalogOptions.invertEnabled, doc, "gplinkAnalogInvertEnabled");
     docToValue(gplinkAnalogOptions.autoCalibrate, doc, "gplinkAnalogAutoCalibrate");
+    docToValue(gplinkAnalogOptions.lxCenter, doc, "gplinkAnalogLxCenter");
+    docToValue(gplinkAnalogOptions.lyCenter, doc, "gplinkAnalogLyCenter");
+    docToValue(gplinkAnalogOptions.rxCenter, doc, "gplinkAnalogRxCenter");
+    docToValue(gplinkAnalogOptions.ryCenter, doc, "gplinkAnalogRyCenter");
     // TX/RX default to valid pins that may never pass through docToPin (the UI
     // only POSTs changed values), so mark/unmark on enable/disable as well.
     {
@@ -2900,6 +2924,10 @@ std::string getAddonOptions()
     writeDoc(doc, "gplinkAnalogRightStickDeadzone", gplinkAnalogOptions.rightStickDeadzone);
     writeDoc(doc, "gplinkAnalogInvertEnabled", gplinkAnalogOptions.invertEnabled);
     writeDoc(doc, "gplinkAnalogAutoCalibrate", gplinkAnalogOptions.autoCalibrate);
+    writeDoc(doc, "gplinkAnalogLxCenter", gplinkAnalogOptions.lxCenter);
+    writeDoc(doc, "gplinkAnalogLyCenter", gplinkAnalogOptions.lyCenter);
+    writeDoc(doc, "gplinkAnalogRxCenter", gplinkAnalogOptions.rxCenter);
+    writeDoc(doc, "gplinkAnalogRyCenter", gplinkAnalogOptions.ryCenter);
 
     const OnBoardLedOptions& onBoardLedOptions = Storage::getInstance().getAddonOptions().onBoardLedOptions;
     writeDoc(doc, "onBoardLedMode", onBoardLedOptions.mode);
@@ -3507,6 +3535,7 @@ static const std::pair<const char*, HandlerFuncPtr> handlerFuncs[] =
     { "/api/getUsedPins", getUsedPins },
     { "/api/getGPLinkStatus", getGPLinkStatus },
     { "/api/testGPLink", testGPLink },
+    { "/api/getGPLinkAnalogValues", getGPLinkAnalogValues },
     { "/api/getConfig", getConfig },
     { "/api/getJoystickCenter", getJoystickCenter },
     { "/api/getJoystickCenter2", getJoystickCenter2 },
