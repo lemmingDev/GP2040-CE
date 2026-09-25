@@ -221,7 +221,6 @@ const GPLinkAnalog = ({
 						/>
 					))}
 				</Row>
-			</div>
 				<Row className="mb-3">
 					<FormControl
 						type="number"
