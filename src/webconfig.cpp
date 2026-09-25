@@ -2393,6 +2393,15 @@ std::string setAddonOptions()
     docToValue(gplinkAnalogOptions.lyCenter, doc, "gplinkAnalogLyCenter");
     docToValue(gplinkAnalogOptions.rxCenter, doc, "gplinkAnalogRxCenter");
     docToValue(gplinkAnalogOptions.ryCenter, doc, "gplinkAnalogRyCenter");
+    docToValue(gplinkAnalogOptions.smoothingEnabled, doc, "gplinkAnalogSmoothingEnabled");
+    docToValue(gplinkAnalogOptions.smoothingFactor, doc, "gplinkAnalogSmoothingFactor");
+    docToValue(gplinkAnalogOptions.forcedCircularity, doc, "gplinkAnalogForcedCircularity");
+    docToValue(gplinkAnalogOptions.smoothingEnabled2, doc, "gplinkAnalogSmoothingEnabled2");
+    docToValue(gplinkAnalogOptions.smoothingFactor2, doc, "gplinkAnalogSmoothingFactor2");
+    docToValue(gplinkAnalogOptions.forcedCircularity2, doc, "gplinkAnalogForcedCircularity2");
+    docToValue(gplinkAnalogOptions.triggersEnabled, doc, "gplinkAnalogTriggersEnabled");
+    docToValue(gplinkAnalogOptions.ltPin, doc, "gplinkAnalogLtPin");
+    docToValue(gplinkAnalogOptions.rtPin, doc, "gplinkAnalogRtPin");
     // TX/RX default to valid pins that may never pass through docToPin (the UI
     // only POSTs changed values), so mark/unmark on enable/disable as well.
     {
@@ -2928,6 +2937,15 @@ std::string getAddonOptions()
     writeDoc(doc, "gplinkAnalogLyCenter", gplinkAnalogOptions.lyCenter);
     writeDoc(doc, "gplinkAnalogRxCenter", gplinkAnalogOptions.rxCenter);
     writeDoc(doc, "gplinkAnalogRyCenter", gplinkAnalogOptions.ryCenter);
+    writeDoc(doc, "gplinkAnalogSmoothingEnabled", gplinkAnalogOptions.smoothingEnabled);
+    writeDoc(doc, "gplinkAnalogSmoothingFactor", gplinkAnalogOptions.smoothingFactor);
+    writeDoc(doc, "gplinkAnalogForcedCircularity", gplinkAnalogOptions.forcedCircularity);
+    writeDoc(doc, "gplinkAnalogSmoothingEnabled2", gplinkAnalogOptions.smoothingEnabled2);
+    writeDoc(doc, "gplinkAnalogSmoothingFactor2", gplinkAnalogOptions.smoothingFactor2);
+    writeDoc(doc, "gplinkAnalogForcedCircularity2", gplinkAnalogOptions.forcedCircularity2);
+    writeDoc(doc, "gplinkAnalogTriggersEnabled", gplinkAnalogOptions.triggersEnabled);
+    writeDoc(doc, "gplinkAnalogLtPin", gplinkAnalogOptions.ltPin);
+    writeDoc(doc, "gplinkAnalogRtPin", gplinkAnalogOptions.rtPin);
 
     const OnBoardLedOptions& onBoardLedOptions = Storage::getInstance().getAddonOptions().onBoardLedOptions;
     writeDoc(doc, "onBoardLedMode", onBoardLedOptions.mode);

@@ -991,6 +991,19 @@ message GPLinkAnalogOptions
     optional uint32 lyCenter = 23;
     optional uint32 rxCenter = 24;
     optional uint32 ryCenter = 25;
+    // Per-stick smoothing/circularity mirrors AnalogOptions (EMA factor is
+    // thousandths, UI percent-style 0-100 default 5). Triggers mirror the
+    // ADS1256 addon: companion pins mapped straight to lt/rt with
+    // hasAnalogTriggers asserted while enabled.
+    optional bool smoothingEnabled = 26;
+    optional uint32 smoothingFactor = 27;
+    optional bool forcedCircularity = 28;
+    optional bool smoothingEnabled2 = 29;
+    optional uint32 smoothingFactor2 = 30;
+    optional bool forcedCircularity2 = 31;
+    optional bool triggersEnabled = 32;
+    optional int32 ltPin = 33;
+    optional int32 rtPin = 34;
 }
 
 message AddonOptions

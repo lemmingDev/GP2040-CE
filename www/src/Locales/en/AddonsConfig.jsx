@@ -132,6 +132,12 @@ export default {
 	'gplink-analog-stick-2': 'Stick 2 (Right)',
 	'gplink-analog-calibrate-label': 'Calibrate center',
 	'gplink-analog-center-text': 'Center: X={{x}} Y={{y}} (leave sticks untouched, then Save)',
+	'gplink-analog-triggers': 'Triggers',
+	'gplink-analog-triggers-sub-header-text':
+		'Map companion ADC pins (by companion GPIO number, -1 = none) to analog triggers. Values arrive normalized full-range (0 = released, 65535 = fully pressed) and drive lt/rt with analog-trigger-capable drivers (XInput, PS4, PS3); other drivers treat any nonzero value as pressed.',
+	'gplink-analog-triggers-enabled-label': 'Analog Triggers Enabled',
+	'gplink-analog-lt-pin-label': 'Left Trigger Companion Pin',
+	'gplink-analog-rt-pin-label': 'Right Trigger Companion Pin',
 	'gplink-pull-label': 'Pull',
 	'gplink-pull-none': 'None',
 	'gplink-pull-up': 'Up',

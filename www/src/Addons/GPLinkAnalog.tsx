@@ -105,6 +105,42 @@ export const gplinkAnalogScheme = {
 		.number()
 		.label('GPLink Right Y Center')
 		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+	gplinkAnalogSmoothingEnabled: yup
+		.number()
+		.label('GPLink Smoothing')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 1),
+	gplinkAnalogSmoothingFactor: yup
+		.number()
+		.label('GPLink Smoothing Factor')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+	gplinkAnalogForcedCircularity: yup
+		.number()
+		.label('GPLink Force Circularity')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 1),
+	gplinkAnalogSmoothingEnabled2: yup
+		.number()
+		.label('GPLink Smoothing 2')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 1),
+	gplinkAnalogSmoothingFactor2: yup
+		.number()
+		.label('GPLink Smoothing Factor 2')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+	gplinkAnalogForcedCircularity2: yup
+		.number()
+		.label('GPLink Force Circularity 2')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 1),
+	gplinkAnalogTriggersEnabled: yup
+		.number()
+		.label('GPLink Triggers Enabled')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 1),
+	gplinkAnalogLtPin: yup
+		.number()
+		.label('GPLink Left Trigger Pin')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', -1, 63),
+	gplinkAnalogRtPin: yup
+		.number()
+		.label('GPLink Right Trigger Pin')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', -1, 63),
 };
 
 export const gplinkAnalogState = {
@@ -133,6 +169,15 @@ export const gplinkAnalogState = {
 	gplinkAnalogLyCenter: 32767,
 	gplinkAnalogRxCenter: 32767,
 	gplinkAnalogRyCenter: 32767,
+	gplinkAnalogSmoothingEnabled: 0,
+	gplinkAnalogSmoothingFactor: 5,
+	gplinkAnalogForcedCircularity: 0,
+	gplinkAnalogSmoothingEnabled2: 0,
+	gplinkAnalogSmoothingFactor2: 5,
+	gplinkAnalogForcedCircularity2: 0,
+	gplinkAnalogTriggersEnabled: 0,
+	gplinkAnalogLtPin: -1,
+	gplinkAnalogRtPin: -1,
 };
 
 // Stick tabs mirror the core Analog page: pins + deadzones + one-click
@@ -154,6 +199,9 @@ const STICKS = [
 		centerY: 'gplinkAnalogLyCenter',
 		valueX: 'lx',
 		valueY: 'ly',
+		smoothingEnabled: 'gplinkAnalogSmoothingEnabled',
+		smoothingFactor: 'gplinkAnalogSmoothingFactor',
+		forcedCircularity: 'gplinkAnalogForcedCircularity',
 	},
 	{
 		key: 'stick2',
@@ -171,6 +219,9 @@ const STICKS = [
 		centerY: 'gplinkAnalogRyCenter',
 		valueX: 'rx',
 		valueY: 'ry',
+		smoothingEnabled: 'gplinkAnalogSmoothingEnabled2',
+		smoothingFactor: 'gplinkAnalogSmoothingFactor2',
+		forcedCircularity: 'gplinkAnalogForcedCircularity2',
 	},
 ];
 
@@ -356,8 +407,99 @@ const GPLinkAnalog = ({
 									</span>
 								</div>
 							</Row>
+							<Row className="mb-3">
+								<FormCheck
+									label={t('AddonsConfig:analog-smoothing')}
+									type="switch"
+									id={`GPLinkAnalog${stick.key}Smoothing`}
+									className="col-sm-3 ms-3"
+									isInvalid={false}
+									checked={Boolean(values[stick.smoothingEnabled])}
+									onChange={(e) => {
+										handleCheckbox(stick.smoothingEnabled);
+										handleChange(e);
+									}}
+								/>
+								<FormControl
+									hidden={!values[stick.smoothingEnabled]}
+									type="number"
+									label={t('AddonsConfig:smoothing-factor')}
+									name={stick.smoothingFactor}
+									className="form-control-sm"
+									groupClassName="col-sm-3 mb-3"
+									value={values[stick.smoothingFactor]}
+									error={errors[stick.smoothingFactor]}
+									isInvalid={Boolean(errors[stick.smoothingFactor])}
+									onChange={handleChange}
+									min={0}
+									max={100}
+								/>
+							</Row>
+							<Row className="mb-3">
+								<FormCheck
+									label={t('AddonsConfig:analog-force-circularity')}
+									type="switch"
+									id={`GPLinkAnalog${stick.key}Circularity`}
+									className="col-sm-3 ms-3"
+									isInvalid={false}
+									checked={Boolean(values[stick.forcedCircularity])}
+									onChange={(e) => {
+										handleCheckbox(stick.forcedCircularity);
+										handleChange(e);
+									}}
+								/>
+							</Row>
 						</Tab>
 					))}
+					<Tab eventKey="triggers" title={t('AddonsConfig:gplink-analog-triggers')}>
+						<Row className="mb-3">
+							<div className="col-sm-12">
+								<div className="alert alert-info" role="alert">
+									{t('AddonsConfig:gplink-analog-triggers-sub-header-text')}
+								</div>
+							</div>
+						</Row>
+						<Row className="mb-3">
+							<FormCheck
+								label={t('AddonsConfig:gplink-analog-triggers-enabled-label')}
+								type="switch"
+								id="GPLinkAnalogTriggersEnabled"
+								className="col-sm-3 ms-3"
+								isInvalid={false}
+								checked={Boolean(values.gplinkAnalogTriggersEnabled)}
+								onChange={(e) => {
+									handleCheckbox('gplinkAnalogTriggersEnabled');
+									handleChange(e);
+								}}
+							/>
+							<FormControl
+								type="number"
+								label={t('AddonsConfig:gplink-analog-lt-pin-label')}
+								name="gplinkAnalogLtPin"
+								className="form-control-sm"
+								groupClassName="col-sm-3 mb-3"
+								value={values.gplinkAnalogLtPin}
+								error={errors.gplinkAnalogLtPin}
+								isInvalid={Boolean(errors.gplinkAnalogLtPin)}
+								onChange={handleChange}
+								min={-1}
+								max={63}
+							/>
+							<FormControl
+								type="number"
+								label={t('AddonsConfig:gplink-analog-rt-pin-label')}
+								name="gplinkAnalogRtPin"
+								className="form-control-sm"
+								groupClassName="col-sm-3 mb-3"
+								value={values.gplinkAnalogRtPin}
+								error={errors.gplinkAnalogRtPin}
+								isInvalid={Boolean(errors.gplinkAnalogRtPin)}
+								onChange={handleChange}
+								min={-1}
+								max={63}
+							/>
+						</Row>
+					</Tab>
 				</Tabs>
 			</div>
 			<FormCheck
