@@ -21,6 +21,10 @@
 #define GPLINK_BAUD 2000000
 #endif
 
+#ifndef COMPANION_PLAYER_LED_PIN
+#define COMPANION_PLAYER_LED_PIN 2 // devkit blue LED; R32 overrides per board
+#endif
+
 // GPIO sample/push cadence mirrors the main-board report floor (500 Hz).
 #define COMPANION_SAMPLE_MS 2
 #define COMPANION_HEARTBEAT_MS GPLINK_HEARTBEAT_INTERVAL_MS
@@ -247,6 +251,28 @@ static void pumpLink() {
                 if (gplink_unpack_gpio_mask(&frame, &devid, &mask)) handleGpioWrite(devid, mask);
                 break;
             }
+            case GPLINK_TYPE_PLAYER_LED_SET: {
+                uint8_t devid, mask;
+                if (gplink_unpack_player_led(&frame, &devid, &mask)) {
+                    digitalWrite(COMPANION_PLAYER_LED_PIN, (mask & 0x01) ? HIGH : LOW);
+                    Serial.printf("%lu GPLink: player LED %s\n",
+                                  (unsigned long)now, (mask & 0x01) ? "on" : "off");
+                }
+                break;
+            }
+            case GPLINK_TYPE_RUMBLE_SET: {
+                uint8_t devid, weak, strong;
+                uint16_t duration;
+                if (gplink_unpack_rumble(&frame, &devid, &weak, &strong, &duration)) {
+                    // No motor pins profiled yet: log receipt (proves the
+                    // path live) until motor hardware lands.
+                    if (weak || strong) {
+                        Serial.printf("%lu GPLink: rumble weak %u strong %u dur %u\n",
+                                      (unsigned long)now, weak, strong, duration);
+                    }
+                }
+                break;
+            }
             case GPLINK_TYPE_DEBUG_TEXT: {
                 char text[241];
                 size_t n = frame.len;
@@ -269,6 +295,9 @@ void setup() {
     Serial2.setRxBufferSize(1024);
     Serial2.begin(GPLINK_BAUD, SERIAL_8N1, GPLINK_UART_RX, GPLINK_UART_TX);
     restorePinConfig();
+    // Player LED owns its pin regardless of GPIO table use (devkit GPIO2
+    // can't be an input anyway); applied after restore so it always wins.
+    pinMode(COMPANION_PLAYER_LED_PIN, OUTPUT);
     gplink_decoder_init(&s_dec);
     gplink_decoder_init(&s_tapRx);
     gplink_decoder_init(&s_tapTx);

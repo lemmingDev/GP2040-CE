@@ -31,7 +31,8 @@ GPLinkAddon::GPLinkAddon() : started(false), uartInst(GPLINK_UART_INSTANCE),
         txPin(GPLINK_TX_PIN), rxPin(GPLINK_RX_PIN),
         processCalls(0), rxBytes(0), lastDebugMs(0), wasAlive(false), lastConfigMs(0),
         txSeq(0), haveLastSent(false), ignoredFrames(0), handledFrames(0), seqGaps(0),
-        lastMask(0), lastOutputMask(0), lastOutputMs(0) {
+        lastMask(0), lastOutputMask(0), lastOutputMs(0),
+        lastLedMask(0), lastWeak(0), lastStrong(0), lastActMs(0) {
     s_instance = this;
 }
 
@@ -92,6 +93,10 @@ void GPLinkAddon::setup() {
     lastMask = 0;
     lastOutputMask = 0;
     lastOutputMs = 0;
+    lastLedMask = 0;
+    lastWeak = 0;
+    lastStrong = 0;
+    lastActMs = 0;
     started = true;
     sendHello();
     sendGpioConfigs();
@@ -367,6 +372,33 @@ void GPLinkAddon::process() {
         }
     } else if (gplink_link_heartbeat_due(&link, now)) {
         sendHeartbeat();
+    }
+
+    // Console-driven actuation for the companion (dedicated messages, never
+    // the pin table): player LED mask from player ID, rumble intensities
+    // from haptic actuators. Change-driven + 5 s backstop like outputs.
+    {
+        uint8_t ledMask = (uint8_t)(gamepad->auxState.playerID.ledValue & 0xFF);
+        const auto &hap = gamepad->auxState.haptics;
+        // Intensities are already 0-255 (see motorToDuty); active gates them.
+        uint8_t weak = (hap.leftActuator.active && hap.leftActuator.enabled)
+                           ? (uint8_t)(hap.leftActuator.intensity > 255 ? 255 : hap.leftActuator.intensity)
+                           : 0;
+        uint8_t strong = (hap.rightActuator.active && hap.rightActuator.enabled)
+                             ? (uint8_t)(hap.rightActuator.intensity > 255 ? 255 : hap.rightActuator.intensity)
+                             : 0;
+        if (ledMask != lastLedMask || weak != lastWeak || strong != lastStrong ||
+                (now - lastActMs) >= 5000) {
+            lastLedMask = ledMask;
+            lastWeak = weak;
+            lastStrong = strong;
+            lastActMs = now;
+            uint8_t payload[16];
+            size_t n = gplink_pack_player_led(/*devid=*/0, ledMask, payload);
+            if (n > 0) sendFrame(GPLINK_TYPE_PLAYER_LED_SET, payload, n);
+            n = gplink_pack_rumble(/*devid=*/0, weak, strong, /*duration_ms=*/0, payload);
+            if (n > 0) sendFrame(GPLINK_TYPE_RUMBLE_SET, payload, n);
+        }
     }
 
     if ((now - lastDebugMs) >= GPLINK_DEBUG_INTERVAL_MS) {
