@@ -297,7 +297,10 @@ void setup() {
     restorePinConfig();
     // Player LED owns its pin regardless of GPIO table use (devkit GPIO2
     // can't be an input anyway); applied after restore so it always wins.
+    // s_dir is forced too, or a stale NVS input entry would keep sampling
+    // the LED pin and emitting ghost GPIO_READs.
     pinMode(COMPANION_PLAYER_LED_PIN, OUTPUT);
+    s_dir[COMPANION_PLAYER_LED_PIN] = 1;
     gplink_decoder_init(&s_dec);
     gplink_decoder_init(&s_tapRx);
     gplink_decoder_init(&s_tapTx);
