@@ -126,7 +126,6 @@ const GPLink = ({
 	const instance = Number(values.gplinkUartInstance) === 0 ? 0 : 1;
 	const uartPins = GPLINK_UART_PINS[instance];
 
-	const [status, setStatus] = useState(null);
 	const [discovery, setDiscovery] = useState(null);
 	const [testing, setTesting] = useState(false);
 	const { pins, fetchPins, setPinAction, setPinDirection, setPinPull, setPinInverted, savePins } =
@@ -135,24 +134,6 @@ const GPLink = ({
 	useEffect(() => {
 		fetchPins();
 	}, []);
-
-	useEffect(() => {
-		if (!values.GPLinkEnabled) {
-			setStatus(null);
-			return;
-		}
-		let cancelled = false;
-		const poll = async () => {
-			const data = await WebApi.getGPLinkStatus();
-			if (!cancelled && data) setStatus(data);
-		};
-		poll();
-		const timer = setInterval(poll, 1000);
-		return () => {
-			cancelled = true;
-			clearInterval(timer);
-		};
-	}, [values.GPLinkEnabled]);
 
 	const handleInstanceChange = (e) => {
 		const next = parseInt(e.target.value, 10) === 0 ? 0 : 1;
@@ -221,24 +202,6 @@ const GPLink = ({
 				{instance === 0 && (
 					<div className="alert alert-warning" role="alert">
 						{t('AddonsConfig:gplink-uart0-warning-text')}
-					</div>
-				)}
-				{status && (
-					<div
-						className={`alert ${status.linkAlive ? 'alert-success' : 'alert-secondary'}`}
-						role="alert"
-					>
-						{t('AddonsConfig:gplink-status-text', {
-							link: status.linkAlive
-								? t('AddonsConfig:gplink-status-up')
-								: t('AddonsConfig:gplink-status-down'),
-							tx: status.txSeq,
-							rx: status.ignoredFrames,
-							handled: status.handledFrames ?? 0,
-							gaps: status.seqGaps,
-						})}
-						{!status.started &&
-							` ${t('AddonsConfig:gplink-status-not-started-text')}`}
 					</div>
 				)}
 				<Row className="mb-3">
