@@ -62,10 +62,11 @@ bool GPLinkAddon::requestCaps() {
 }
 
 bool GPLinkAddon::available() {
-    const GPLinkOptions& options = Storage::getInstance().getAddonOptions().gplinkOptions;
-    if (!options.enabled) return false;
-    return gplink_uart_pins_valid((uint8_t)options.uartInstance,
-                                  (uint8_t)options.txPin, (uint8_t)options.rxPin);
+    const AddonOptions& options = Storage::getInstance().getAddonOptions();
+    if (!options.gplinkOptions.enabled && !options.gplinkAnalogOptions.enabled) return false;
+    return gplink_uart_pins_valid((uint8_t)options.gplinkOptions.uartInstance,
+                                  (uint8_t)options.gplinkOptions.txPin,
+                                  (uint8_t)options.gplinkOptions.rxPin);
 }
 
 void GPLinkAddon::setup() {
@@ -103,9 +104,37 @@ void GPLinkAddon::setup() {
     lastWeak = 0;
     lastStrong = 0;
     lastActMs = 0;
+    for (uint8_t i = 0; i < GPLINK_PIN_COUNT; i++) analogValues[i] = GAMEPAD_JOYSTICK_MID;
     started = true;
     sendHello();
     sendGpioConfigs();
+    sendAnalogConfigs();
+}
+
+// Tell the companion which ADC pins feed our sticks (by companion GPIO
+// number, -1 = unused). Values arrive normalized full-range u16.
+void GPLinkAddon::sendAnalogConfigs() {
+    const GPLinkAnalogOptions& options = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
+    if (!options.enabled) return;
+    const int32_t pins[4] = {options.lxPin, options.lyPin, options.rxPin, options.ryPin};
+    for (uint8_t i = 0; i < 4; i++) {
+        if (pins[i] < 0 || pins[i] >= GPLINK_PIN_COUNT) continue;
+        uint8_t payload[8];
+        size_t len = gplink_pack_analog_config(/*devid=*/0, (uint8_t)pins[i], /*enable=*/1, payload);
+        if (len > 0) sendFrame(GPLINK_TYPE_ANALOG_CONFIG, payload, len);
+    }
+}
+
+void GPLinkAddon::applyAnalogPin(uint8_t pin, uint16_t value) {
+    if (pin >= GPLINK_PIN_COUNT) return;
+    analogValues[pin] = value;
+    const GPLinkAnalogOptions& options = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
+    if (!options.enabled) return;
+    Gamepad *gamepad = Storage::getInstance().GetGamepad();
+    if (pin == (uint8_t)options.lxPin) gamepad->state.lx = value;
+    if (pin == (uint8_t)options.lyPin) gamepad->state.ly = value;
+    if (pin == (uint8_t)options.rxPin) gamepad->state.rx = value;
+    if (pin == (uint8_t)options.ryPin) gamepad->state.ry = value;
 }
 
 // Tell the companion which of its pins we use (inputs and outputs), with
@@ -298,6 +327,22 @@ void GPLinkAddon::pumpRx(uint32_t now) {
                 // Companion output reports (echo/ack path): parsed, no local action in v1.
                 ignoredFrames++;
                 break;
+            case GPLINK_TYPE_ANALOG_READ: {
+                uint8_t devid, count;
+                uint8_t pins[16];
+                uint16_t values[16];
+                if (gplink_unpack_analog_read(&frame, &devid, &count, pins, values, 16) && devid == 0) {
+                    for (uint8_t i = 0; i < count; i++) applyAnalogPin(pins[i], values[i]);
+                    handledFrames++;
+                } else {
+                    ignoredFrames++;
+                }
+                break;
+            }
+            case GPLINK_TYPE_ANALOG_CONFIG:
+                // Companion echo of our channel config (or future requests).
+                ignoredFrames++;
+                break;
             case GPLINK_TYPE_HELLO:
                 // A HELLO means the peer (re)booted and lost RAM state:
                 // re-push our pin config so its sampler comes alive in
@@ -305,6 +350,7 @@ void GPLinkAddon::pumpRx(uint32_t now) {
                 // answers hellos itself, and replying would ping-pong
                 // forever, flooding the link with handshake chatter.
                 sendGpioConfigs();
+                sendAnalogConfigs();
                 ignoredFrames++;
                 break;
             case GPLINK_TYPE_HEARTBEAT:
@@ -340,6 +386,7 @@ void GPLinkAddon::process() {
     if ((alive && !wasAlive) || (now - lastConfigMs) >= GPLINK_CONFIG_REFRESH_MS) {
         lastConfigMs = now;
         sendGpioConfigs();
+        sendAnalogConfigs();
     }
     wasAlive = alive;
 

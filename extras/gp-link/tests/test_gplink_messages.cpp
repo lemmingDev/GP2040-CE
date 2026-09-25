@@ -141,6 +141,54 @@ static void test_gpio_nak() {
     assert(!gplink_unpack_gpio_nak(&trunc, &devid, &pin, &code));
 }
 
+static void test_analog_config() {
+    uint8_t payload[16] = {0};
+    size_t n = gplink_pack_analog_config(0, 32, 1, payload);
+    assert(n == 3);
+    gplink_frame f;
+    wire_roundtrip(GPLINK_TYPE_ANALOG_CONFIG, payload, (uint8_t)n, &f);
+    uint8_t devid = 0, pin = 0, enable = 0;
+    assert(gplink_unpack_analog_config(&f, &devid, &pin, &enable));
+    assert(devid == 0 && pin == 32 && enable == 1);
+    gplink_frame wrong = f;
+    wrong.type = GPLINK_TYPE_HELLO;
+    assert(!gplink_unpack_analog_config(&wrong, &devid, &pin, &enable));
+    gplink_frame trunc2 = f;
+    trunc2.len = 2;
+    assert(!gplink_unpack_analog_config(&trunc2, &devid, &pin, &enable));
+}
+
+static void test_analog_read() {
+    uint8_t pins[3] = {32, 33, 26};
+    uint16_t values[3] = {0, 32768, 65535};
+    uint8_t payload[32] = {0};
+    size_t n = gplink_pack_analog_read(0, 3, pins, values, payload);
+    assert(n == 11);
+    assert(payload[0] == 0 && payload[1] == 3);
+    gplink_frame f;
+    wire_roundtrip(GPLINK_TYPE_ANALOG_READ, payload, (uint8_t)n, &f);
+    uint8_t devid = 0, count = 0;
+    uint8_t pinsOut[8] = {0};
+    uint16_t valuesOut[8] = {0};
+    assert(gplink_unpack_analog_read(&f, &devid, &count, pinsOut, valuesOut, 8));
+    assert(devid == 0 && count == 3);
+    for (int i = 0; i < 3; i++) {
+        assert(pinsOut[i] == pins[i]);
+        assert(valuesOut[i] == values[i]);
+    }
+    gplink_frame wrong = f;
+    wrong.type = GPLINK_TYPE_HELLO;
+    assert(!gplink_unpack_analog_read(&wrong, &devid, &count, pinsOut, valuesOut, 8));
+    // caller buffer too small: rejected, no overrun
+    assert(!gplink_unpack_analog_read(&f, &devid, &count, pinsOut, valuesOut, 2));
+    // empty report round-trips
+    n = gplink_pack_analog_read(1, 0, pins, values, payload);
+    assert(n == 2);
+    wire_roundtrip(GPLINK_TYPE_ANALOG_READ, payload, (uint8_t)n, &f);
+    assert(gplink_unpack_analog_read(&f, &devid, &count, pinsOut, valuesOut, 8));
+    assert(devid == 1 && count == 0);
+}
+
 static void test_rumble() {
     uint8_t payload[16] = {0};
     size_t n = gplink_pack_rumble(1, 100, 200, 1000, payload);
@@ -260,6 +308,8 @@ int main() {
     test_player_led();
     test_battery();
     test_gpio_nak();
+    test_analog_config();
+    test_analog_read();
     test_pin_caps();
     test_raw_types_roundtrip();
     printf("messages: all assertions passed\n");

@@ -76,6 +76,10 @@ import HETrigger, {
 	HETriggerState,
 } from '../Addons/HETrigger';
 import GPLink, { gplinkScheme, gplinkState } from '../Addons/GPLink';
+import GPLinkAnalog, {
+	gplinkAnalogScheme,
+	gplinkAnalogState,
+} from '../Addons/GPLinkAnalog';
 
 export type AddonPropTypes = {
 	values: typeof DEFAULT_VALUES;
@@ -109,6 +113,7 @@ const schema = yup.object().shape({
 	...gamepadUSBHostScheme,
 	...HETriggerScheme,
 	...gplinkScheme,
+	...gplinkAnalogScheme,
 });
 
 export const DEFAULT_VALUES = {
@@ -137,6 +142,7 @@ export const DEFAULT_VALUES = {
 	...gamepadUSBHostState,
 	...HETriggerState,
 	...gplinkState,
+	...gplinkAnalogState,
 } as const;
 
 const ADDONS = [
@@ -165,6 +171,7 @@ const ADDONS = [
 	ReactiveLED,
 	HETrigger,
 	GPLink,
+	GPLinkAnalog,
 ];
 
 const FormContext = ({ setStoredData }) => {

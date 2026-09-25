@@ -28,6 +28,8 @@
 #define GPLINK_TYPE_HTTP_RESP 0x11
 #define GPLINK_TYPE_HTTP_FRAG 0x12
 #define GPLINK_TYPE_GPIO_NAK 0x13
+#define GPLINK_TYPE_ANALOG_READ 0x14
+#define GPLINK_TYPE_ANALOG_CONFIG 0x15
 
 // HELLO device capability bits (spec section 4)
 #define GPLINK_CAP_RUMBLE (1u << 0)
@@ -87,6 +89,12 @@ size_t gplink_pack_battery(uint8_t devid, uint8_t pct, uint8_t charging, uint8_t
 bool gplink_unpack_input_state(const gplink_frame *f, uint8_t *devid, uint32_t *buttons, uint8_t *dpad, uint16_t *lx, uint16_t *ly, uint16_t *rx, uint16_t *ry, uint8_t *lt, uint8_t *rt, uint8_t *aux);
 bool gplink_unpack_hello(const gplink_frame *f, uint8_t *major, uint8_t *minor, uint32_t *caps, uint8_t *devcount);
 bool gplink_unpack_gpio_config(const gplink_frame *f, uint8_t *devid, uint8_t *pin, uint8_t *dir, uint8_t *pull, uint8_t *flags);
+// Analog channel config/report (spec section 6d). Values are normalized
+// full-range u16 (companion scales its native ADC width itself).
+size_t gplink_pack_analog_config(uint8_t devid, uint8_t pin, uint8_t enable, uint8_t *payload_out);
+bool gplink_unpack_analog_config(const gplink_frame *f, uint8_t *devid, uint8_t *pin, uint8_t *enable);
+size_t gplink_pack_analog_read(uint8_t devid, uint8_t count, const uint8_t *pins, const uint16_t *values, uint8_t *payload_out);
+bool gplink_unpack_analog_read(const gplink_frame *f, uint8_t *devid, uint8_t *count, uint8_t *pins_out, uint16_t *values_out, uint8_t maxCount);
 bool gplink_unpack_gpio_mask(const gplink_frame *f, uint8_t *devid, uint64_t *mask);
 bool gplink_unpack_gpio_nak(const gplink_frame *f, uint8_t *devid, uint8_t *pin, uint8_t *code);
 bool gplink_unpack_rumble(const gplink_frame *f, uint8_t *devid, uint8_t *weak, uint8_t *strong, uint16_t *duration_ms);
