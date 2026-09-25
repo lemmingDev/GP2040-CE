@@ -208,11 +208,16 @@ const GPLink = ({
 							role="alert"
 						>
 							{t('AddonsConfig:gplink-test-result-text', {
-								cont: discovery.continuity
-									? t('AddonsConfig:gplink-status-loop-pass')
-									: t('AddonsConfig:gplink-status-loop-fail'),
+								cont:
+									discovery.continuity === 1
+										? t('AddonsConfig:gplink-status-loop-pass')
+										: discovery.continuity === 2
+											? t('AddonsConfig:gplink-status-loop-driven')
+											: t('AddonsConfig:gplink-status-loop-open'),
 								name: discovery.capsName || '?',
 								count: discovery.capsCount ?? 0,
+								rxb: discovery.rxBytes ?? 0,
+								rxf: discovery.rxFrames ?? 0,
 							})}
 							{!discovery.found &&
 								` ${t('AddonsConfig:gplink-test-not-found-text')}`}

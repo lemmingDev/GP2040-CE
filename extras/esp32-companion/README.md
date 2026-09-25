@@ -12,6 +12,12 @@ GP-Link protocol (`docs/superpowers/specs/2026-09-24-gp-link-design.md`).
   500 Hz, applies `GPIO_WRITE` levels, heartbeats symmetrically.
 - Console log on USB serial @115200 (boot banner, link UP/DOWN, NAKs).
 
+Console commands (type a letter + Enter): `t` toggles the input
+self-test (synthetic press/release on the first configured input pin
+every second — proves the ESP32→main-board path with no wiring);
+`g` sends one manual GPIO_READ frame with its pack/encode/write sizes
+printed (isolates the send path itself).
+
 M2 adds Bluepad32 → `INPUT_STATE` (wireless pads). Device mode (BT HID
 output) and the HTTP tunnel profile (§10) are specified but deferred.
 

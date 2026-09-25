@@ -4,8 +4,10 @@
 // researched per-pin rules, and reserved pins must be absent.
 #include "companion_pins.h"
 #include "gplink.h"
+#include "CRC32.h"
 #include <cassert>
 #include <cstdio>
+#include <cstring>
 
 static int failures = 0;
 #define CHECK(cond) do { if (!(cond)) { printf("FAIL line %d: %s\n", __LINE__, #cond); failures++; } } while (0)
@@ -60,6 +62,41 @@ int main() {
 
     // Nothing on ESP32 is 5 V tolerant.
     for (size_t i = 0; i < count; i++) CHECK(!(pins[i].caps & GPLINK_PINCAP_FIVE_VOLT));
+
+    // Full 24-pin RSP frame round-trips through wire encoding intact
+    // (rules out codec-level truncation for the discovery response).
+    {
+        const char name[] = "ESP32-DevKit";
+        uint8_t pinArr[64], capsArr[64];
+        for (size_t i = 0; i < count; i++) {
+            pinArr[i] = pins[i].gpio;
+            capsArr[i] = pins[i].caps;
+        }
+        uint8_t payload[128];
+        size_t plen = gplink_pack_pin_caps_rsp(name, 12, (uint8_t)count, pinArr, capsArr, payload);
+        CHECK(plen > 0 && plen <= 240);
+        uint8_t wire[GPLINK_ENCODED_MAX + 8];
+        size_t n = gplink_encode_seq(GPLINK_TYPE_PIN_CAPS_RSP, payload, (uint8_t)plen, 7, wire);
+        CHECK(n > 0 && n <= (size_t)(GPLINK_ENCODED_MAX + 8));
+        gplink_decoder dec;
+        gplink_decoder_init(&dec);
+        gplink_frame f;
+        bool got = false;
+        for (size_t i = 0; i < n && !got; i++) got = gplink_feed(&dec, wire[i], &f);
+        CHECK(got);
+        CHECK(f.type == GPLINK_TYPE_PIN_CAPS_RSP);
+        CHECK(f.seq == 7);
+        char nameOut[33];
+        uint8_t nameLen = 0, outCount = 0;
+        uint8_t pinsOut[70], capsOut[70];
+        CHECK(gplink_unpack_pin_caps_rsp(&f, nameOut, &nameLen, &outCount, pinsOut, capsOut));
+        CHECK(outCount == count);
+        CHECK(nameLen == 12 && memcmp(nameOut, name, 12) == 0);
+        for (size_t i = 0; i < count; i++) {
+            CHECK(pinsOut[i] == pinArr[i]);
+            CHECK(capsOut[i] == capsArr[i]);
+        }
+    }
 
     if (failures == 0) printf("test_companion_pins PASS\n");
     return failures ? 1 : 0;

@@ -109,11 +109,13 @@ export default {
 		'UART failed to start (check the selected pin pair).',
 	'gplink-status-loop-pass': 'PASS (pins are connected)',
 	'gplink-status-loop-pass': 'PASS (pins are connected)',
-	'gplink-status-loop-fail': 'FAIL (pins are NOT connected — check the jumper)',
+	'gplink-status-loop-open': 'OPEN (pins are NOT connected — check the jumper)',
+	'gplink-status-loop-driven':
+		'DRIVEN (a live peer holds the line — expected with a companion, not a jumper)',
 	'gplink-test-label': 'Test link & discover pins',
 	'gplink-test-running-label': 'Testing…',
 	'gplink-test-result-text':
-		'Continuity {{cont}} — companion {{name}} reports {{count}} pins.',
+		'Continuity {{cont}} — companion {{name}} reports {{count}} pins (drained {{rxb}} bytes, {{rxf}} frames).',
 	'gplink-test-not-found-text':
 		'No capability response (companion may not support discovery yet).',
 	'gplink-pins-header-text': 'Companion GPIO Inputs',

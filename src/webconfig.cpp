@@ -458,14 +458,17 @@ std::string getGPLinkStatus()
 // UART for up to 300 ms collecting the RSP. Bounded like getHeldPins.
 std::string testGPLink()
 {
-    const size_t capacity = JSON_OBJECT_SIZE(8);
+    // Pool must fit scalars + name + two 64-entry arrays; same silent-
+    // truncation hazard as getExpansionPins if undersized.
+    const size_t capacity = JSON_OBJECT_SIZE(12) + 2*JSON_ARRAY_SIZE(70) + 64;
     DynamicJsonDocument doc(capacity);
-    bool continuity = false;
+    int continuity = -1;
     bool found = false;
     char capsName[33] = {0};
     uint8_t capsCount = 0;
     uint8_t tmpPins[70] = {0};
     uint8_t tmpCaps[70] = {0};
+    uint32_t rxBytes = 0, rxFrames = 0;
     GPLinkStatus status = {};
     GPLinkAddon *addon = GPLink_GetAddon();
     if (addon != nullptr) addon->getStatus(status);
@@ -478,8 +481,10 @@ std::string testGPLink()
             while ((getMillis() - start) < 300) {
                 int byte = gplink_uart_read();
                 if (byte < 0) continue;
+                rxBytes++;
                 gplink_frame frame;
                 if (!gplink_feed(&dec, (uint8_t)byte, &frame)) continue;
+                rxFrames++;
                 if (frame.type != GPLINK_TYPE_PIN_CAPS_RSP) continue;
                 uint8_t nameLen = 0, count = 0;
                 if (!gplink_unpack_pin_caps_rsp(&frame, capsName, &nameLen, &count, tmpPins, tmpCaps)) continue;
@@ -493,6 +498,8 @@ std::string testGPLink()
     writeDoc(doc, "started", status.started);
     writeDoc(doc, "continuity", continuity);
     writeDoc(doc, "found", found);
+    writeDoc(doc, "rxBytes", rxBytes);
+    writeDoc(doc, "rxFrames", rxFrames);
     writeDoc(doc, "capsName", capsName);
     writeDoc(doc, "capsCount", capsCount);
     JsonArray pinsArr = doc.createNestedArray("capsPins");
@@ -1904,7 +1911,10 @@ std::string setPeripheralOptions()
 
 std::string getExpansionPins()
 {
-    const size_t capacity = JSON_OBJECT_SIZE(100);
+    // Pool must fit pcf8575 (16x2 values) plus gplink (64x2 values) with
+    // nesting overhead; undersized pools fail add()s SILENTLY, truncating
+    // the JSON the UI depends on for rows and store entries.
+    const size_t capacity = JSON_OBJECT_SIZE(100) + JSON_OBJECT_SIZE(256);
     DynamicJsonDocument doc(capacity);
     GpioMappingInfo* gpioMappings = Storage::getInstance().getAddonOptions().pcf8575Options.pins;
     writeDoc(doc, "pins", "pcf8575", 0, "pin00", "option", gpioMappings[0].action);
@@ -1943,8 +1953,11 @@ std::string getExpansionPins()
     char gplinkPinName[6];
     for (uint16_t pin = 0; pin < GPLINK_PIN_COUNT; pin++) {
         snprintf(gplinkPinName, 6, "pin%0*d", 2, pin);
-        writeDoc(doc, "pins", "gplink", 0, gplinkPinName, "option", gplinkPins[pin].action);
-        writeDoc(doc, "pins", "gplink", 0, gplinkPinName, "direction", gplinkPins[pin].direction);
+        // std::string key: ArduinoJson stores const char* keys by POINTER, so
+        // reusing one buffer would alias all 64 entries onto the last pin.
+        const std::string key(gplinkPinName);
+        writeDoc(doc, "pins", "gplink", 0, key, "option", gplinkPins[pin].action);
+        writeDoc(doc, "pins", "gplink", 0, key, "direction", gplinkPins[pin].direction);
     }
     return serialize_json(doc);
 }

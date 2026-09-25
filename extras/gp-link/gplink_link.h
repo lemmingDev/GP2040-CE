@@ -55,6 +55,8 @@ bool gplink_uart_init(uint8_t uart, uint8_t tx, uint8_t rx, uint32_t baud);
 size_t gplink_uart_write(const uint8_t *data, size_t len);
 int gplink_uart_read(void);
 // Jumper continuity self-test: momentarily drops both pins to SIO, wiggles
-// TX against a pulled-down RX, then restores the UART mux. Returns true when
-// the pins are electrically connected. False also when never initialised.
-bool gplink_uart_loopback_test(void);
+// TX against a pulled-down RX, then restores the UART mux. Returns 1 when
+// the pins are connected, 0 when open (RX never follows high), 2 when the
+// line is externally driven (a live peer idles high — the loopback case
+// this test was built for doesn't apply). -1 when never initialised.
+int gplink_uart_loopback_test(void);
