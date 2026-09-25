@@ -319,13 +319,6 @@ static void pumpLink() {
                 }
                 break;
             }
-            case GPLINK_TYPE_ANALOG_CONFIG: {
-                uint8_t devid, pin, enable;
-                if (gplink_unpack_analog_config(&frame, &devid, &pin, &enable)) {
-                    handleAnalogConfig(devid, pin, enable);
-                }
-                break;
-            }
             case GPLINK_TYPE_PLAYER_LED_SET: {
                 uint8_t devid, mask;
                 if (gplink_unpack_player_led(&frame, &devid, &mask)) {
