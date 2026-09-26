@@ -1082,9 +1082,9 @@ const GPLinkAnalog = ({
 						</Tab>
 					))}
 					<Tab eventKey="triggers" title={t('AddonsConfig:gplink-analog-triggers')}>
-						{/* Floor the tab height so the card doesn't shrink vs the
-						taller stick tabs (grows past this if content needs it). */}
-						<div style={{ minHeight: 470 }}>
+						{/* Floor the tab height to match the taller stick tabs
+						(grows past this if content needs it). */}
+						<div style={{ minHeight: 560 }}>
 							<div className="text-end mb-2">
 								<span className="text-muted">
 									<small>
