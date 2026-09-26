@@ -283,6 +283,7 @@ void GPLinkAddon::applyAnalogAxes() {
         anyTrigger = true;
     }
     if (anyTrigger) gamepad->hasAnalogTriggers = true;
+    dbgAxis0 = axis[0];
     shapedRuns++;
 }
 

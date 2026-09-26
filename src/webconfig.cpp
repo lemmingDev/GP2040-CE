@@ -447,7 +447,7 @@ std::string getUsedPins()
 // with no error — exactly what happened to the shaped keys).
 std::string getGPLinkAnalogValues()
 {
-    const size_t capacity = JSON_OBJECT_SIZE(20) + 96;
+    const size_t capacity = JSON_OBJECT_SIZE(24) + 128;
     DynamicJsonDocument doc(capacity);
     const GPLinkAnalogOptions& options = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
     GPLinkAddon *addon = GPLink_GetAddon();
@@ -497,6 +497,7 @@ std::string getGPLinkAnalogValues()
     Gamepad *epPad = Storage::getInstance().GetGamepad();
     writeDoc(doc, "padW", addon != nullptr ? addon->getLastPadSeen() : 0);
     writeDoc(doc, "padR", (uint32_t)(uintptr_t)epPad);
+    writeDoc(doc, "ax0", addon != nullptr ? addon->getDbgAxis0() : 0);
     return serialize_json(doc);
 }
 
