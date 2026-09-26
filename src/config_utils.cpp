@@ -831,10 +831,10 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis1InnerDeadzone, 0);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis2InnerDeadzone, 0);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis3InnerDeadzone, 0);
-    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis0OuterDeadzone, 0);
-    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis1OuterDeadzone, 0);
-    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis2OuterDeadzone, 0);
-    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis3OuterDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis0OuterDeadzone, 100);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis1OuterDeadzone, 100);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis2OuterDeadzone, 100);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis3OuterDeadzone, 100);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, leftStickDeadzone, 0);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rightStickDeadzone, 0);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, invertEnabled, 0);
