@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <math.h>
 
 // Axis flag start (lx,ly,rx,ry order), same convention as ADS1115_CHANNEL_FLAG_START.
@@ -40,6 +41,8 @@ GPLinkAddon::GPLinkAddon() : started(false), uartInst(GPLINK_UART_INSTANCE),
         lastMask(0), lastOutputMask(0), lastOutputMs(0),
         lastLedMask(0), lastWeak(0), lastStrong(0), lastActMs(0) {
     s_instance = this;
+    compFw[0] = '\0';
+    compRadio = 0;
 }
 
 void GPLinkAddon::getStatus(GPLinkStatus &out) {
@@ -57,6 +60,9 @@ void GPLinkAddon::getStatus(GPLinkStatus &out) {
     out.processCalls = processCalls;
     out.rxBytes = rxBytes;
     out.uptimeS = now / 1000;
+    strncpy(out.fwVersion, compFw, sizeof(out.fwVersion) - 1);
+    out.fwVersion[sizeof(out.fwVersion) - 1] = '\0';
+    out.radioFlags = compRadio;
 }
 
 bool GPLinkAddon::requestCaps() {
@@ -560,8 +566,32 @@ void GPLinkAddon::pumpRx(uint32_t now) {
                 // forever, flooding the link with handshake chatter.
                 sendGpioConfigs();
                 sendAnalogConfigs();
+                // A fresh boot (or radio change, which the companion also
+                // announces via HELLO) is the moment to (re)query identity:
+                // version + radio byte for the status readout.
+                {
+                    uint8_t payload[4];
+                    size_t len = gplink_pack_feature_req(GPLINK_FEATURE_IDENTITY, payload);
+                    if (len > 0) sendFrame(GPLINK_TYPE_FEATURE_REQ, payload, len);
+                }
                 ignoredFrames++;
                 break;
+            case GPLINK_TYPE_FEATURE_ACK: {
+                // Companion identity (version string + radio byte). Session
+                // state, re-queried on every HELLO; unknown features ignored.
+                char ver[GPLINK_TEST_VER_MAX + 1] = {0};
+                uint8_t feature = 0, verLen = 0, radio = 0;
+                if (gplink_unpack_feature_ack_identity(&frame, &feature, ver, &verLen,
+                                                       GPLINK_TEST_VER_MAX, &radio)) {
+                    strncpy(compFw, ver, sizeof(compFw) - 1);
+                    compFw[sizeof(compFw) - 1] = '\0';
+                    compRadio = radio;
+                    handledFrames++;
+                } else {
+                    ignoredFrames++;
+                }
+                break;
+            }
             case GPLINK_TYPE_HEARTBEAT:
             case GPLINK_TYPE_RUMBLE_SET:
             case GPLINK_TYPE_PLAYER_LED_SET:

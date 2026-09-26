@@ -299,6 +299,74 @@ static void test_raw_types_roundtrip() {
     wire_roundtrip(GPLINK_TYPE_HTTP_FRAG, http, sizeof(http), &f);
 }
 
+static void test_test_configure() {
+    uint8_t payload[16] = {0};
+    size_t n = gplink_pack_test_configure(7, 32, 0x02, 1000, 5, payload);
+    assert(n == 7);
+    assert(payload[0] == 7 && payload[1] == 32 && payload[2] == 0x02);
+    assert(payload[3] == (1000 & 0xFF) && payload[4] == (1000 >> 8));
+    assert(payload[5] == 5 && payload[6] == 0);
+    gplink_frame f;
+    wire_roundtrip(GPLINK_TYPE_TEST_CONFIGURE, payload, (uint8_t)n, &f);
+    uint8_t testId = 0, pin = 0, fn = 0;
+    uint16_t p1 = 0, p2 = 0;
+    assert(gplink_unpack_test_configure(&f, &testId, &pin, &fn, &p1, &p2));
+    assert(testId == 7 && pin == 32 && fn == 0x02 && p1 == 1000 && p2 == 5);
+    gplink_frame wrong = f;
+    wrong.type = GPLINK_TYPE_TEST_RESULT;
+    assert(!gplink_unpack_test_configure(&wrong, &testId, &pin, &fn, &p1, &p2));
+    gplink_frame trunc = f;
+    trunc.len = 6;
+    assert(!gplink_unpack_test_configure(&trunc, &testId, &pin, &fn, &p1, &p2));
+}
+
+static void test_test_result() {
+    uint8_t payload[16] = {0};
+    size_t n = gplink_pack_test_result(7, 1, 60000, 3, payload);
+    assert(n == 6);
+    assert(payload[0] == 7 && payload[1] == 1);
+    assert(payload[2] == (60000 & 0xFF) && payload[3] == (60000 >> 8));
+    assert(payload[4] == 3 && payload[5] == 0);
+    gplink_frame f;
+    wire_roundtrip(GPLINK_TYPE_TEST_RESULT, payload, (uint8_t)n, &f);
+    uint8_t testId = 0, status = 0;
+    uint16_t value = 0, count = 0;
+    assert(gplink_unpack_test_result(&f, &testId, &status, &value, &count));
+    assert(testId == 7 && status == 1 && value == 60000 && count == 3);
+    gplink_frame wrong = f;
+    wrong.type = GPLINK_TYPE_TEST_CONFIGURE;
+    assert(!gplink_unpack_test_result(&wrong, &testId, &status, &value, &count));
+    gplink_frame trunc = f;
+    trunc.len = 5;
+    assert(!gplink_unpack_test_result(&trunc, &testId, &status, &value, &count));
+}
+
+static void test_feature_identity() {
+    uint8_t payload[32] = {0};
+    size_t n = gplink_pack_feature_req(GPLINK_FEATURE_IDENTITY, payload);
+    assert(n == 1 && payload[0] == GPLINK_FEATURE_IDENTITY);
+    n = gplink_pack_feature_ack_identity("1.0.0-dev", 9, 3, payload);
+    assert(n == 12);
+    assert(payload[0] == GPLINK_FEATURE_IDENTITY && payload[1] == 9);
+    assert(memcmp(&payload[2], "1.0.0-dev", 9) == 0);
+    assert(payload[11] == 3);
+    gplink_frame f;
+    wire_roundtrip(GPLINK_TYPE_FEATURE_ACK, payload, (uint8_t)n, &f);
+    uint8_t feature = 0, verLen = 0, radio = 0;
+    char ver[32] = {0};
+    assert(gplink_unpack_feature_ack_identity(&f, &feature, ver, &verLen, sizeof(ver) - 1, &radio));
+    assert(feature == GPLINK_FEATURE_IDENTITY && verLen == 9 && radio == 3);
+    assert(strcmp(ver, "1.0.0-dev") == 0);
+    gplink_frame wrong = f;
+    wrong.payload[0] = 0x02;
+    assert(!gplink_unpack_feature_ack_identity(&wrong, &feature, ver, &verLen, sizeof(ver) - 1, &radio));
+    gplink_frame trunc = f;
+    trunc.len = 11;
+    assert(!gplink_unpack_feature_ack_identity(&trunc, &feature, ver, &verLen, sizeof(ver) - 1, &radio));
+    assert(!gplink_unpack_feature_ack_identity(&f, &feature, ver, &verLen, 4, &radio));
+    assert(gplink_pack_feature_ack_identity("1234567890123456789012345", 25, 0, payload) == 0);
+}
+
 int main() {
     test_input_state();
     test_hello();
@@ -311,6 +379,9 @@ int main() {
     test_analog_config();
     test_analog_read();
     test_pin_caps();
+    test_test_configure();
+    test_test_result();
+    test_feature_identity();
     test_raw_types_roundtrip();
     printf("messages: all assertions passed\n");
     return 0;

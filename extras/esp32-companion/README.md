@@ -66,3 +66,37 @@ bash extras/esp32-companion/tests/run_tests.sh
 
 Validates the PIN_CAPS table against the researched per-pin rules
 (reserved absent, strapping/ADC/input-only verdicts, sorted order).
+
+## Loopback self-check (documented procedure, no extra code)
+
+Proves a wire between any two companion pins with no main board involved:
+
+1. Jumper the two pins (e.g. GPIO25 → GPIO32).
+2. Drive one side: send `TEST_CONFIGURE` (hold high / toggle cycle), or
+   for a DAC pin use console `d` (DAC sweep on GPIO25).
+3. Watch the other side: its `GPIO_READ` mask bits (digital) or
+   `ANALOG_READ` values (ADC pin) must follow. With a companion console
+   open, `x` lists active tests and the `GPLink: TX/RX` frame tap shows
+   both directions.
+4. Stop with `TEST_CONFIGURE` function `0xFF` (or console toggles off);
+   all tests also abort automatically if the link drops.
+
+## Self-test protocol (TEST_CONFIGURE 0x16 / TEST_RESULT 0x17)
+
+Session-only pin exerciser (never persisted, never runs while link is
+down; every test aborts silently on link drop). One test per pin,
+max 8 concurrent; re-configuring a pin replaces silently; over-cap
+answers busy. Simulate family (0x00 hold low, 0x01 hold high, 0x02
+toggle cycle, 0x03/0x04/0x05 sweep up/down/triangle) feeds the normal
+`GPIO_READ`/`ANALOG_READ` pipelines (analog sweeps are synthetic, so
+every board qualifies — no DAC needed); drive family (0x0A/0x0B/0x0C
+low/high/cycle, 0x0D PWM via LEDC with timer bit-bang fallback) owns
+the pin electrically. Analog functions require the ADC bit, drive
+requires OUTPUT (same NAK vocabulary as GPIO/ANALOG_CONFIG); reserved
+and link-UART pins always refuse. `0xFF` stops one test (or all with
+testId `0xFF`). Results carry running/done/aborted/bad-pin/
+unsupported/busy status; completion reports once, long runners are
+observed through the normal streams. Identity (`FEATURE_REQ 0x0B` /
+`FEATURE_ACK 0x0C`, feature `0x01`) reports firmware version +
+radio byte (bit0 WiFi, bit1 BT, M2-owned); the main board queries on
+every HELLO and the companion re-announces on radio change.

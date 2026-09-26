@@ -78,6 +78,8 @@ struct GPLinkStatus {
     uint32_t processCalls;  // process() invocations (dispatch watchdog)
     uint32_t rxBytes;       // total bytes drained from RX FIFO
     uint32_t uptimeS;       // getMillis()/1000 at status time (reboot detector)
+    char fwVersion[32];     // companion firmware string (FEATURE identity)
+    uint8_t radioFlags;     // companion radio byte (bit0 WiFi, bit1 BT)
 };
 
 class GPLinkAddon : public GPAddon {
@@ -157,6 +159,10 @@ private:
     uint8_t lastWeak;           // last RUMBLE_SET weak intensity sent
     uint8_t lastStrong;         // last RUMBLE_SET strong intensity sent
     uint32_t lastActMs;         // last actuation send (5 s backstop)
+    char compFw[32];            // companion fw string (FEATURE identity, session)
+    uint8_t compRadio;          // companion radio byte (session)
+    char compFw[32];            // companion fw string (FEATURE identity, session)
+    uint8_t compRadio;          // companion radio flags (bit0 WiFi, bit1 BT)
 };
 
 GPLinkAddon *GPLink_GetAddon(); // null until the addon is constructed
