@@ -517,14 +517,9 @@ const GPLinkAnalog = ({
 				{/* One banner slot above the tabs, swapped per tab so the
 				stick and trigger guidance never stack. */}
 				{activeTab === 'triggers' ? (
-					<>
-						<div className="alert alert-info" role="alert">
-							{t('AddonsConfig:gplink-analog-triggers-sub-header-text')}
-						</div>
-						<p className="text-muted">
-							{t('AddonsConfig:gplink-analog-triggers-help-text')}
-						</p>
-					</>
+					<div className="alert alert-info" role="alert">
+						{t('AddonsConfig:gplink-analog-triggers-sub-header-text')}
+					</div>
 				) : (
 					<div className="alert alert-info" role="alert">
 						{t('AddonsConfig:gplink-analog-sub-header-text')}
@@ -948,7 +943,14 @@ const GPLinkAnalog = ({
 						{t('AddonsConfig:gplink-analog-save-label')}
 					</Button>
 				</div>
-				<div className="col-sm-6 d-flex justify-content-end">
+				<div className="col-sm-6 d-flex flex-column align-items-end gap-2">
+					{activeTab === 'triggers' && (
+						<span className="text-muted text-end">
+							<small>
+								{t('AddonsConfig:gplink-analog-triggers-help-text')}
+							</small>
+						</span>
+					)}
 					<FormCheck
 						label={t('Common:switch-enabled')}
 						type="switch"
