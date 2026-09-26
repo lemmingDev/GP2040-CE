@@ -1,4 +1,4 @@
-import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, FormCheck, Row, Tab, Tabs } from 'react-bootstrap';
 import * as yup from 'yup';
@@ -514,27 +514,6 @@ const GPLinkAnalog = ({
 		rtS: 0,
 	});
 	const [activeTab, setActiveTab] = useState(gplinkAnalogActiveTab);
-	// Measured height of the stick panes: the triggers pane borrows the
-	// tallest seen so all tabs match without hardcoding pixels. Hidden panes
-	// have no layout, so measure only while a stick tab is active; the
-	// fallback covers a fresh load straight onto Triggers.
-	const tabsRef = useRef<HTMLDivElement>(null);
-	const [stickPaneHeight, setStickPaneHeight] = useState<number | undefined>(
-		undefined,
-	);
-	const measureStickPane = useCallback(() => {
-		const pane = tabsRef.current?.querySelector(
-			'.tab-content > .tab-pane.active',
-		) as HTMLElement | null;
-		if (pane != null && pane.offsetHeight > 0) {
-			setStickPaneHeight((prev) =>
-				prev == null || pane.offsetHeight > prev ? pane.offsetHeight : prev,
-			);
-		}
-	}, []);
-	useEffect(() => {
-		if (activeTab !== 'triggers') measureStickPane();
-	}, [activeTab, measureStickPane]);
 	// False when the live feed errors: surfaces poll failures in the UI
 	// instead of leaving silently frozen numbers.
 	const [liveOk, setLiveOk] = useState(true);
@@ -665,9 +644,8 @@ const GPLinkAnalog = ({
 						{t('AddonsConfig:gplink-analog-sub-header-text')}
 					</div>
 				)}
-				<div ref={tabsRef}>
-					<Tabs
-						activeKey={activeTab}
+				<Tabs
+					activeKey={activeTab}
 					onSelect={(k) => {
 						if (k) {
 							gplinkAnalogActiveTab = k;
@@ -1104,10 +1082,7 @@ const GPLinkAnalog = ({
 						</Tab>
 					))}
 					<Tab eventKey="triggers" title={t('AddonsConfig:gplink-analog-triggers')}>
-						{/* Floor the tab height to match the taller stick tabs
-						(grows past this if content needs it). */}
-						<div style={{ minHeight: stickPaneHeight ?? 650 }}>
-							<div className="text-end mb-2">
+						<div className="text-end mb-2">
 								<span className="text-muted">
 									<small>
 										{t('AddonsConfig:gplink-analog-triggers-help-text')}
@@ -1229,10 +1204,8 @@ const GPLinkAnalog = ({
 								</div>
 							</Row>
 						))}
-						</div>
 					</Tab>
 				</Tabs>
-				</div>
 			</div>
 			<Row className="mt-2 align-items-center">
 				<div className="col-sm-6 d-flex align-items-center">
