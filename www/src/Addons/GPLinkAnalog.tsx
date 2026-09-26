@@ -1000,6 +1000,8 @@ const GPLinkAnalog = ({
 									>
 										{t('AddonsConfig:gplink-analog-trigger-full-label')}
 									</Button>{' '}
+								</div>
+								<div className="col-sm-12 mt-2">
 									<span
 										className="text-muted"
 										aria-live="polite"
