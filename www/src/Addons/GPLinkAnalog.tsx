@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, FormCheck, Row, Tab, Tabs } from 'react-bootstrap';
+import { Button, Form, FormCheck, Row, Tab, Tabs } from 'react-bootstrap';
 import * as yup from 'yup';
 
 import Section from '../Components/Section';
@@ -45,43 +45,43 @@ export const gplinkAnalogScheme = {
 	gplinkAnalogAxis0InnerDeadzone: yup
 		.number()
 		.label('GPLink Axis 0 Inner Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
 	gplinkAnalogAxis1InnerDeadzone: yup
 		.number()
 		.label('GPLink Axis 1 Inner Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
 	gplinkAnalogAxis2InnerDeadzone: yup
 		.number()
 		.label('GPLink Axis 2 Inner Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
 	gplinkAnalogAxis3InnerDeadzone: yup
 		.number()
 		.label('GPLink Axis 3 Inner Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
 	gplinkAnalogAxis0OuterDeadzone: yup
 		.number()
 		.label('GPLink Axis 0 Outer Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
 	gplinkAnalogAxis1OuterDeadzone: yup
 		.number()
 		.label('GPLink Axis 1 Outer Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
 	gplinkAnalogAxis2OuterDeadzone: yup
 		.number()
 		.label('GPLink Axis 2 Outer Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
 	gplinkAnalogAxis3OuterDeadzone: yup
 		.number()
 		.label('GPLink Axis 3 Outer Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
 	gplinkAnalogLeftStickDeadzone: yup
 		.number()
 		.label('GPLink Left Stick Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
 	gplinkAnalogRightStickDeadzone: yup
 		.number()
 		.label('GPLink Right Stick Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
 	gplinkAnalogInvertEnabled: yup
 		.number()
 		.label('GPLink Invert Enable')
@@ -284,6 +284,52 @@ const TRIGGERS = [
 		pinLabel: 'AddonsConfig:gplink-analog-rt-pin-label',
 	},
 ];
+
+// Deadzone slider (0-20%): label with live value, range input, inline error.
+// Used for every deadzone percent field instead of a number box.
+const DeadzoneSlider = ({
+	label,
+	name,
+	value,
+	error,
+	isInvalid,
+	onChange,
+	groupClassName,
+	hidden,
+}: {
+	label: string;
+	name: string;
+	value: number;
+	error?: string;
+	isInvalid?: boolean;
+	onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+	groupClassName?: string;
+	hidden?: boolean;
+}) => (
+	<div className={groupClassName} hidden={hidden}>
+		<Form.Label htmlFor={name}>
+			{label}{' '}
+			<span className="text-muted" style={{ fontVariantNumeric: 'tabular-nums' }}>
+				{value}%
+			</span>
+		</Form.Label>
+		<Form.Range
+			id={name}
+			name={name}
+			value={value}
+			onChange={onChange}
+			min={0}
+			max={20}
+			step={1}
+			isInvalid={isInvalid}
+		/>
+		{isInvalid === true && error != null && error !== '' && (
+			<div className="text-danger">
+				<small>{error}</small>
+			</div>
+		)}
+	</div>
+);
 
 // Active tab cache, module-level so a save (which unmounts the section
 // behind the loading spinner and remounts it) returns to the tab you were
@@ -601,7 +647,7 @@ const GPLinkAnalog = ({
 											)}
 											type="switch"
 											id={`GPLinkAnalog${stick.key}Invert${axis}`}
-											className="col-sm-5 ms-3"
+											className="col-sm-6"
 											isInvalid={false}
 											checked={Boolean(values.gplinkAnalogInvertEnabled & bit)}
 											onChange={() =>
@@ -714,6 +760,30 @@ const GPLinkAnalog = ({
 							</Row>
 							<Row className="mb-3">
 								<FormCheck
+									label={t(stick.deadzoneEnabledLabel)}
+									type="switch"
+									id={`GPLinkAnalog${stick.key}Deadzone`}
+									className="col-sm-5 ms-3"
+									isInvalid={false}
+									checked={Boolean(values[stick.deadzoneEnabled])}
+									onChange={(e) => {
+										handleCheckbox(stick.deadzoneEnabled);
+										handleChange(e);
+									}}
+								/>
+								<DeadzoneSlider
+									hidden={!values[stick.deadzoneEnabled]}
+									label={t(stick.deadzoneLabel)}
+									name={stick.deadzone}
+									groupClassName="col-sm-6 mb-3"
+									value={values[stick.deadzone]}
+									error={errors[stick.deadzone]}
+									isInvalid={Boolean(errors[stick.deadzone])}
+									onChange={handleChange}
+								/>
+							</Row>
+							<Row className="mb-3">
+								<FormCheck
 									label={t('AddonsConfig:analog-force-circularity')}
 									type="switch"
 									id={`GPLinkAnalog${stick.key}Circularity`}
@@ -726,45 +796,15 @@ const GPLinkAnalog = ({
 									}}
 								/>
 							</Row>
-							<Row className="mb-3">
-								<FormCheck
-									label={t(stick.deadzoneEnabledLabel)}
-									type="switch"
-									id={`GPLinkAnalog${stick.key}Deadzone`}
-									className="col-sm-5 ms-3"
-									isInvalid={false}
-									checked={Boolean(values[stick.deadzoneEnabled])}
-									onChange={(e) => {
-										handleCheckbox(stick.deadzoneEnabled);
-										handleChange(e);
-									}}
-								/>
-								<FormControl
-									hidden={!values[stick.deadzoneEnabled]}
-									type="number"
-									label={t(stick.deadzoneLabel)}
-									name={stick.deadzone}
-									className="form-control-sm"
-									groupClassName="col-sm-6 mb-3"
-									value={values[stick.deadzone]}
-									error={errors[stick.deadzone]}
-									isInvalid={Boolean(errors[stick.deadzone])}
-									onChange={handleChange}
-									min={0}
-									max={100}
-								/>
-							</Row>
 							</div>
 							<div className="col-sm-5">
 								<h6>{t('AddonsConfig:gplink-analog-deadzone-header-text')}</h6>
-								<FormControl
-									type="number"
+								<DeadzoneSlider
 									label={t(
 										'AddonsConfig:gplink-analog-axis-inner-deadzone-label',
 										{ axis: stick.key === 'stick1' ? 'LX' : 'RX' },
 									)}
 									name={`gplinkAnalogAxis${stick.xAxis}InnerDeadzone`}
-									className="form-control-sm"
 									groupClassName="mb-3"
 									value={values[`gplinkAnalogAxis${stick.xAxis}InnerDeadzone`]}
 									error={errors[`gplinkAnalogAxis${stick.xAxis}InnerDeadzone`]}
@@ -772,17 +812,13 @@ const GPLinkAnalog = ({
 										errors[`gplinkAnalogAxis${stick.xAxis}InnerDeadzone`],
 									)}
 									onChange={handleChange}
-									min={0}
-									max={100}
 								/>
-								<FormControl
-									type="number"
+								<DeadzoneSlider
 									label={t(
 										'AddonsConfig:gplink-analog-axis-inner-deadzone-label',
 										{ axis: stick.key === 'stick1' ? 'LY' : 'RY' },
 									)}
 									name={`gplinkAnalogAxis${stick.yAxis}InnerDeadzone`}
-									className="form-control-sm"
 									groupClassName="mb-3"
 									value={values[`gplinkAnalogAxis${stick.yAxis}InnerDeadzone`]}
 									error={errors[`gplinkAnalogAxis${stick.yAxis}InnerDeadzone`]}
@@ -790,17 +826,13 @@ const GPLinkAnalog = ({
 										errors[`gplinkAnalogAxis${stick.yAxis}InnerDeadzone`],
 									)}
 									onChange={handleChange}
-									min={0}
-									max={100}
 								/>
-								<FormControl
-									type="number"
+								<DeadzoneSlider
 									label={t(
 										'AddonsConfig:gplink-analog-axis-outer-deadzone-label',
 										{ axis: stick.key === 'stick1' ? 'LX' : 'RX' },
 									)}
 									name={`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`}
-									className="form-control-sm"
 									groupClassName="mb-3"
 									value={values[`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`]}
 									error={errors[`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`]}
@@ -808,17 +840,13 @@ const GPLinkAnalog = ({
 										errors[`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`],
 									)}
 									onChange={handleChange}
-									min={0}
-									max={100}
 								/>
-								<FormControl
-									type="number"
+								<DeadzoneSlider
 									label={t(
 										'AddonsConfig:gplink-analog-axis-outer-deadzone-label',
 										{ axis: stick.key === 'stick1' ? 'LY' : 'RY' },
 									)}
 									name={`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`}
-									className="form-control-sm"
 									groupClassName="mb-3"
 									value={values[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`]}
 									error={errors[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`]}
@@ -826,8 +854,6 @@ const GPLinkAnalog = ({
 										errors[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`],
 									)}
 									onChange={handleChange}
-									min={0}
-									max={100}
 								/>
 							</div>
 						</Row>
