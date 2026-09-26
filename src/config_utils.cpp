@@ -827,16 +827,18 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, outerDeadzoneEnabled, 0);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, leftStickDeadzoneEnabled, false);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rightStickDeadzoneEnabled, false);
-    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis0InnerDeadzone, 0);
-    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis1InnerDeadzone, 0);
-    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis2InnerDeadzone, 0);
-    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis3InnerDeadzone, 0);
+    // Deadzone defaults mirror the ADS1115 reference addon (inner 5,
+    // outer 100 = effectively linear, stick 5 but switch-gated off).
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis0InnerDeadzone, 5);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis1InnerDeadzone, 5);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis2InnerDeadzone, 5);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis3InnerDeadzone, 5);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis0OuterDeadzone, 100);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis1OuterDeadzone, 100);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis2OuterDeadzone, 100);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, axis3OuterDeadzone, 100);
-    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, leftStickDeadzone, 0);
-    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rightStickDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, leftStickDeadzone, 5);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rightStickDeadzone, 5);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, invertEnabled, 0);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, autoCalibrate, 0);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, lxCenter, GAMEPAD_JOYSTICK_MID);
