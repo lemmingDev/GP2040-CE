@@ -106,6 +106,8 @@ public:
     uint32_t getShapedRuns() { return shapedRuns; }
     // Gamepad pointer seen by shaping (diagnostic: identity vs endpoint's).
     uintptr_t getLastPadSeen() { return lastPadSeen; }
+    // Computed axis[0] snapshot (diagnostic: compute-side vs store-side).
+    uint16_t getDbgAxis0() { return dbgAxis0; }
 
 private:
     void sendHello();
@@ -144,6 +146,7 @@ private:
     float analogEma[4] = {};  // EMA history per axis (official inits 0.0f)
     uint32_t shapedRuns = 0;  // completed applyAnalogAxes passes
     uintptr_t lastPadSeen = 0; // GetGamepad() value seen by shaping
+    uint16_t dbgAxis0 = 0;    // computed axis[0] snapshot (write-side probe)
     uint8_t lastLedMask;        // last PLAYER_LED_SET mask sent
     uint8_t lastWeak;           // last RUMBLE_SET weak intensity sent
     uint8_t lastStrong;         // last RUMBLE_SET strong intensity sent
