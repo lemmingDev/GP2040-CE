@@ -425,65 +425,92 @@ const StickPad = ({ x, y }: { x: number; y: number }) => {
 	);
 };
 
-// Trigger level bar: shaded [min, max] window with a primary marker at the
-// live raw value and a success marker at the shaped output (0-255). Decorative
-// (aria-hidden); the adjacent live text carries the values.
+// Trigger level bars: raw value as a solid fill over the shaded [min, max]
+// window, plus a second shaped-output fill below. Decorative (aria-hidden);
+// the adjacent live text carries the values.
 const TriggerBar = ({
 	v,
 	s,
 	min,
 	max,
+	rawLabel,
+	shapedLabel,
 }: {
 	v: number;
 	s: number;
 	min: number;
 	max: number;
+	rawLabel: string;
+	shapedLabel: string;
 }) => {
 	const pct = (n: number) => Math.min(100, Math.max(0, (n / 65535) * 100));
 	const lo = Math.min(min, max);
 	const hi = Math.max(min, max);
+	const spct = Math.min(100, Math.max(0, (s / 255) * 100));
 	return (
-		<div
-			aria-hidden="true"
-			className="mt-1"
-			style={{
-				position: 'relative',
-				height: 10,
-				background: 'var(--bs-tertiary-bg)',
-				borderRadius: 4,
-				overflow: 'hidden',
-			}}
-		>
-			<div
-				style={{
-					position: 'absolute',
-					left: `${pct(lo)}%`,
-					width: `${Math.max(0, pct(hi) - pct(lo))}%`,
-					top: 0,
-					bottom: 0,
-					background: 'var(--bs-secondary)',
-				}}
-			/>
-			<div
-				style={{
-					position: 'absolute',
-					left: `calc(${pct(v)}% - 4px)`,
-					top: 0,
-					bottom: 0,
-					width: 8,
-					background: 'var(--bs-primary)',
-				}}
-			/>
-			<div
-				style={{
-					position: 'absolute',
-					left: `calc(${Math.min(100, Math.max(0, (s / 255) * 100))}% - 4px)`,
-					top: 0,
-					bottom: 0,
-					width: 8,
-					background: 'var(--bs-success)',
-				}}
-			/>
+		<div aria-hidden="true" className="mt-1 d-flex flex-column gap-1">
+			<div className="d-flex align-items-center gap-2">
+				<small className="text-muted" style={{ width: 52 }}>
+					{rawLabel}
+				</small>
+				<div
+					className="flex-fill"
+					style={{
+						position: 'relative',
+						height: 12,
+						background: 'var(--bs-tertiary-bg)',
+						borderRadius: 4,
+						overflow: 'hidden',
+					}}
+				>
+					<div
+						style={{
+							position: 'absolute',
+							left: `${pct(lo)}%`,
+							width: `${Math.max(0, pct(hi) - pct(lo))}%`,
+							top: 0,
+							bottom: 0,
+							background: 'var(--bs-secondary)',
+						}}
+					/>
+					<div
+						style={{
+							position: 'absolute',
+							left: 0,
+							width: `${pct(v)}%`,
+							top: 0,
+							bottom: 0,
+							background: 'var(--bs-primary)',
+						}}
+					/>
+				</div>
+			</div>
+			<div className="d-flex align-items-center gap-2">
+				<small className="text-muted" style={{ width: 52 }}>
+					{shapedLabel}
+				</small>
+				<div
+					className="flex-fill"
+					style={{
+						position: 'relative',
+						height: 12,
+						background: 'var(--bs-tertiary-bg)',
+						borderRadius: 4,
+						overflow: 'hidden',
+					}}
+				>
+					<div
+						style={{
+							position: 'absolute',
+							left: 0,
+							width: `${spct}%`,
+							top: 0,
+							bottom: 0,
+							background: 'var(--bs-success)',
+						}}
+					/>
+				</div>
+			</div>
 		</div>
 	);
 };
@@ -1200,6 +1227,8 @@ const GPLinkAnalog = ({
 										s={liveValues[`${trigger.key}S`]}
 										min={values[trigger.min]}
 										max={values[trigger.max]}
+										rawLabel={t('AddonsConfig:gplink-analog-raw-label')}
+										shapedLabel={t('AddonsConfig:gplink-analog-shaped-label')}
 									/>
 								</div>
 							</Row>
