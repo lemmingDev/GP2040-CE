@@ -270,13 +270,15 @@ void GPLinkAddon::applyAnalogAxes() {
     // An unmapped pin (-1) disables that trigger; nothing is written.
     bool anyTrigger = false;
     if (options.ltPin >= 0 && options.ltPin < GPLINK_PIN_COUNT) {
-        gamepad->state.lt = gplinkTriggerValue(analogValues[options.ltPin],
-                                               options.ltMin, options.ltMax);
+        uint8_t lt = gplinkTriggerValue(analogValues[options.ltPin],
+                                        options.ltMin, options.ltMax);
+        gamepad->state.lt = (options.triggerInvert & 0x01) ? (uint8_t)(255 - lt) : lt;
         anyTrigger = true;
     }
     if (options.rtPin >= 0 && options.rtPin < GPLINK_PIN_COUNT) {
-        gamepad->state.rt = gplinkTriggerValue(analogValues[options.rtPin],
-                                               options.rtMin, options.rtMax);
+        uint8_t rt = gplinkTriggerValue(analogValues[options.rtPin],
+                                        options.rtMin, options.rtMax);
+        gamepad->state.rt = (options.triggerInvert & 0x02) ? (uint8_t)(255 - rt) : rt;
         anyTrigger = true;
     }
     if (anyTrigger) gamepad->hasAnalogTriggers = true;

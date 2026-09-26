@@ -1012,6 +1012,10 @@ message GPLinkAnalogOptions
     optional uint32 ltMax = 36;
     optional uint32 rtMin = 37;
     optional uint32 rtMax = 38;
+    // Per-trigger invert bitmask (bit0 = LT, bit1 = RT), applied after the
+    // min/max window. No other addon inverts triggers; sticks use the
+    // invertEnabled axis bitmask above.
+    optional uint32 triggerInvert = 39;
 }
 
 message AddonOptions

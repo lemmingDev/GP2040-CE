@@ -2419,6 +2419,7 @@ std::string setAddonOptions()
     docToValue(gplinkAnalogOptions.ltMax, doc, "gplinkAnalogLtMax");
     docToValue(gplinkAnalogOptions.rtMin, doc, "gplinkAnalogRtMin");
     docToValue(gplinkAnalogOptions.rtMax, doc, "gplinkAnalogRtMax");
+    docToValue(gplinkAnalogOptions.triggerInvert, doc, "gplinkAnalogTriggerInvert");
     // TX/RX default to valid pins that may never pass through docToPin (the UI
     // only POSTs changed values), so mark/unmark on enable/disable as well.
     {
@@ -2966,6 +2967,7 @@ std::string getAddonOptions()
     writeDoc(doc, "gplinkAnalogLtMax", gplinkAnalogOptions.ltMax);
     writeDoc(doc, "gplinkAnalogRtMin", gplinkAnalogOptions.rtMin);
     writeDoc(doc, "gplinkAnalogRtMax", gplinkAnalogOptions.rtMax);
+    writeDoc(doc, "gplinkAnalogTriggerInvert", gplinkAnalogOptions.triggerInvert);
 
     const OnBoardLedOptions& onBoardLedOptions = Storage::getInstance().getAddonOptions().onBoardLedOptions;
     writeDoc(doc, "onBoardLedMode", onBoardLedOptions.mode);

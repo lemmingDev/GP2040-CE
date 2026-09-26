@@ -128,6 +128,7 @@ export default {
 	'gplink-analog-right-stick-deadzone-label': 'Right Stick Deadzone (%)',
 	'gplink-analog-axis-inner-deadzone-label': '{{axis}} Inner Deadzone (%)',
 	'gplink-analog-axis-outer-deadzone-label': '{{axis}} Outer Deadzone (%)',
+	'gplink-analog-axis-invert-label': 'Invert {{axis}}',
 	'gplink-analog-stick-1': 'Stick 1 (Left)',
 	'gplink-analog-stick-2': 'Stick 2 (Right)',
 	'gplink-analog-calibrate-label': 'Calibrate center',
