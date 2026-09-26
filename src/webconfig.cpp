@@ -438,13 +438,16 @@ std::string getUsedPins()
 // post-pipeline gamepad state (centers, EMA, deadzones, min/max, invert) so
 // the UI can show raw vs modified side by side.
 //
-// NOTE: keys must be string literals, not const char* variables. ArduinoJson
-// stores literal keys by pointer (zero-copy) but duplicates pointer keys
-// into the doc pool, which silently overflows this exact-fit capacity and
-// serializes to {} (frozen UI with no error).
+// NOTE: key storage vs capacity. ArduinoJson 6 duplicates keys into the doc
+// pool unless the key arrives as plain `const char*` (which it links). Our
+// writeDoc() helper takes `const K&`, so string literals deduce K as an
+// array type (Copy policy), NOT a pointer — every key here costs pool bytes.
+// Size the pool for slots PLUS key strings (6x3B + 6x4B); without the slack,
+// later insertions fail silently and serialize as missing keys (frozen UI
+// with no error — exactly what happened to the shaped keys).
 std::string getGPLinkAnalogValues()
 {
-    const size_t capacity = JSON_OBJECT_SIZE(12);
+    const size_t capacity = JSON_OBJECT_SIZE(12) + 64;
     DynamicJsonDocument doc(capacity);
     const GPLinkAnalogOptions& options = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
     GPLinkAddon *addon = GPLink_GetAddon();
