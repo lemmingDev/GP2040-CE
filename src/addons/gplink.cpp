@@ -260,11 +260,14 @@ void GPLinkAddon::applyAnalogAxes() {
         }
     }
     Gamepad *gamepad = Storage::getInstance().GetGamepad();
-    lastPadSeen = (uintptr_t)gamepad;
     gamepad->state.lx = axis[0];
     gamepad->state.ly = axis[1];
     gamepad->state.rx = axis[2];
     gamepad->state.ry = axis[3];
+    shapedState[0] = axis[0];
+    shapedState[1] = axis[1];
+    shapedState[2] = axis[2];
+    shapedState[3] = axis[3];
     // Analog triggers mirror the ADS1256 addon: normalized full-range
     // companion values mapped straight to lt/rt, asserted every poll (our
     // addon runs last, so this wins over addons that clear the flag).
@@ -273,17 +276,20 @@ void GPLinkAddon::applyAnalogAxes() {
     if (options.ltPin >= 0 && options.ltPin < GPLINK_PIN_COUNT) {
         uint8_t lt = gplinkTriggerValue(analogValues[options.ltPin],
                                         options.ltMin, options.ltMax);
-        gamepad->state.lt = (options.triggerInvert & 0x01) ? (uint8_t)(255 - lt) : lt;
+        lt = (options.triggerInvert & 0x01) ? (uint8_t)(255 - lt) : lt;
+        gamepad->state.lt = lt;
+        shapedState[4] = lt;
         anyTrigger = true;
     }
     if (options.rtPin >= 0 && options.rtPin < GPLINK_PIN_COUNT) {
         uint8_t rt = gplinkTriggerValue(analogValues[options.rtPin],
                                         options.rtMin, options.rtMax);
-        gamepad->state.rt = (options.triggerInvert & 0x02) ? (uint8_t)(255 - rt) : rt;
+        rt = (options.triggerInvert & 0x02) ? (uint8_t)(255 - rt) : rt;
+        gamepad->state.rt = rt;
+        shapedState[5] = rt;
         anyTrigger = true;
     }
     if (anyTrigger) gamepad->hasAnalogTriggers = true;
-    dbgAxis0 = axis[0];
     shapedRuns++;
 }
 

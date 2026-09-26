@@ -468,13 +468,14 @@ std::string getGPLinkAnalogValues()
     writeDoc(doc, "ry", values[3]);
     writeDoc(doc, "lt", values[4]);
     writeDoc(doc, "rt", values[5]);
-    const GamepadState &shaped = Storage::getInstance().GetGamepad()->state;
-    writeDoc(doc, "lxS", shaped.lx);
-    writeDoc(doc, "lyS", shaped.ly);
-    writeDoc(doc, "rxS", shaped.rx);
-    writeDoc(doc, "ryS", shaped.ry);
-    writeDoc(doc, "ltS", shaped.lt);
-    writeDoc(doc, "rtS", shaped.rt);
+    // Shaped outputs come from the addon's stable mirror, NOT the live
+    // gamepad state (see header comment on getShaped).
+    writeDoc(doc, "lxS", addon != nullptr ? addon->getShaped(0) : GAMEPAD_JOYSTICK_MID);
+    writeDoc(doc, "lyS", addon != nullptr ? addon->getShaped(1) : GAMEPAD_JOYSTICK_MID);
+    writeDoc(doc, "rxS", addon != nullptr ? addon->getShaped(2) : GAMEPAD_JOYSTICK_MID);
+    writeDoc(doc, "ryS", addon != nullptr ? addon->getShaped(3) : GAMEPAD_JOYSTICK_MID);
+    writeDoc(doc, "ltS", addon != nullptr ? addon->getShaped(4) : 0);
+    writeDoc(doc, "rtS", addon != nullptr ? addon->getShaped(5) : 0);
     // Diagnostics: shaping-pass counter, link started flag, process calls,
     // and firmware build hash (proves which build serves this page).
     GPLinkStatus linkStatus = {};
@@ -485,19 +486,6 @@ std::string getGPLinkAnalogValues()
     writeDoc(doc, "started", linkStatus.started);
     writeDoc(doc, "calls", linkStatus.processCalls);
     writeDoc(doc, "fw", GP2040BUILD);
-    // dbg: recompute axis0 centering here from the same live inputs the
-    // pipeline uses. If dbg tracks raw while lxS stays MID, the state write
-    // itself isn't landing on this object; if dbg is also MID, the pipeline
-    // inputs diverge from what's served.
-    int32_t dbg = (int32_t)values[0] - (int32_t)options.lxCenter + GAMEPAD_JOYSTICK_MID;
-    if (dbg < (int32_t)GAMEPAD_JOYSTICK_MIN) dbg = (int32_t)GAMEPAD_JOYSTICK_MIN;
-    if (dbg > (int32_t)GAMEPAD_JOYSTICK_MAX) dbg = (int32_t)GAMEPAD_JOYSTICK_MAX;
-    writeDoc(doc, "dbg", (uint16_t)dbg);
-    // Object identity on both sides of the write/read path.
-    Gamepad *epPad = Storage::getInstance().GetGamepad();
-    writeDoc(doc, "padW", addon != nullptr ? addon->getLastPadSeen() : 0);
-    writeDoc(doc, "padR", (uint32_t)(uintptr_t)epPad);
-    writeDoc(doc, "ax0", addon != nullptr ? addon->getDbgAxis0() : 0);
     return serialize_json(doc);
 }
 
