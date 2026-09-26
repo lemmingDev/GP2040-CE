@@ -467,20 +467,20 @@ const TriggerBar = ({
 			<div
 				style={{
 					position: 'absolute',
-					left: `calc(${pct(v)}% - 2px)`,
+					left: `calc(${pct(v)}% - 4px)`,
 					top: 0,
 					bottom: 0,
-					width: 4,
+					width: 8,
 					background: 'var(--bs-primary)',
 				}}
 			/>
 			<div
 				style={{
 					position: 'absolute',
-					left: `calc(${Math.min(100, Math.max(0, (s / 255) * 100))}% - 2px)`,
+					left: `calc(${Math.min(100, Math.max(0, (s / 255) * 100))}% - 4px)`,
 					top: 0,
 					bottom: 0,
-					width: 4,
+					width: 8,
 					background: 'var(--bs-success)',
 				}}
 			/>
