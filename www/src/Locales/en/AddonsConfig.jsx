@@ -153,7 +153,7 @@ export default {
 	'gplink-analog-trigger-max-label': '{{name}} Max (Full Press)',
 	'gplink-analog-trigger-rest-label': 'Set Rest',
 	'gplink-analog-trigger-full-label': 'Set Full',
-	'gplink-analog-trigger-live-text': 'Live: {{v}}',
+	'gplink-analog-trigger-live-text': 'Live: {{v}} Shaped: {{s}}',
 	'gplink-analog-triggers-help-text':
 		'Rest the trigger and Set Rest, press fully and Set Full, then Save.',
 	'gplink-pull-label': 'Pull',
