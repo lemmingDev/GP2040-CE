@@ -133,6 +133,7 @@ export default {
 	'gplink-analog-calibrate-label': 'Calibrate center',
 	'gplink-analog-center-text': 'Center: X={{x}} Y={{y}} (leave sticks untouched, then Save)',
 	'gplink-analog-live-text': 'Live: X={{x}} Y={{y}}',
+	'gplink-analog-live-error-text': '(live feed unreachable — check the link)',
 	'gplink-analog-triggers': 'Triggers',
 	'gplink-analog-triggers-sub-header-text':
 		'Map companion ADC pins (by companion GPIO number, -1 = disabled) to analog triggers. Values arrive normalized full-range (0 = released, 65535 = fully pressed) and drive lt/rt with analog-trigger-capable drivers (XInput, PS4, PS3); other drivers treat any nonzero value as pressed.',

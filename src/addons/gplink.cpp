@@ -180,7 +180,15 @@ void GPLinkAddon::applyAnalogAxes() {
             break;
         }
     }
-    if (!anyMapped) return; // enabled but nothing mapped: leave sticks alone
+    // Triggers without sticks still need the tail of the pipeline (the
+    // trigger block runs after the stick section below).
+    if (!anyMapped) {
+        if ((options.ltPin >= 0 && options.ltPin < GPLINK_PIN_COUNT) ||
+            (options.rtPin >= 0 && options.rtPin < GPLINK_PIN_COUNT)) {
+            anyMapped = true;
+        }
+    }
+    if (!anyMapped) return; // enabled but nothing mapped: leave state alone
     const uint32_t innerDz[4] = {options.axis0InnerDeadzone, options.axis1InnerDeadzone,
                                  options.axis2InnerDeadzone, options.axis3InnerDeadzone};
     const uint32_t outerDz[4] = {options.axis0OuterDeadzone, options.axis1OuterDeadzone,
