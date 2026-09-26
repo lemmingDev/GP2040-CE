@@ -526,9 +526,14 @@ const GPLinkAnalog = ({
 				{/* One banner slot above the tabs, swapped per tab so the
 				stick and trigger guidance never stack. */}
 				{activeTab === 'triggers' ? (
-					<div className="alert alert-info" role="alert">
-						{t('AddonsConfig:gplink-analog-triggers-sub-header-text')}
-					</div>
+					<>
+						<div className="alert alert-info" role="alert">
+							{t('AddonsConfig:gplink-analog-triggers-sub-header-text')}
+						</div>
+						<p className="text-muted">
+							{t('AddonsConfig:gplink-analog-triggers-help-text')}
+						</p>
+					</>
 				) : (
 					<div className="alert alert-info" role="alert">
 						{t('AddonsConfig:gplink-analog-sub-header-text')}
@@ -834,13 +839,6 @@ const GPLinkAnalog = ({
 						{/* Floor the tab height so the card doesn't shrink vs the
 						taller stick tabs (grows past this if content needs it). */}
 						<div style={{ minHeight: 470 }}>
-							<div className="text-end mb-2">
-								<span className="text-muted">
-									<small>
-										{t('AddonsConfig:gplink-analog-triggers-help-text')}
-									</small>
-								</span>
-							</div>
 							{TRIGGERS.map((trigger) => (
 							<Row className="mb-3" key={trigger.key}>
 								<FormControl

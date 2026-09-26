@@ -493,6 +493,10 @@ std::string getGPLinkAnalogValues()
     if (dbg < (int32_t)GAMEPAD_JOYSTICK_MIN) dbg = (int32_t)GAMEPAD_JOYSTICK_MIN;
     if (dbg > (int32_t)GAMEPAD_JOYSTICK_MAX) dbg = (int32_t)GAMEPAD_JOYSTICK_MAX;
     writeDoc(doc, "dbg", (uint16_t)dbg);
+    // Object identity on both sides of the write/read path.
+    Gamepad *epPad = Storage::getInstance().GetGamepad();
+    writeDoc(doc, "padW", addon != nullptr ? addon->getLastPadSeen() : 0);
+    writeDoc(doc, "padR", (uint32_t)(uintptr_t)epPad);
     return serialize_json(doc);
 }
 

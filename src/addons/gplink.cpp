@@ -260,6 +260,7 @@ void GPLinkAddon::applyAnalogAxes() {
         }
     }
     Gamepad *gamepad = Storage::getInstance().GetGamepad();
+    lastPadSeen = (uintptr_t)gamepad;
     gamepad->state.lx = axis[0];
     gamepad->state.ly = axis[1];
     gamepad->state.rx = axis[2];
