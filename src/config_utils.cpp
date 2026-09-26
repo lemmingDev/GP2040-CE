@@ -854,10 +854,10 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rxCenter, GAMEPAD_JOYSTICK_MID);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, ryCenter, GAMEPAD_JOYSTICK_MID);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, smoothingEnabled, false);
-    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, smoothingFactor, 5);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, smoothingFactor, 2);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, forcedCircularity, false);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, smoothingEnabled2, false);
-    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, smoothingFactor2, 5);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, smoothingFactor2, 2);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, forcedCircularity2, false);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, ltPin, -1);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rtPin, -1);
@@ -866,6 +866,14 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rtMin, 0);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rtMax, GAMEPAD_JOYSTICK_MAX);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, triggerInvert, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, lxMin, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, lxMax, GAMEPAD_JOYSTICK_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, lyMin, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, lyMax, GAMEPAD_JOYSTICK_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rxMin, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, rxMax, GAMEPAD_JOYSTICK_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, ryMin, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkAnalogOptions, ryMax, GAMEPAD_JOYSTICK_MAX);
   
     // addonOptions.analogADS1115Options
     INIT_UNSET_PROPERTY(config.addonOptions.analogADS1115Options, enabled, !!I2C_ANALOG1115_ENABLED);

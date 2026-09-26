@@ -113,7 +113,7 @@ export const gplinkAnalogScheme = {
 	gplinkAnalogSmoothingFactor: yup
 		.number()
 		.label('GPLink Smoothing Factor')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 10),
 	gplinkAnalogForcedCircularity: yup
 		.number()
 		.label('GPLink Force Circularity')
@@ -125,7 +125,7 @@ export const gplinkAnalogScheme = {
 	gplinkAnalogSmoothingFactor2: yup
 		.number()
 		.label('GPLink Smoothing Factor 2')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 10),
 	gplinkAnalogForcedCircularity2: yup
 		.number()
 		.label('GPLink Force Circularity 2')
@@ -174,6 +174,38 @@ export const gplinkAnalogScheme = {
 		.number()
 		.label('GPLink Trigger Invert')
 		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 3),
+	gplinkAnalogLxMin: yup
+		.number()
+		.label('GPLink Left X Min')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+	gplinkAnalogLxMax: yup
+		.number()
+		.label('GPLink Left X Max')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+	gplinkAnalogLyMin: yup
+		.number()
+		.label('GPLink Left Y Min')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+	gplinkAnalogLyMax: yup
+		.number()
+		.label('GPLink Left Y Max')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+	gplinkAnalogRxMin: yup
+		.number()
+		.label('GPLink Right X Min')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+	gplinkAnalogRxMax: yup
+		.number()
+		.label('GPLink Right X Max')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+	gplinkAnalogRyMin: yup
+		.number()
+		.label('GPLink Right Y Min')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+	gplinkAnalogRyMax: yup
+		.number()
+		.label('GPLink Right Y Max')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
 };
 
 export const gplinkAnalogState = {
@@ -203,10 +235,10 @@ export const gplinkAnalogState = {
 	gplinkAnalogRxCenter: 32767,
 	gplinkAnalogRyCenter: 32767,
 	gplinkAnalogSmoothingEnabled: 0,
-	gplinkAnalogSmoothingFactor: 5,
+	gplinkAnalogSmoothingFactor: 2,
 	gplinkAnalogForcedCircularity: 0,
 	gplinkAnalogSmoothingEnabled2: 0,
-	gplinkAnalogSmoothingFactor2: 5,
+	gplinkAnalogSmoothingFactor2: 2,
 	gplinkAnalogForcedCircularity2: 0,
 	gplinkAnalogLtPin: -1,
 	gplinkAnalogRtPin: -1,
@@ -215,6 +247,14 @@ export const gplinkAnalogState = {
 	gplinkAnalogRtMin: 0,
 	gplinkAnalogRtMax: 65535,
 	gplinkAnalogTriggerInvert: 0,
+	gplinkAnalogLxMin: 0,
+	gplinkAnalogLxMax: 65535,
+	gplinkAnalogLyMin: 0,
+	gplinkAnalogLyMax: 65535,
+	gplinkAnalogRxMin: 0,
+	gplinkAnalogRxMax: 65535,
+	gplinkAnalogRyMin: 0,
+	gplinkAnalogRyMax: 65535,
 };
 
 // Stick tabs mirror the core Analog page: pins + deadzones + one-click
@@ -236,6 +276,10 @@ const STICKS = [
 		centerY: 'gplinkAnalogLyCenter',
 		valueX: 'lx',
 		valueY: 'ly',
+		minX: 'gplinkAnalogLxMin',
+		maxX: 'gplinkAnalogLxMax',
+		minY: 'gplinkAnalogLyMin',
+		maxY: 'gplinkAnalogLyMax',
 		smoothingEnabled: 'gplinkAnalogSmoothingEnabled',
 		smoothingFactor: 'gplinkAnalogSmoothingFactor',
 		forcedCircularity: 'gplinkAnalogForcedCircularity',
@@ -256,6 +300,10 @@ const STICKS = [
 		centerY: 'gplinkAnalogRyCenter',
 		valueX: 'rx',
 		valueY: 'ry',
+		minX: 'gplinkAnalogRxMin',
+		maxX: 'gplinkAnalogRxMax',
+		minY: 'gplinkAnalogRyMin',
+		maxY: 'gplinkAnalogRyMax',
 		smoothingEnabled: 'gplinkAnalogSmoothingEnabled2',
 		smoothingFactor: 'gplinkAnalogSmoothingFactor2',
 		forcedCircularity: 'gplinkAnalogForcedCircularity2',
@@ -570,6 +618,18 @@ const GPLinkAnalog = ({
 		}
 	};
 
+	// Capture a stick axis window edge from the live raw value (exact sample,
+	// no margin — mirrors official readCalibrationSample averaging intent;
+	// the user trims with the fields).
+	const captureAxis = async (
+		valueKey: 'lx' | 'ly' | 'rx' | 'ry',
+		field: string,
+	) => {
+		const data = await WebApi.getGPLinkAnalogValues();
+		if (!data || typeof data[valueKey] !== 'number') return;
+		setFieldValue(field, data[valueKey] as number);
+	};
+
 	return (
 		<Section title={t('AddonsConfig:gplink-analog-header-text')}>
 			<div id="GPLinkAnalogOptions" hidden={!values.GPLinkAnalogEnabled}>
@@ -735,6 +795,126 @@ const GPLinkAnalog = ({
 								</div>
 							</Row>
 							<Row className="mb-3">
+								<FormControl
+									type="number"
+									label={t('AddonsConfig:gplink-analog-axis-min-label', {
+										axis: stick.key === 'stick1' ? 'LX' : 'RX',
+									})}
+									name={stick.minX}
+									className="form-control-sm"
+									groupClassName="col-sm-6 mb-3"
+									value={values[stick.minX]}
+									error={errors[stick.minX]}
+									isInvalid={Boolean(errors[stick.minX])}
+									onChange={handleChange}
+									min={0}
+									max={65535}
+								/>
+								<FormControl
+									type="number"
+									label={t('AddonsConfig:gplink-analog-axis-max-label', {
+										axis: stick.key === 'stick1' ? 'LX' : 'RX',
+									})}
+									name={stick.maxX}
+									className="form-control-sm"
+									groupClassName="col-sm-6 mb-3"
+									value={values[stick.maxX]}
+									error={errors[stick.maxX]}
+									isInvalid={Boolean(errors[stick.maxX])}
+									onChange={handleChange}
+									min={0}
+									max={65535}
+								/>
+							</Row>
+							<Row className="mb-3">
+								<FormControl
+									type="number"
+									label={t('AddonsConfig:gplink-analog-axis-min-label', {
+										axis: stick.key === 'stick1' ? 'LY' : 'RY',
+									})}
+									name={stick.minY}
+									className="form-control-sm"
+									groupClassName="col-sm-6 mb-3"
+									value={values[stick.minY]}
+									error={errors[stick.minY]}
+									isInvalid={Boolean(errors[stick.minY])}
+									onChange={handleChange}
+									min={0}
+									max={65535}
+								/>
+								<FormControl
+									type="number"
+									label={t('AddonsConfig:gplink-analog-axis-max-label', {
+										axis: stick.key === 'stick1' ? 'LY' : 'RY',
+									})}
+									name={stick.maxY}
+									className="form-control-sm"
+									groupClassName="col-sm-6 mb-3"
+									value={values[stick.maxY]}
+									error={errors[stick.maxY]}
+									isInvalid={Boolean(errors[stick.maxY])}
+									onChange={handleChange}
+									min={0}
+									max={65535}
+								/>
+							</Row>
+							<Row className="mb-3">
+								<div className="col-sm-12">
+									<Button
+										size="sm"
+										onClick={() =>
+											captureAxis(
+												stick.valueX as 'lx' | 'ly' | 'rx' | 'ry',
+												stick.minX,
+											)
+										}
+									>
+										{t('AddonsConfig:gplink-analog-set-min-label', {
+											axis: stick.key === 'stick1' ? 'LX' : 'RX',
+										})}
+									</Button>{' '}
+									<Button
+										size="sm"
+										onClick={() =>
+											captureAxis(
+												stick.valueX as 'lx' | 'ly' | 'rx' | 'ry',
+												stick.maxX,
+											)
+										}
+									>
+										{t('AddonsConfig:gplink-analog-set-max-label', {
+											axis: stick.key === 'stick1' ? 'LX' : 'RX',
+										})}
+									</Button>{' '}
+									<Button
+										size="sm"
+										onClick={() =>
+											captureAxis(
+												stick.valueY as 'lx' | 'ly' | 'rx' | 'ry',
+												stick.minY,
+											)
+										}
+									>
+										{t('AddonsConfig:gplink-analog-set-min-label', {
+											axis: stick.key === 'stick1' ? 'LY' : 'RY',
+										})}
+									</Button>{' '}
+									<Button
+										size="sm"
+										onClick={() =>
+											captureAxis(
+												stick.valueY as 'lx' | 'ly' | 'rx' | 'ry',
+												stick.maxY,
+											)
+										}
+									>
+										{t('AddonsConfig:gplink-analog-set-max-label', {
+											axis: stick.key === 'stick1' ? 'LY' : 'RY',
+										})}
+									</Button>
+								</div>
+							</Row>
+							<Row className="mb-3">
 								<FormCheck
 									label={
 										<>
@@ -767,7 +947,7 @@ const GPLinkAnalog = ({
 										value={values[stick.smoothingFactor]}
 										onChange={handleChange}
 										min={0}
-										max={100}
+										max={10}
 										step={1}
 									/>
 									{Boolean(errors[stick.smoothingFactor]) && (

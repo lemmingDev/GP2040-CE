@@ -196,10 +196,28 @@ void GPLinkAddon::applyAnalogAxes() {
     uint16_t axis[4];
     const uint32_t centers[4] = {options.lxCenter, options.lyCenter,
                                  options.rxCenter, options.ryCenter};
+    const uint32_t axisMins[4] = {options.lxMin, options.lyMin,
+                                  options.rxMin, options.ryMin};
+    const uint32_t axisMaxs[4] = {options.lxMax, options.lyMax,
+                                  options.rxMax, options.ryMax};
     for (uint8_t i = 0; i < 4; i++) {
         if (pins[i] >= 0 && pins[i] < GPLINK_PIN_COUNT) {
-            int32_t centered = (int32_t)analogValues[pins[i]] - (int32_t)centers[i]
-                               + GAMEPAD_JOYSTICK_MID;
+            uint16_t raw = analogValues[pins[i]];
+            uint32_t c = centers[i], lo = axisMins[i], hi = axisMaxs[i];
+            int32_t centered;
+            // Asymmetric min/center/max map mirroring official readPin: a
+            // valid window maps each side to full range; otherwise the
+            // legacy centers-only mapping applies (identity at defaults).
+            if (lo < c && c < hi) {
+                float delta = (float)raw - (float)c;
+                float span = (delta < 0.0f) ? (float)(c - lo) : (float)(hi - c);
+                float fv = (float)GAMEPAD_JOYSTICK_MID
+                         + (float)GAMEPAD_JOYSTICK_MID * (delta / span);
+                centered = (int32_t)std::clamp(fv, (float)GAMEPAD_JOYSTICK_MIN,
+                                               (float)GAMEPAD_JOYSTICK_MAX);
+            } else {
+                centered = (int32_t)raw - (int32_t)c + GAMEPAD_JOYSTICK_MID;
+            }
             axis[i] = (uint16_t)std::clamp(centered, (int32_t)GAMEPAD_JOYSTICK_MIN,
                                            (int32_t)GAMEPAD_JOYSTICK_MAX);
         } else {
@@ -209,8 +227,9 @@ void GPLinkAddon::applyAnalogAxes() {
         uint32_t inner = innerDz[i] * (1 << 16) / 100;
         uint32_t outer = outerDz[i] * (1 << 16) / 100;
         // Per-axis inner snap (self-arming: nonzero percent enables it; the
-        // innerDeadzoneEnabled bitmask is unused).
-        if (inner > 0 && abs(offset) < (int32_t)inner) {
+        // innerDeadzoneEnabled bitmask is unused). Snap boundary inclusive,
+        // mirroring official (<=).
+        if (inner > 0 && abs(offset) <= (int32_t)inner) {
             axis[i] = GAMEPAD_JOYSTICK_MID;
         } else {
             // Outer rescale mirrors the official Analog addon: the [inner,
@@ -228,14 +247,26 @@ void GPLinkAddon::applyAnalogAxes() {
         if (options.invertEnabled & (GPLINK_ANALOG_AXIS_FLAG_START >> i)) {
             axis[i] = GAMEPAD_JOYSTICK_MAX - axis[i];
         }
-        // EMA smoothing before deadzones, mirroring AnalogInput (alpha is
-        // thousandths; history persists while disabled, official behavior).
-        bool smooth = (i < 2) ? options.smoothingEnabled : options.smoothingEnabled2;
-        if (smooth) {
-            uint32_t factor = (i < 2) ? options.smoothingFactor : options.smoothingFactor2;
-            float alpha = (float)factor / 1000.0f;
+        // EMA smoothing mirrors official AnalogInput: strength scale 0-10
+        // with alpha = 10^(-strength/2); out-of-range strength disables.
+        // First sample seeds history (no ramp from a corner). Alpha is
+        // cached per stick and recomputed only when the factor changes.
+        uint8_t s = (i < 2) ? 0 : 1;
+        bool smooth = ((i < 2) ? options.smoothingEnabled : options.smoothingEnabled2);
+        uint32_t factor = (i < 2) ? options.smoothingFactor : options.smoothingFactor2;
+        bool useSmooth = smooth && factor >= 1 && factor <= 10;
+        if (useSmooth) {
+            if (emaAlphaFactor[s] != factor) {
+                emaAlphaFactor[s] = factor;
+                emaAlpha[s] = powf(10.0f, -0.5f * (float)factor);
+            }
             float norm = (float)axis[i] / (float)GAMEPAD_JOYSTICK_MAX;
-            analogEma[i] = alpha * norm + (1.0f - alpha) * analogEma[i];
+            if (!emaReady[i]) {
+                analogEma[i] = norm;
+                emaReady[i] = true;
+            } else {
+                analogEma[i] = analogEma[i] + emaAlpha[s] * (norm - analogEma[i]);
+            }
             axis[i] = (uint16_t)(analogEma[i] * (float)GAMEPAD_JOYSTICK_MAX);
         }
         // TODO apply auto calibration (also TODO upstream)

@@ -144,7 +144,10 @@ private:
     uint64_t lastOutputMask;    // last GPIO_WRITE mask sent to companion
     uint32_t lastOutputMs;      // last GPIO_WRITE send (5 s backstop)
     uint16_t analogValues[64];  // last ANALOG_READ values by companion pin
-    float analogEma[4] = {};  // EMA history per axis (official inits 0.0f)
+    float analogEma[4] = {0.5f, 0.5f, 0.5f, 0.5f}; // EMA history (seeded on first sample, mirrors official)
+    bool emaReady[4] = {};      // per-axis EMA seeded flag
+    float emaAlpha[2] = {};     // cached alpha per stick (recomputed on factor change)
+    uint32_t emaAlphaFactor[2] = {0xFFFFFFFFu, 0xFFFFFFFFu};
     uint32_t shapedRuns = 0;  // completed applyAnalogAxes passes
     // Post-pipeline output snapshot (lx,ly,rx,ry,lt,rt). Written every pass;
     // the monitor endpoint serves this, not the volatile gamepad state.
