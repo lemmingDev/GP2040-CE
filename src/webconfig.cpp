@@ -435,30 +435,34 @@ std::string getUsedPins()
 // Live companion analog values for calibration (raw mapped values,
 // pre-deadzone, so the true center/rest is visible). Sticks read MID and
 // triggers 0 when unmapped or nothing received.
+//
+// NOTE: keys must be string literals, not const char* variables. ArduinoJson
+// stores literal keys by pointer (zero-copy) but duplicates pointer keys
+// into the doc pool, which silently overflows this exact-fit capacity and
+// serializes to {} (frozen UI with no error).
 std::string getGPLinkAnalogValues()
 {
     const size_t capacity = JSON_OBJECT_SIZE(6);
     DynamicJsonDocument doc(capacity);
     const GPLinkAnalogOptions& options = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
     GPLinkAddon *addon = GPLink_GetAddon();
-    const int32_t pins[4] = {options.lxPin, options.lyPin, options.rxPin, options.ryPin};
-    const char *keys[4] = {"lx", "ly", "rx", "ry"};
-    for (uint8_t i = 0; i < 4; i++) {
-        uint16_t value = GAMEPAD_JOYSTICK_MID;
+    const int32_t pins[6] = {options.lxPin, options.lyPin, options.rxPin, options.ryPin,
+                             options.ltPin, options.rtPin};
+    const uint16_t defaults[6] = {GAMEPAD_JOYSTICK_MID, GAMEPAD_JOYSTICK_MID, GAMEPAD_JOYSTICK_MID,
+                                  GAMEPAD_JOYSTICK_MID, 0, 0};
+    uint16_t values[6];
+    for (uint8_t i = 0; i < 6; i++) {
+        values[i] = defaults[i];
         if (addon != nullptr && pins[i] >= 0 && pins[i] < GPLINK_PIN_COUNT) {
-            value = addon->getAnalogPinValue((uint8_t)pins[i]);
+            values[i] = addon->getAnalogPinValue((uint8_t)pins[i]);
         }
-        writeDoc(doc, keys[i], value);
     }
-    const int32_t triggerPins[2] = {options.ltPin, options.rtPin};
-    const char *triggerKeys[2] = {"lt", "rt"};
-    for (uint8_t i = 0; i < 2; i++) {
-        uint16_t value = 0;
-        if (addon != nullptr && triggerPins[i] >= 0 && triggerPins[i] < GPLINK_PIN_COUNT) {
-            value = addon->getAnalogPinValue((uint8_t)triggerPins[i]);
-        }
-        writeDoc(doc, triggerKeys[i], value);
-    }
+    writeDoc(doc, "lx", values[0]);
+    writeDoc(doc, "ly", values[1]);
+    writeDoc(doc, "rx", values[2]);
+    writeDoc(doc, "ry", values[3]);
+    writeDoc(doc, "lt", values[4]);
+    writeDoc(doc, "rt", values[5]);
     return serialize_json(doc);
 }
 

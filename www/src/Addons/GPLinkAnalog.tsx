@@ -297,7 +297,9 @@ const GPLinkAnalog = ({
 			try {
 				const data = await WebApi.getGPLinkAnalogValues();
 				if (!alive) return;
-				if (!data) {
+				// The lx key is always written; its absence means the payload
+				// serialized empty (e.g. doc pool overflow), not just stale.
+				if (!data || typeof data.lx !== 'number') {
 					setLiveOk(false);
 					return;
 				}
