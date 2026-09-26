@@ -419,8 +419,6 @@ const GPLinkAnalog = ({
 	// False when the live feed errors: surfaces poll failures in the UI
 	// instead of leaving silently frozen numbers.
 	const [liveOk, setLiveOk] = useState(true);
-	// Firmware build hash serving this page (proves which build is flashed).
-	const [fw, setFw] = useState('');
 	useEffect(() => {
 		let alive = true;
 		let id: ReturnType<typeof setInterval> | null = null;
@@ -435,9 +433,6 @@ const GPLinkAnalog = ({
 					return;
 				}
 				setLiveOk(true);
-				setFw((prev) =>
-					typeof data.fw === 'string' && data.fw !== '' ? data.fw : prev,
-				);
 				setLiveValues((prev) => {
 					// Bail out (same reference, no re-render) when nothing moved:
 					// the companion only pushes on change, so most polls repeat.
@@ -839,6 +834,13 @@ const GPLinkAnalog = ({
 						{/* Floor the tab height so the card doesn't shrink vs the
 						taller stick tabs (grows past this if content needs it). */}
 						<div style={{ minHeight: 470 }}>
+							<div className="text-end mb-2">
+								<span className="text-muted">
+									<small>
+										{t('AddonsConfig:gplink-analog-triggers-help-text')}
+									</small>
+								</span>
+							</div>
 							{TRIGGERS.map((trigger) => (
 							<Row className="mb-3" key={trigger.key}>
 								<FormControl
@@ -960,20 +962,8 @@ const GPLinkAnalog = ({
 					<Button type="submit">
 						{t('AddonsConfig:gplink-analog-save-label')}
 					</Button>
-					{fw !== '' && (
-						<span className="text-muted ms-3">
-							<small>FW {fw}</small>
-						</span>
-					)}
 				</div>
 				<div className="col-sm-6 d-flex flex-column align-items-end gap-2">
-					{activeTab === 'triggers' && (
-						<span className="text-muted text-end">
-							<small>
-								{t('AddonsConfig:gplink-analog-triggers-help-text')}
-							</small>
-						</span>
-					)}
 					<FormCheck
 						label={t('Common:switch-enabled')}
 						type="switch"

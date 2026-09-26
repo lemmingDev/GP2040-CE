@@ -447,7 +447,7 @@ std::string getUsedPins()
 // with no error — exactly what happened to the shaped keys).
 std::string getGPLinkAnalogValues()
 {
-    const size_t capacity = JSON_OBJECT_SIZE(16) + 96;
+    const size_t capacity = JSON_OBJECT_SIZE(20) + 96;
     DynamicJsonDocument doc(capacity);
     const GPLinkAnalogOptions& options = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
     GPLinkAddon *addon = GPLink_GetAddon();
@@ -485,6 +485,14 @@ std::string getGPLinkAnalogValues()
     writeDoc(doc, "started", linkStatus.started);
     writeDoc(doc, "calls", linkStatus.processCalls);
     writeDoc(doc, "fw", GP2040BUILD);
+    // dbg: recompute axis0 centering here from the same live inputs the
+    // pipeline uses. If dbg tracks raw while lxS stays MID, the state write
+    // itself isn't landing on this object; if dbg is also MID, the pipeline
+    // inputs diverge from what's served.
+    int32_t dbg = (int32_t)values[0] - (int32_t)options.lxCenter + GAMEPAD_JOYSTICK_MID;
+    if (dbg < (int32_t)GAMEPAD_JOYSTICK_MIN) dbg = (int32_t)GAMEPAD_JOYSTICK_MIN;
+    if (dbg > (int32_t)GAMEPAD_JOYSTICK_MAX) dbg = (int32_t)GAMEPAD_JOYSTICK_MAX;
+    writeDoc(doc, "dbg", (uint16_t)dbg);
     return serialize_json(doc);
 }
 
