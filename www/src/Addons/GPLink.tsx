@@ -301,6 +301,9 @@ const GPLink = ({
 						<p className="text-muted">
 							{t('AddonsConfig:gplink-pins-sub-header-text')}
 						</p>
+						<p className="text-muted">
+							<small>{t('AddonsConfig:gplink-pins-legend-text')}</small>
+						</p>
 					</div>
 					{rowPins.map((pin) => {
 						const name = pinName(pin);
@@ -342,22 +345,29 @@ const GPLink = ({
 												</option>
 											))}
 									</FormSelect>
-									{assigned && (
-										<div className="d-flex gap-2 mt-1 align-items-end">
-											<span className="text-muted">
-												{t('AddonsConfig:gplink-direction-output')}
-											</span>
-											<FormCheck
-												label={t('AddonsConfig:gplink-invert-label')}
-												type="checkbox"
-												id={`gplink-${name}-inverted`}
-												checked={Boolean(inverted)}
-												onChange={(e) =>
-													setPinInverted('gplink', 0, name, e.target.checked)
-												}
-											/>
-										</div>
-									)}
+									{/* Always reserve the sub-control row height so assigned and
+									unassigned cells stay aligned in the grid. */}
+									<div
+										className="d-flex gap-2 mt-1 align-items-end"
+										style={{ minHeight: 38 }}
+									>
+										{assigned && (
+											<>
+												<span className="text-muted">
+													{t('AddonsConfig:gplink-direction-output')}
+												</span>
+												<FormCheck
+													label={t('AddonsConfig:gplink-invert-label')}
+													type="checkbox"
+													id={`gplink-${name}-inverted`}
+													checked={Boolean(inverted)}
+													onChange={(e) =>
+														setPinInverted('gplink', 0, name, e.target.checked)
+													}
+												/>
+											</>
+										)}
+									</div>
 								</div>
 							);
 						}
@@ -387,39 +397,18 @@ const GPLink = ({
 											</option>
 										))}
 								</FormSelect>
-								{assigned && (
-									<div className="d-flex gap-2 mt-1">
-										<FormSelect
-											label={t('AddonsConfig:gplink-direction-label')}
-											name={`gplink-${name}-direction`}
-											className="form-select-sm"
-											value={direction}
-											onChange={(e) =>
-												setPinDirection(
-													'gplink',
-													0,
-													name,
-													parseInt(e.target.value, 10),
-												)
-											}
-										>
-											<option value={0}>
-												{t('AddonsConfig:gplink-direction-input')}
-											</option>
-											{canOutput && (
-												<option value={1}>
-													{t('AddonsConfig:gplink-direction-output')}
-												</option>
-											)}
-										</FormSelect>
-										{!isOutput && (
+								{/* Always reserve the sub-control row height so assigned and
+								unassigned cells stay aligned in the grid. */}
+								<div className="d-flex gap-2 mt-1" style={{ minHeight: 38 }}>
+									{assigned && (
+										<>
 											<FormSelect
-												label={t('AddonsConfig:gplink-pull-label')}
-												name={`gplink-${name}-pull`}
+												label={t('AddonsConfig:gplink-direction-label')}
+												name={`gplink-${name}-direction`}
 												className="form-select-sm"
-												value={pull}
+												value={direction}
 												onChange={(e) =>
-													setPinPull(
+													setPinDirection(
 														'gplink',
 														0,
 														name,
@@ -427,24 +416,54 @@ const GPLink = ({
 													)
 												}
 											>
-												{GPLINK_PULLS.map((o) => (
-													<option key={`gplink-${name}-pull-${o.value}`} value={o.value}>
-														{t(`AddonsConfig:gplink-pull-${o.label.toLowerCase()}`)}
+												<option value={0}>
+													{t('AddonsConfig:gplink-direction-input')}
+												</option>
+												{canOutput && (
+													<option value={1}>
+														{t('AddonsConfig:gplink-direction-output')}
 													</option>
-												))}
+												)}
 											</FormSelect>
-										)}
-										<FormCheck
-											label={t('AddonsConfig:gplink-invert-label')}
-											type="checkbox"
-											id={`gplink-${name}-inverted`}
-											checked={Boolean(inverted)}
-											onChange={(e) =>
-												setPinInverted('gplink', 0, name, e.target.checked)
-											}
-										/>
-									</div>
-								)}
+											{!isOutput && (
+												<FormSelect
+													label={t('AddonsConfig:gplink-pull-label')}
+													name={`gplink-${name}-pull`}
+													className="form-select-sm"
+													value={pull}
+													onChange={(e) =>
+														setPinPull(
+															'gplink',
+															0,
+															name,
+															parseInt(e.target.value, 10),
+														)
+													}
+												>
+													{GPLINK_PULLS.map((o) => (
+														<option
+															key={`gplink-${name}-pull-${o.value}`}
+															value={o.value}
+														>
+															{t(
+																`AddonsConfig:gplink-pull-${o.label.toLowerCase()}`,
+															)}
+														</option>
+													))}
+												</FormSelect>
+											)}
+											<FormCheck
+												label={t('AddonsConfig:gplink-invert-label')}
+												type="checkbox"
+												id={`gplink-${name}-inverted`}
+												checked={Boolean(inverted)}
+												onChange={(e) =>
+													setPinInverted('gplink', 0, name, e.target.checked)
+												}
+											/>
+										</>
+									)}
+								</div>
 							</div>
 						);
 					})}

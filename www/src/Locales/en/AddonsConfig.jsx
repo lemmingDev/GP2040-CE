@@ -94,7 +94,7 @@ export default {
 	'gplink-sub-header-text':
 		'Streams a copy of the processed gamepad inputs to a companion board over UART. Only pin pairs with a hardware UART function can be selected.',
 	'gplink-config-mode-note-text':
-		'Add-ons only run in gamepad mode: while webconfig is open the link is idle and the counters below show the boot probe only. Reboot to gamepad mode for live traffic.',
+		'Gamepad outputs (buttons, sticks, rumble/LED mirror) only run in gamepad mode. The link stays up in webconfig, so live analog values and discovery keep working.',
 	'gplink-instance-label': 'UART Instance',
 	'gplink-tx-pin-label': 'GP-Link TX GPIO Pin',
 	'gplink-rx-pin-label': 'GP-Link RX GPIO Pin',
@@ -105,7 +105,7 @@ export default {
 	'gplink-status-loop-open': 'OPEN (pins are NOT connected — check the jumper)',
 	'gplink-status-loop-driven':
 		'DRIVEN (a live peer holds the line — expected with a companion, not a jumper)',
-	'gplink-test-label': 'Test link & discover pins',
+	'gplink-test-label': 'Test Link & Discover Pins',
 	'gplink-test-running-label': 'Testing…',
 	'gplink-test-result-text':
 		'Continuity {{cont}} — companion {{name}} reports {{count}} pins (drained {{rxb}} bytes, {{rxf}} frames).',
@@ -114,6 +114,8 @@ export default {
 	'gplink-pins-header-text': 'Companion GPIO Inputs',
 	'gplink-pins-sub-header-text':
 		'Assign gamepad actions to companion pins. Run the test above to list reported pins, or configure all slots manually. ADC* pins do digital always; their analog needs wireless off.',
+	'gplink-pins-legend-text':
+		'Tags: ADC = analog-capable with wireless on · ADC* = analog needs wireless off · in-only / out-only = digital direction limits · ⚠strap = strapping pin, boot can fail if pulled wrong.',
 	'gplink-pins-save-label': 'Save Pin Assignments',
 	'gplink-analog-header-text': 'GP-Link Analog',
 	'gplink-analog-sub-header-text':
@@ -131,20 +133,24 @@ export default {
 	'gplink-analog-axis-invert-label': 'Invert {{axis}}',
 	'gplink-analog-stick-1': 'Stick 1 (Left)',
 	'gplink-analog-stick-2': 'Stick 2 (Right)',
-	'gplink-analog-calibrate-label': 'Calibrate center',
-	'gplink-analog-center-text': 'Center: X={{x}} Y={{y}} (leave sticks untouched, then Save)',
+	'gplink-analog-calibrate-label': 'Calibrate Center',
+	'gplink-analog-center-text': 'Center: X={{x}} Y={{y}}',
+	'gplink-analog-calibrate-help-text': 'Leave sticks untouched, capture, then Save.',
 	'gplink-analog-live-text': 'Live: X={{x}} Y={{y}}',
 	'gplink-analog-live-error-text': '(live feed unreachable — check the link)',
+	'gplink-analog-save-label': 'Save Analog Settings',
 	'gplink-analog-triggers': 'Triggers',
 	'gplink-analog-triggers-sub-header-text':
 		'Map companion ADC pins (by companion GPIO number, -1 = disabled) to analog triggers. Values arrive normalized full-range (0 = released, 65535 = fully pressed) and drive lt/rt with analog-trigger-capable drivers (XInput, PS4, PS3); other drivers treat any nonzero value as pressed.',
 	'gplink-analog-lt-pin-label': 'Left Trigger Companion Pin',
 	'gplink-analog-rt-pin-label': 'Right Trigger Companion Pin',
-	'gplink-analog-trigger-min-label': '{{name}} Min (rest)',
-	'gplink-analog-trigger-max-label': '{{name}} Max (full press)',
-	'gplink-analog-trigger-rest-label': 'Set rest',
-	'gplink-analog-trigger-full-label': 'Set full',
-	'gplink-analog-trigger-live-text': 'Live: {{v}} (rest the trigger, Set rest, press fully, Set full, then Save)',
+	'gplink-analog-trigger-min-label': '{{name}} Min (Rest)',
+	'gplink-analog-trigger-max-label': '{{name}} Max (Full Press)',
+	'gplink-analog-trigger-rest-label': 'Set Rest',
+	'gplink-analog-trigger-full-label': 'Set Full',
+	'gplink-analog-trigger-live-text': 'Live: {{v}}',
+	'gplink-analog-triggers-help-text':
+		'Rest the trigger and Set Rest, press fully and Set Full, then Save.',
 	'gplink-pull-label': 'Pull',
 	'gplink-pull-none': 'None',
 	'gplink-pull-up': 'Up',

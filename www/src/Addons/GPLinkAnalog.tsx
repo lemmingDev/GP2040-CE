@@ -145,7 +145,15 @@ export const gplinkAnalogScheme = {
 	gplinkAnalogLtMax: yup
 		.number()
 		.label('GPLink Left Trigger Max')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535)
+		.test(
+			'lt-window',
+			'GPLink Left Trigger Max: Max must be above Min',
+			function (v) {
+				if (!this.parent.GPLinkAnalogEnabled) return true;
+				return v > this.parent.gplinkAnalogLtMin;
+			},
+		),
 	gplinkAnalogRtMin: yup
 		.number()
 		.label('GPLink Right Trigger Min')
@@ -153,7 +161,15 @@ export const gplinkAnalogScheme = {
 	gplinkAnalogRtMax: yup
 		.number()
 		.label('GPLink Right Trigger Max')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535)
+		.test(
+			'rt-window',
+			'GPLink Right Trigger Max: Max must be above Min',
+			function (v) {
+				if (!this.parent.GPLinkAnalogEnabled) return true;
+				return v > this.parent.gplinkAnalogRtMin;
+			},
+		),
 	gplinkAnalogTriggerInvert: yup
 		.number()
 		.label('GPLink Trigger Invert')
@@ -273,6 +289,108 @@ const TRIGGERS = [
 // behind the loading spinner and remounts it) returns to the tab you were
 // on instead of falling back to stick1.
 let gplinkAnalogActiveTab = 'stick1';
+
+// 2-D stick position pad: dot at the live raw value over a center crosshair.
+// Decorative (aria-hidden); the adjacent live text carries the values.
+const StickPad = ({ x, y }: { x: number; y: number }) => {
+	const px = Math.min(100, Math.max(0, (x / 65535) * 100));
+	const py = Math.min(100, Math.max(0, (y / 65535) * 100));
+	return (
+		<div
+			aria-hidden="true"
+			style={{
+				position: 'relative',
+				width: 96,
+				height: 96,
+				flexShrink: 0,
+				border: '1px solid var(--bs-border-color)',
+				borderRadius: 4,
+			}}
+		>
+			<div
+				style={{
+					position: 'absolute',
+					left: '50%',
+					top: 0,
+					bottom: 0,
+					width: 1,
+					background: 'var(--bs-border-color)',
+				}}
+			/>
+			<div
+				style={{
+					position: 'absolute',
+					top: '50%',
+					left: 0,
+					right: 0,
+					height: 1,
+					background: 'var(--bs-border-color)',
+				}}
+			/>
+			<div
+				style={{
+					position: 'absolute',
+					left: `calc(${px}% - 4px)`,
+					top: `calc(${py}% - 4px)`,
+					width: 8,
+					height: 8,
+					borderRadius: '50%',
+					background: 'var(--bs-primary)',
+				}}
+			/>
+		</div>
+	);
+};
+
+// Trigger level bar: shaded [min, max] window with a marker at the live raw
+// value. Decorative (aria-hidden); the adjacent live text carries the value.
+const TriggerBar = ({
+	v,
+	min,
+	max,
+}: {
+	v: number;
+	min: number;
+	max: number;
+}) => {
+	const pct = (n: number) => Math.min(100, Math.max(0, (n / 65535) * 100));
+	const lo = Math.min(min, max);
+	const hi = Math.max(min, max);
+	return (
+		<div
+			aria-hidden="true"
+			className="mt-1"
+			style={{
+				position: 'relative',
+				height: 10,
+				background: 'var(--bs-tertiary-bg)',
+				borderRadius: 4,
+				overflow: 'hidden',
+			}}
+		>
+			<div
+				style={{
+					position: 'absolute',
+					left: `${pct(lo)}%`,
+					width: `${Math.max(0, pct(hi) - pct(lo))}%`,
+					top: 0,
+					bottom: 0,
+					background: 'var(--bs-secondary)',
+				}}
+			/>
+			<div
+				style={{
+					position: 'absolute',
+					left: `calc(${pct(v)}% - 1px)`,
+					top: 0,
+					bottom: 0,
+					width: 2,
+					background: 'var(--bs-primary)',
+				}}
+			/>
+		</div>
+	);
+};
 
 const GPLinkAnalog = ({
 	values,
@@ -505,6 +623,8 @@ const GPLinkAnalog = ({
 									min={0}
 									max={100}
 								/>
+							</Row>
+							<Row className="mb-3">
 								<FormCheck
 									label={t(stick.deadzoneEnabledLabel)}
 									type="switch"
@@ -571,17 +691,34 @@ const GPLinkAnalog = ({
 										})}
 									</span>{' '}
 									<span className="text-muted">
-										{t('AddonsConfig:gplink-analog-live-text', {
-											x: liveValues[stick.valueX],
-											y: liveValues[stick.valueY],
-										})}
+										{t('AddonsConfig:gplink-analog-calibrate-help-text')}
 									</span>
-									{!liveOk && (
-										<span className="text-danger">
-											{' '}
-											{t('AddonsConfig:gplink-analog-live-error-text')}
+								</div>
+							</Row>
+							<Row className="mb-3">
+								<div className="col-sm-12 d-flex align-items-center gap-3">
+									<StickPad
+										x={liveValues[stick.valueX]}
+										y={liveValues[stick.valueY]}
+									/>
+									<div>
+										<span
+											className="text-muted"
+											aria-live="polite"
+											style={{ fontVariantNumeric: 'tabular-nums' }}
+										>
+											{t('AddonsConfig:gplink-analog-live-text', {
+												x: liveValues[stick.valueX],
+												y: liveValues[stick.valueY],
+											})}
 										</span>
-									)}
+										{!liveOk && (
+											<span className="text-danger">
+												{' '}
+												{t('AddonsConfig:gplink-analog-live-error-text')}
+											</span>
+										)}
+									</div>
 								</div>
 							</Row>
 							<Row className="mb-3">
@@ -634,6 +771,9 @@ const GPLinkAnalog = ({
 								<div className="alert alert-info" role="alert">
 									{t('AddonsConfig:gplink-analog-triggers-sub-header-text')}
 								</div>
+								<p className="text-muted">
+									{t('AddonsConfig:gplink-analog-triggers-help-text')}
+								</p>
 							</div>
 						</Row>
 						{TRIGGERS.map((trigger) => (
@@ -724,7 +864,11 @@ const GPLinkAnalog = ({
 									>
 										{t('AddonsConfig:gplink-analog-trigger-full-label')}
 									</Button>{' '}
-									<span className="text-muted">
+									<span
+										className="text-muted"
+										aria-live="polite"
+										style={{ fontVariantNumeric: 'tabular-nums' }}
+									>
 										{t('AddonsConfig:gplink-analog-trigger-live-text', {
 											v: liveValues[trigger.key],
 										})}
@@ -735,27 +879,38 @@ const GPLinkAnalog = ({
 											{t('AddonsConfig:gplink-analog-live-error-text')}
 										</span>
 									)}
+									<TriggerBar
+										v={liveValues[trigger.key]}
+										min={values[trigger.min]}
+										max={values[trigger.max]}
+									/>
 								</div>
 							</Row>
 						))}
 					</Tab>
 				</Tabs>
 			</div>
-			<FormCheck
-				label={t('Common:switch-enabled')}
-				type="switch"
-				id="GPLinkAnalogButton"
-				reverse
-				isInvalid={false}
-				checked={Boolean(values.GPLinkAnalogEnabled)}
-				onChange={(e) => {
-					handleCheckbox('GPLinkAnalogEnabled');
-					handleChange(e);
-				}}
-			/>
-			<div className="mt-2">
-				<Button type="submit">{t('Common:button-save-label')}</Button>
-			</div>
+			<Row className="mt-2 align-items-center">
+				<div className="col-sm-6">
+					<Button type="submit">
+						{t('AddonsConfig:gplink-analog-save-label')}
+					</Button>
+				</div>
+				<div className="col-sm-6 d-flex justify-content-end">
+					<FormCheck
+						label={t('Common:switch-enabled')}
+						type="switch"
+						id="GPLinkAnalogButton"
+						reverse
+						isInvalid={false}
+						checked={Boolean(values.GPLinkAnalogEnabled)}
+						onChange={(e) => {
+							handleCheckbox('GPLinkAnalogEnabled');
+							handleChange(e);
+						}}
+					/>
+				</div>
+			</Row>
 		</Section>
 	);
 };
