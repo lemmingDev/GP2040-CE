@@ -282,6 +282,9 @@ void GP2040::run() {
 		if (configMode == true) {
 			inputDriver->process(gamepad);
 			rebootHotkeys.process(gamepad, configMode);
+			// The link still streams in config mode; drain it so the live
+			// analog endpoint serves fresh values (otherwise frozen at init).
+			if (GPLinkAddon *gplink = GPLink_GetAddon()) gplink->pollConfigMode();
 			checkSaveRebootState();
 			continue;
 		}
