@@ -208,14 +208,22 @@ void GPLinkAddon::applyAnalogAxes() {
         int32_t offset = (int32_t)axis[i] - GAMEPAD_JOYSTICK_MID;
         uint32_t inner = innerDz[i] * (1 << 16) / 100;
         uint32_t outer = outerDz[i] * (1 << 16) / 100;
-        // Per-axis windows are self-arming: a nonzero percent enables that
-        // axis (0 = off). The inner/outerDeadzoneEnabled bitmasks are unused.
-        if (inner > 0) {
-            if (abs(offset) < (int32_t)inner) axis[i] = GAMEPAD_JOYSTICK_MID;
-        }
-        if (outer > 0) {
-            if (offset > (int32_t)outer) axis[i] = GAMEPAD_JOYSTICK_MAX;
-            else if (offset < -(int32_t)outer) axis[i] = 0;
+        // Per-axis inner snap (self-arming: nonzero percent enables it; the
+        // innerDeadzoneEnabled bitmask is unused).
+        if (inner > 0 && abs(offset) < (int32_t)inner) {
+            axis[i] = GAMEPAD_JOYSTICK_MID;
+        } else {
+            // Outer rescale mirrors the official Analog addon: the [inner,
+            // outer] window maps to full output, saturating beyond (percent
+            // of full range, same units as ADS1115; outer=100 = linear).
+            int32_t den = (int32_t)outer - (int32_t)inner;
+            if (den > 0) {
+                uint32_t dist = (uint32_t)(offset >= 0 ? offset : -offset);
+                uint32_t mag = (dist - inner) * (uint32_t)GAMEPAD_JOYSTICK_MAX / (uint32_t)den;
+                if (mag > (uint32_t)GAMEPAD_JOYSTICK_MAX) mag = (uint32_t)GAMEPAD_JOYSTICK_MAX;
+                int32_t out = (int32_t)GAMEPAD_JOYSTICK_MID + (offset >= 0 ? (int32_t)mag : -(int32_t)mag);
+                axis[i] = (uint16_t)std::clamp(out, (int32_t)GAMEPAD_JOYSTICK_MIN, (int32_t)GAMEPAD_JOYSTICK_MAX);
+            }
         }
         if (options.invertEnabled & (GPLINK_ANALOG_AXIS_FLAG_START >> i)) {
             axis[i] = GAMEPAD_JOYSTICK_MAX - axis[i];
