@@ -356,3 +356,75 @@ bool gplink_unpack_pin_caps_rsp(const gplink_frame *f, char *name_out, uint8_t *
     }
     return true;
 }
+
+size_t gplink_pack_test_configure(uint8_t testId, uint8_t pin, uint8_t function, uint16_t param1, uint16_t param2, uint8_t *payload_out) {
+    if (!payload_out) return 0;
+    payload_out[0] = testId;
+    payload_out[1] = pin;
+    payload_out[2] = function;
+    gplink_put_u16(&payload_out[3], param1);
+    gplink_put_u16(&payload_out[5], param2);
+    return 7;
+}
+
+bool gplink_unpack_test_configure(const gplink_frame *f, uint8_t *testId, uint8_t *pin, uint8_t *function, uint16_t *param1, uint16_t *param2) {
+    if (!f || f->type != GPLINK_TYPE_TEST_CONFIGURE || f->len != 7) return false;
+    if (!testId || !pin || !function || !param1 || !param2) return false;
+    *testId = f->payload[0];
+    *pin = f->payload[1];
+    *function = f->payload[2];
+    *param1 = gplink_get_u16(&f->payload[3]);
+    *param2 = gplink_get_u16(&f->payload[5]);
+    return true;
+}
+
+size_t gplink_pack_test_result(uint8_t testId, uint8_t status, uint16_t value, uint16_t count, uint8_t *payload_out) {
+    if (!payload_out) return 0;
+    payload_out[0] = testId;
+    payload_out[1] = status;
+    gplink_put_u16(&payload_out[2], value);
+    gplink_put_u16(&payload_out[4], count);
+    return 6;
+}
+
+bool gplink_unpack_test_result(const gplink_frame *f, uint8_t *testId, uint8_t *status, uint16_t *value, uint16_t *count) {
+    if (!f || f->type != GPLINK_TYPE_TEST_RESULT || f->len != 6) return false;
+    if (!testId || !status || !value || !count) return false;
+    *testId = f->payload[0];
+    *status = f->payload[1];
+    *value = gplink_get_u16(&f->payload[2]);
+    *count = gplink_get_u16(&f->payload[4]);
+    return true;
+}
+
+size_t gplink_pack_feature_req(uint8_t feature, uint8_t *payload_out) {
+    if (!payload_out) return 0;
+    payload_out[0] = feature;
+    return 1;
+}
+
+size_t gplink_pack_feature_ack_identity(const char *version, uint8_t verLen, uint8_t radio, uint8_t *payload_out) {
+    if (!payload_out) return 0;
+    if (verLen > GPLINK_TEST_VER_MAX) return 0;
+    if (verLen > 0 && !version) return 0;
+    payload_out[0] = GPLINK_FEATURE_IDENTITY;
+    payload_out[1] = verLen;
+    for (uint8_t i = 0; i < verLen; i++) payload_out[2 + i] = (uint8_t)version[i];
+    payload_out[2 + verLen] = radio;
+    return (size_t)3 + verLen;
+}
+
+bool gplink_unpack_feature_ack_identity(const gplink_frame *f, uint8_t *feature, char *ver_out, uint8_t *ver_len, uint8_t verMax, uint8_t *radio) {
+    if (!f || f->type != GPLINK_TYPE_FEATURE_ACK || f->len < 3) return false;
+    if (!feature || !ver_out || !ver_len || !radio) return false;
+    if (f->payload[0] != GPLINK_FEATURE_IDENTITY) return false;
+    uint8_t vl = f->payload[1];
+    if (vl > GPLINK_TEST_VER_MAX || vl > verMax) return false;
+    if (f->len != (uint8_t)(3 + vl)) return false;
+    *feature = f->payload[0];
+    for (uint8_t i = 0; i < vl; i++) ver_out[i] = (char)f->payload[2 + i];
+    ver_out[vl] = '\0';
+    *ver_len = vl;
+    *radio = f->payload[2 + vl];
+    return true;
+}

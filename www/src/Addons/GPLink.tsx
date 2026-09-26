@@ -237,6 +237,18 @@ const GPLink = ({
 							})}
 							{!discovery.found &&
 								` ${t('AddonsConfig:gplink-test-not-found-text')}`}
+							{discovery.found === true &&
+								discovery.fwVersion != null &&
+								discovery.fwVersion !== '' && (
+								<>
+									<br />
+									<span className="text-muted">
+										{t('AddonsConfig:gplink-test-version-text', {
+											fw: discovery.fwVersion,
+										})}
+									</span>
+								</>
+							)}
 						</div>
 					)}
 				</Row>

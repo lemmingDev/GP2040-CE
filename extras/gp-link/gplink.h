@@ -30,6 +30,31 @@
 #define GPLINK_TYPE_GPIO_NAK 0x13
 #define GPLINK_TYPE_ANALOG_READ 0x14
 #define GPLINK_TYPE_ANALOG_CONFIG 0x15
+#define GPLINK_TYPE_TEST_CONFIGURE 0x16
+#define GPLINK_TYPE_TEST_RESULT 0x17
+
+// Test-engine functions (TEST_CONFIGURE) and statuses (TEST_RESULT).
+// Companion-local #defines defer to these via #ifndef guards.
+#define GPLINK_TEST_FN_HOLD_LOW 0x00
+#define GPLINK_TEST_FN_HOLD_HIGH 0x01
+#define GPLINK_TEST_FN_TOGGLE 0x02
+#define GPLINK_TEST_FN_SWEEP_UP 0x03
+#define GPLINK_TEST_FN_SWEEP_DOWN 0x04
+#define GPLINK_TEST_FN_TRIANGLE 0x05
+#define GPLINK_TEST_FN_DRIVE_LOW 0x0A
+#define GPLINK_TEST_FN_DRIVE_HIGH 0x0B
+#define GPLINK_TEST_FN_DRIVE_CYCLE 0x0C
+#define GPLINK_TEST_FN_DRIVE_PWM 0x0D
+#define GPLINK_TEST_FN_STOP 0xFF
+#define GPLINK_TEST_STATUS_RUNNING 0
+#define GPLINK_TEST_STATUS_DONE 1
+#define GPLINK_TEST_STATUS_ABORTED 2
+#define GPLINK_TEST_STATUS_BAD_PIN 3
+#define GPLINK_TEST_STATUS_UNSUPPORTED 4
+#define GPLINK_TEST_STATUS_BUSY 5
+// FEATURE_REQ/ACK identity feature id + version bound.
+#define GPLINK_FEATURE_IDENTITY 0x01
+#define GPLINK_TEST_VER_MAX 24
 
 // HELLO device capability bits (spec section 4)
 #define GPLINK_CAP_RUMBLE (1u << 0)
@@ -105,3 +130,16 @@ bool gplink_unpack_battery(const gplink_frame *f, uint8_t *devid, uint8_t *pct, 
 size_t gplink_pack_pin_caps_req(uint8_t *payload_out);
 size_t gplink_pack_pin_caps_rsp(const char *name, uint8_t name_len, uint8_t count, const uint8_t *pins, const uint8_t *caps, uint8_t *payload_out);
 bool gplink_unpack_pin_caps_rsp(const gplink_frame *f, char *name_out, uint8_t *name_len, uint8_t *count, uint8_t *pins_out, uint8_t *caps_out);
+// Companion test engine (session-only pin exerciser; see companion README).
+// Layouts: CONFIGURE [testId pin fn p1LE p2LE] (7 B), RESULT [testId status
+// valueLE countLE] (6 B), FEATURE_REQ [feature] (1 B), FEATURE_ACK identity
+// [feature verLen ver radio] (3+verLen B).
+size_t gplink_pack_test_configure(uint8_t testId, uint8_t pin, uint8_t function, uint16_t param1, uint16_t param2, uint8_t *payload_out);
+bool gplink_unpack_test_configure(const gplink_frame *f, uint8_t *testId, uint8_t *pin, uint8_t *function, uint16_t *param1, uint16_t *param2);
+size_t gplink_pack_test_result(uint8_t testId, uint8_t status, uint16_t value, uint16_t count, uint8_t *payload_out);
+bool gplink_unpack_test_result(const gplink_frame *f, uint8_t *testId, uint8_t *status, uint16_t *value, uint16_t *count);
+size_t gplink_pack_feature_req(uint8_t feature, uint8_t *payload_out);
+size_t gplink_pack_feature_ack_identity(const char *version, uint8_t verLen, uint8_t radio, uint8_t *payload_out);
+bool gplink_unpack_feature_ack_identity(const gplink_frame *f, uint8_t *feature, char *ver_out, uint8_t *ver_len, uint8_t verMax, uint8_t *radio);
+// ver_out must hold verMax+1 bytes (NUL terminator); versions longer than
+// verMax (or GPLINK_TEST_VER_MAX) are rejected.

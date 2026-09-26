@@ -492,7 +492,9 @@ std::string getGPLinkAnalogValues()
 
 std::string getGPLinkStatus()
 {
-    const size_t capacity = JSON_OBJECT_SIZE(14);
+    // Pool must fit scalars plus the companion version string; same
+    // silent-truncation hazard as the analog endpoint if undersized.
+    const size_t capacity = JSON_OBJECT_SIZE(16) + 96;
     DynamicJsonDocument doc(capacity);
     GPLinkStatus status = {};
     if (GPLinkAddon *addon = GPLink_GetAddon()) addon->getStatus(status);
@@ -508,6 +510,8 @@ std::string getGPLinkStatus()
     writeDoc(doc, "processCalls", status.processCalls);
     writeDoc(doc, "rxBytes", status.rxBytes);
     writeDoc(doc, "uptimeS", status.uptimeS);
+    writeDoc(doc, "fwVersion", (const char *)status.fwVersion);
+    writeDoc(doc, "radioFlags", status.radioFlags);
     return serialize_json(doc);
 }
 
@@ -516,9 +520,9 @@ std::string getGPLinkStatus()
 // UART for up to 300 ms collecting the RSP. Bounded like getHeldPins.
 std::string testGPLink()
 {
-    // Pool must fit scalars + name + two 64-entry arrays; same silent-
-    // truncation hazard as getExpansionPins if undersized.
-    const size_t capacity = JSON_OBJECT_SIZE(12) + 2*JSON_ARRAY_SIZE(70) + 64;
+    // Pool must fit scalars + name + two 64-entry arrays + the companion
+    // version string; same silent-truncation hazard if undersized.
+    const size_t capacity = JSON_OBJECT_SIZE(12) + 2*JSON_ARRAY_SIZE(70) + 128;
     DynamicJsonDocument doc(capacity);
     int continuity = -1;
     bool found = false;
@@ -560,6 +564,8 @@ std::string testGPLink()
     writeDoc(doc, "rxFrames", rxFrames);
     writeDoc(doc, "capsName", capsName);
     writeDoc(doc, "capsCount", capsCount);
+    writeDoc(doc, "fwVersion", (const char *)status.fwVersion);
+    writeDoc(doc, "radioFlags", status.radioFlags);
     JsonArray pinsArr = doc.createNestedArray("capsPins");
     for (uint8_t i = 0; i < capsCount; i++) pinsArr.add(tmpPins[i]);
     JsonArray capsArr = doc.createNestedArray("capsCaps");

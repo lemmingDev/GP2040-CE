@@ -106,6 +106,7 @@ export default {
 		'Continuity {{cont}} — companion {{name}} reports {{count}} pins (drained {{rxb}} bytes, {{rxf}} frames).',
 	'gplink-test-not-found-text':
 		'No capability response (companion may not support discovery yet).',
+	'gplink-test-version-text': 'Companion firmware {{fw}}',
 	'gplink-pins-header-text': 'Companion GPIO Inputs',
 	'gplink-pins-sub-header-text':
 		'Assign gamepad actions to companion pins. Run the test above to list reported pins, or configure all slots manually. ADC* pins do digital always; their analog needs wireless off.',
