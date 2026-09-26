@@ -521,6 +521,11 @@ static bool gplinkStateChanged(const GamepadState &a, const GamepadState &b) {
            a.lt != b.lt || a.rt != b.rt;
 }
 
+void GPLinkAddon::pollConfigMode() {
+    if (!started) return;
+    pumpRx(getMillis());
+}
+
 void GPLinkAddon::process() {
     if (!started) return;
     processCalls++;

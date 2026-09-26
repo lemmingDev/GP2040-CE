@@ -94,6 +94,11 @@ public:
     // Queue a PIN_CAPS_REQ discovery round (RSP arrives via pumpRx in gamepad
     // mode; the /api/testGPLink handler drains synchronously in config mode).
     bool requestCaps();
+    // Config-mode drain: the core0 loop skips all addons in webconfig mode,
+    // so without this inbound frames pile up unread and analogValues (read
+    // by /api/getGPLinkAnalogValues) stays at init forever. Drains RX only;
+    // no INPUT_STATE TX, no output mirror, no actuation.
+    void pollConfigMode();
     // Raw stored value for a companion pin (MID if never received).
     uint16_t getAnalogPinValue(uint8_t pin);
 
