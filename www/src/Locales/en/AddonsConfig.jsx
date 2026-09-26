@@ -142,6 +142,7 @@ export default {
 	'gplink-analog-raw-label': 'Raw',
 	'gplink-analog-shaped-label': 'Shaped',
 	'gplink-analog-live-error-text': '(live feed unreachable — check the link)',
+	'gplink-analog-smoothing-factor-text': '(factor {{v}})',
 	'gplink-analog-save-label': 'Save Analog Settings',
 	'gplink-analog-triggers': 'Triggers',
 	'gplink-analog-triggers-sub-header-text':
