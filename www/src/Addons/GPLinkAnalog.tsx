@@ -61,19 +61,19 @@ export const gplinkAnalogScheme = {
 	gplinkAnalogAxis0OuterDeadzone: yup
 		.number()
 		.label('GPLink Axis 0 Outer Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 80, 100),
 	gplinkAnalogAxis1OuterDeadzone: yup
 		.number()
 		.label('GPLink Axis 1 Outer Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 80, 100),
 	gplinkAnalogAxis2OuterDeadzone: yup
 		.number()
 		.label('GPLink Axis 2 Outer Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 80, 100),
 	gplinkAnalogAxis3OuterDeadzone: yup
 		.number()
 		.label('GPLink Axis 3 Outer Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 20),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 80, 100),
 	gplinkAnalogLeftStickDeadzone: yup
 		.number()
 		.label('GPLink Left Stick Deadzone')
@@ -190,10 +190,10 @@ export const gplinkAnalogState = {
 	gplinkAnalogAxis1InnerDeadzone: 0,
 	gplinkAnalogAxis2InnerDeadzone: 0,
 	gplinkAnalogAxis3InnerDeadzone: 0,
-	gplinkAnalogAxis0OuterDeadzone: 0,
-	gplinkAnalogAxis1OuterDeadzone: 0,
-	gplinkAnalogAxis2OuterDeadzone: 0,
-	gplinkAnalogAxis3OuterDeadzone: 0,
+	gplinkAnalogAxis0OuterDeadzone: 100,
+	gplinkAnalogAxis1OuterDeadzone: 100,
+	gplinkAnalogAxis2OuterDeadzone: 100,
+	gplinkAnalogAxis3OuterDeadzone: 100,
 	gplinkAnalogLeftStickDeadzone: 0,
 	gplinkAnalogRightStickDeadzone: 0,
 	gplinkAnalogInvertEnabled: 0,
@@ -296,6 +296,8 @@ const DeadzoneSlider = ({
 	onChange,
 	groupClassName,
 	hidden,
+	min = 0,
+	max = 20,
 }: {
 	label: string;
 	name: string;
@@ -305,6 +307,8 @@ const DeadzoneSlider = ({
 	onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 	groupClassName?: string;
 	hidden?: boolean;
+	min?: number;
+	max?: number;
 }) => (
 	<div className={groupClassName} hidden={hidden}>
 		<Form.Label htmlFor={name}>
@@ -318,8 +322,8 @@ const DeadzoneSlider = ({
 			name={name}
 			value={value}
 			onChange={onChange}
-			min={0}
-			max={20}
+			min={min}
+			max={max}
 			step={1}
 			isInvalid={isInvalid}
 		/>
@@ -866,6 +870,8 @@ const GPLinkAnalog = ({
 									)}
 									name={`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`}
 									groupClassName="mb-3"
+									min={80}
+									max={100}
 									value={values[`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`]}
 									error={errors[`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`]}
 									isInvalid={Boolean(
@@ -880,6 +886,8 @@ const GPLinkAnalog = ({
 									)}
 									name={`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`}
 									groupClassName="mb-3"
+									min={80}
+									max={100}
 									value={values[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`]}
 									error={errors[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`]}
 									isInvalid={Boolean(
