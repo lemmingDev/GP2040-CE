@@ -4,12 +4,16 @@
 // console stays on Serial (USB). See platformio.ini / README.
 #include <Arduino.h>
 #include <Preferences.h>
+#include <WiFi.h>
 #include "gplink.h"
 #include "gplink_link.h"
 #include "companion_pins.h"
 
 #ifndef COMPANION_BOARD_NAME
 #define COMPANION_BOARD_NAME "ESP32-DevKit"
+#endif
+#ifndef COMPANION_FW_VERSION
+#define COMPANION_FW_VERSION "1.0.0-dev"
 #endif
 #ifndef GPLINK_UART_RX
 #define GPLINK_UART_RX 16
@@ -224,9 +228,541 @@ static void handleAnalogConfig(uint8_t devid, uint8_t pin, uint8_t enable) {
 }
 
 // Normalized full-range u16 ADC read (companion scales its native width;
-// ESP32 Arduino analogRead is 12-bit).
+// ESP32 Arduino analogRead is 12-bit). Kept above the test engine: sweep
+// steps and RESULT normalization share the same full-scale.
 #define COMPANION_ADC_MAX 4095
 #define COMPANION_ADC_DEADBAND 8
+
+// ---- GP-Link test engine (session-only pin exerciser) ----
+// Wire contract (payloads packed by hand; the shared codec does not define
+// these types yet): TEST_CONFIGURE 0x16 [testId pin fn p1LE p2LE],
+// TEST_RESULT 0x17 [testId status valueLE countLE], FEATURE_REQ 0x0B
+// [feature], FEATURE_ACK 0x0C [feature verLen ver radio]. RESULT value is
+// normalized u16 for analog sweeps (same scale as ANALOG_READ) and 0/1 for
+// digital families; PWM reports normalized duty (65535*duty/100) since a
+// 0/1 level is meaningless for it.
+// Simulate family (0x00-0x05) feeds the existing per-pin pipelines and never
+// touches hardware. Drive family (0x0A-0x0D) owns the pin (s_dir=OUTPUT,
+// session only). Tests never persist to NVS and never emit while down.
+#ifndef GPLINK_TYPE_TEST_CONFIGURE
+#define GPLINK_TYPE_TEST_CONFIGURE 0x16
+#endif
+#ifndef GPLINK_TYPE_TEST_RESULT
+#define GPLINK_TYPE_TEST_RESULT 0x17
+#endif
+// FEATURE_REQ (0x0B) / FEATURE_ACK (0x0C) already live in gplink.h.
+#define GPLINK_TEST_FN_HOLD_LOW 0x00
+#define GPLINK_TEST_FN_HOLD_HIGH 0x01
+#define GPLINK_TEST_FN_TOGGLE 0x02
+#define GPLINK_TEST_FN_SWEEP_UP 0x03
+#define GPLINK_TEST_FN_SWEEP_DOWN 0x04
+#define GPLINK_TEST_FN_TRIANGLE 0x05
+#define GPLINK_TEST_FN_DRIVE_LOW 0x0A
+#define GPLINK_TEST_FN_DRIVE_HIGH 0x0B
+#define GPLINK_TEST_FN_DRIVE_CYCLE 0x0C
+#define GPLINK_TEST_FN_DRIVE_PWM 0x0D
+#define GPLINK_TEST_FN_STOP 0xFF
+#define GPLINK_TEST_STATUS_RUNNING 0
+#define GPLINK_TEST_STATUS_DONE 1
+#define GPLINK_TEST_STATUS_ABORTED 2
+#define GPLINK_TEST_STATUS_BAD_PIN 3
+#define GPLINK_TEST_STATUS_UNSUPPORTED 4
+#define GPLINK_TEST_STATUS_BUSY 5
+#define GPLINK_FEATURE_IDENTITY 0x01
+#define GPLINK_TEST_VER_MAX 24
+#define GPLINK_TEST_MAX_SLOTS 8
+// Sweep step in native ADC units: max(1, ADC_MAX/256) == max(1, 4095/256).
+#define GPLINK_TEST_SWEEP_STEP 15
+// Bit-bang PWM ceiling for future non-LEDC ports; the ESP32 serves PWM via
+// LEDC and has no practical cap (any nonzero u16 freq is accepted).
+#define GPLINK_TEST_PWM_BITBANG_MAX_HZ 1000
+
+struct GplinkTestSlot {
+    bool active;
+    uint8_t testId;
+    uint8_t pin;
+    uint8_t function;
+    uint16_t param1;   // toggle: full-cycle period ms / sweep: step ms / pwm: Hz
+    uint16_t param2;   // toggle/cycle: count (0=inf) / sweep: repeats (0=inf) / pwm: duty %
+    bool level;        // current digital level (digital families)
+    uint16_t value;    // current native-unit level (analog sweep family)
+    int8_t dir;        // triangle direction (+1/-1)
+    uint32_t nextMs;   // next step/toggle deadline (millis)
+    uint16_t done;     // completed full cycles / sweep repeats
+    bool pwmPhase;     // bit-bang fallback state (future ports only)
+    uint32_t pwmNextUs;
+    uint32_t pwmOnUs;
+    uint32_t pwmOffUs;
+};
+static GplinkTestSlot s_tests[GPLINK_TEST_MAX_SLOTS];
+// Last RESULT sent (any status), for the 'x' console dump.
+static bool s_testHaveLast = false;
+static uint8_t s_testLastId = 0, s_testLastStatus = 0;
+static uint16_t s_testLastValue = 0, s_testLastCount = 0;
+// M2 owns Bluetooth; bit1 of the radio byte stays 0 until then.
+static bool s_btActive = false;
+// ESP32 serves PWM via LEDC; the micros() bit-bang path stays compiled for
+// future ports without LEDC (flip this to select it).
+static const bool kTestPwmUseLedc = true;
+
+static uint32_t testHalfPeriod(uint16_t fullMs) {
+    uint32_t h = (uint32_t)fullMs / 2;
+    return (h < 1) ? 1 : h;
+}
+
+static uint32_t testStepInterval(uint16_t stepMs) {
+    return (stepMs < COMPANION_SAMPLE_MS) ? COMPANION_SAMPLE_MS : stepMs;
+}
+
+static uint16_t testNormNative(uint16_t native) {
+    return (uint16_t)(((uint32_t)native * 65535 + COMPANION_ADC_MAX / 2) / COMPANION_ADC_MAX);
+}
+
+static GplinkTestSlot *testFindId(uint8_t testId) {
+    for (uint8_t i = 0; i < GPLINK_TEST_MAX_SLOTS; i++) {
+        if (s_tests[i].active && s_tests[i].testId == testId) return &s_tests[i];
+    }
+    return nullptr;
+}
+
+static GplinkTestSlot *testFindPin(uint8_t pin) {
+    for (uint8_t i = 0; i < GPLINK_TEST_MAX_SLOTS; i++) {
+        if (s_tests[i].active && s_tests[i].pin == pin) return &s_tests[i];
+    }
+    return nullptr;
+}
+
+static GplinkTestSlot *testFreeSlot() {
+    for (uint8_t i = 0; i < GPLINK_TEST_MAX_SLOTS; i++) {
+        if (!s_tests[i].active) return &s_tests[i];
+    }
+    return nullptr;
+}
+
+static bool testDriveActive(uint8_t pin) {
+    for (uint8_t i = 0; i < GPLINK_TEST_MAX_SLOTS; i++) {
+        if (!s_tests[i].active || s_tests[i].pin != pin) continue;
+        uint8_t fn = s_tests[i].function;
+        if (fn >= GPLINK_TEST_FN_DRIVE_LOW && fn <= GPLINK_TEST_FN_DRIVE_PWM) return true;
+    }
+    return false;
+}
+
+// Current RESULT value for a slot (normalized analog / 0-1 digital /
+// normalized duty for PWM).
+static uint16_t testSlotValue(const GplinkTestSlot *s) {
+    if (s->function >= GPLINK_TEST_FN_SWEEP_UP && s->function <= GPLINK_TEST_FN_TRIANGLE) {
+        return testNormNative(s->value);
+    }
+    if (s->function == GPLINK_TEST_FN_DRIVE_PWM) {
+        uint8_t d = (s->param2 > 100) ? 100 : (uint8_t)s->param2;
+        return (uint16_t)((uint32_t)d * 65535 / 100);
+    }
+    return s->level ? 1 : 0;
+}
+
+static void sendTestResult(uint8_t testId, uint8_t status, uint16_t value, uint16_t count, uint32_t now) {
+    if (!gplink_link_alive(&s_link, now)) return; // never queue while down
+    uint8_t payload[6];
+    payload[0] = testId;
+    payload[1] = status;
+    payload[2] = (uint8_t)(value & 0xFF);
+    payload[3] = (uint8_t)((value >> 8) & 0xFF);
+    payload[4] = (uint8_t)(count & 0xFF);
+    payload[5] = (uint8_t)((count >> 8) & 0xFF);
+    if (!sendFrame(GPLINK_TYPE_TEST_RESULT, payload, sizeof(payload))) return;
+    s_testHaveLast = true;
+    s_testLastId = testId;
+    s_testLastStatus = status;
+    s_testLastValue = value;
+    s_testLastCount = count;
+}
+
+static void testPwmStart(GplinkTestSlot *s, uint8_t idx, uint32_t nowUs) {
+    uint16_t freqHz = s->param1;
+    uint8_t duty = (s->param2 > 100) ? 100 : (uint8_t)s->param2; // clamp, documented
+    if (kTestPwmUseLedc) {
+        uint32_t d = (uint32_t)duty * 255 / 100;
+        ledcSetup(idx, freqHz, 8);
+        ledcAttachPin(s->pin, idx);
+        ledcWrite(idx, d);
+        return;
+    }
+    if (duty == 0) {
+        digitalWrite(s->pin, LOW);
+    } else if (duty >= 100) {
+        digitalWrite(s->pin, HIGH);
+    } else {
+        uint32_t periodUs = 1000000UL / freqHz;
+        s->pwmOnUs = periodUs * duty / 100;
+        s->pwmOffUs = periodUs - s->pwmOnUs;
+        digitalWrite(s->pin, HIGH);
+        s->pwmPhase = true;
+        s->pwmNextUs = nowUs + s->pwmOnUs;
+    }
+}
+
+static void testPwmBitbangTick(GplinkTestSlot *s, uint32_t nowUs) {
+    uint8_t duty = (s->param2 > 100) ? 100 : (uint8_t)s->param2;
+    if (duty == 0 || duty >= 100) return; // flat level, nothing to tick
+    if ((int32_t)(nowUs - s->pwmNextUs) >= 0) {
+        if (s->pwmPhase) {
+            digitalWrite(s->pin, LOW);
+            s->pwmNextUs = nowUs + s->pwmOffUs;
+        } else {
+            digitalWrite(s->pin, HIGH);
+            s->pwmNextUs = nowUs + s->pwmOnUs;
+        }
+        s->pwmPhase = !s->pwmPhase;
+    }
+}
+
+// Stop one slot's hardware with no RESULT (RESULT policy is the caller's:
+// silent for replace/link-down, status-2 for commanded stop). Drive pins go
+// back to INPUT via the s_dir table (session only, never NVS); the player
+// LED pin is exempt so a test there cannot steal it from the LED path.
+static void testReleaseSilent(GplinkTestSlot *s) {
+    uint8_t pin = s->pin;
+    uint8_t fn = s->function;
+    if (pin < 64) {
+        if (fn == GPLINK_TEST_FN_DRIVE_PWM && kTestPwmUseLedc) {
+            uint8_t idx = (uint8_t)(s - s_tests);
+            ledcWrite(idx, 0);
+            ledcDetachPin(pin);
+        }
+        if (fn >= GPLINK_TEST_FN_DRIVE_LOW && fn <= GPLINK_TEST_FN_DRIVE_PWM &&
+                pin != COMPANION_PLAYER_LED_PIN) {
+            s_dir[pin] = 0;
+            applyPinMode(pin);
+        }
+    }
+    s->active = false;
+}
+
+// Drop every slot silently (link-down path). Returns the drop count for logs.
+static uint8_t testAbortAll() {
+    uint8_t n = 0;
+    for (uint8_t i = 0; i < GPLINK_TEST_MAX_SLOTS; i++) {
+        if (!s_tests[i].active) continue;
+        testReleaseSilent(&s_tests[i]);
+        n++;
+    }
+    return n;
+}
+
+static void handleTestConfigure(const gplink_frame *frame, uint32_t now) {
+    if (frame->len != 7) return; // malformed: ignore silently
+    uint8_t testId = frame->payload[0];
+    uint8_t pin = frame->payload[1];
+    uint8_t fn = frame->payload[2];
+    uint16_t p1 = (uint16_t)((uint16_t)frame->payload[3] | ((uint16_t)frame->payload[4] << 8));
+    uint16_t p2 = (uint16_t)((uint16_t)frame->payload[5] | ((uint16_t)frame->payload[6] << 8));
+
+    // Stop family (pin ignored).
+    if (fn == GPLINK_TEST_FN_STOP) {
+        if (testId == 0xFF) {
+            uint8_t n = 0;
+            for (uint8_t i = 0; i < GPLINK_TEST_MAX_SLOTS; i++) {
+                if (!s_tests[i].active) continue;
+                uint8_t id = s_tests[i].testId;
+                uint16_t v = testSlotValue(&s_tests[i]);
+                uint16_t c = s_tests[i].done;
+                testReleaseSilent(&s_tests[i]);
+                sendTestResult(id, GPLINK_TEST_STATUS_ABORTED, v, c, now);
+                n++;
+            }
+            Serial.printf("%lu GPLink: tests stop-all (%u)\n", (unsigned long)now, n);
+            return;
+        }
+        GplinkTestSlot *s = testFindId(testId);
+        if (!s) {
+            Serial.printf("%lu GPLink: test stop id %u ignored (idle)\n", (unsigned long)now, testId);
+            return;
+        }
+        uint16_t v = testSlotValue(s);
+        uint16_t c = s->done;
+        testReleaseSilent(s);
+        sendTestResult(testId, GPLINK_TEST_STATUS_ABORTED, v, c, now);
+        Serial.printf("%lu GPLink: test id %u aborted\n", (unsigned long)now, testId);
+        return;
+    }
+
+    // Pin validation: bounds first, then the link-UART exclusion (mirrors
+    // sendPinCaps), then the table. Status 3 covers every unknown-pin case.
+    if (pin >= 64 || pin == GPLINK_UART_RX || pin == GPLINK_UART_TX) {
+        sendTestResult(testId, GPLINK_TEST_STATUS_BAD_PIN, 0, 0, now);
+        Serial.printf("%lu GPLink: test id %u reject pin %u status 3\n", (unsigned long)now, testId, pin);
+        return;
+    }
+    const CompanionPin *entry = companionPinLookup(pin);
+    if (!entry) {
+        sendTestResult(testId, GPLINK_TEST_STATUS_BAD_PIN, 0, 0, now);
+        Serial.printf("%lu GPLink: test id %u reject pin %u status 3\n", (unsigned long)now, testId, pin);
+        return;
+    }
+    // Strapping pins are fair game post-boot (boot sampled them long ago).
+    bool isSim = (fn <= GPLINK_TEST_FN_TRIANGLE); // 0x00-0x05
+    bool isDrive = (fn >= GPLINK_TEST_FN_DRIVE_LOW && fn <= GPLINK_TEST_FN_DRIVE_PWM);
+    if (!isSim && !isDrive) {
+        sendTestResult(testId, GPLINK_TEST_STATUS_UNSUPPORTED, 0, 0, now);
+        Serial.printf("%lu GPLink: test id %u reject fn %02X status 4\n", (unsigned long)now, testId, fn);
+        return;
+    }
+    if (fn >= GPLINK_TEST_FN_SWEEP_UP && fn <= GPLINK_TEST_FN_TRIANGLE &&
+            !(entry->caps & GPLINK_PINCAP_ADC)) {
+        sendTestResult(testId, GPLINK_TEST_STATUS_UNSUPPORTED, 0, 0, now);
+        Serial.printf("%lu GPLink: test id %u reject pin %u no-ADC status 4\n",
+                      (unsigned long)now, testId, pin);
+        return;
+    }
+    if (isDrive && !(entry->caps & GPLINK_PINCAP_OUTPUT)) {
+        sendTestResult(testId, GPLINK_TEST_STATUS_UNSUPPORTED, 0, 0, now);
+        Serial.printf("%lu GPLink: test id %u reject pin %u no-OUT status 4\n",
+                      (unsigned long)now, testId, pin);
+        return;
+    }
+    if (fn == GPLINK_TEST_FN_DRIVE_PWM) {
+        if (p1 == 0 || (!kTestPwmUseLedc && p1 > GPLINK_TEST_PWM_BITBANG_MAX_HZ)) {
+            sendTestResult(testId, GPLINK_TEST_STATUS_UNSUPPORTED, 0, 0, now);
+            Serial.printf("%lu GPLink: test id %u reject pwm %u Hz status 4\n",
+                          (unsigned long)now, testId, p1);
+            return;
+        }
+    }
+
+    // Per-pin exclusive: same testId or same pin re-CONFIGURED replaces the
+    // old slot silently (hardware torn down, no RESULT for the old test).
+    GplinkTestSlot *old = testFindId(testId);
+    if (old) testReleaseSilent(old);
+    old = testFindPin(pin);
+    if (old) testReleaseSilent(old);
+    GplinkTestSlot *s = testFreeSlot();
+    if (!s) {
+        sendTestResult(testId, GPLINK_TEST_STATUS_BUSY, 0, 0, now);
+        Serial.printf("%lu GPLink: test id %u reject busy status 5\n", (unsigned long)now, testId);
+        return;
+    }
+    s->active = true;
+    s->testId = testId;
+    s->pin = pin;
+    s->function = fn;
+    s->param1 = p1;
+    s->param2 = p2;
+    s->done = 0;
+    s->dir = 1;
+    s->pwmPhase = false;
+    s->pwmNextUs = 0;
+    s->pwmOnUs = 0;
+    s->pwmOffUs = 0;
+    switch (fn) {
+        case GPLINK_TEST_FN_HOLD_LOW:
+            s->level = false;
+            break;
+        case GPLINK_TEST_FN_HOLD_HIGH:
+            s->level = true;
+            break;
+        case GPLINK_TEST_FN_TOGGLE:
+            s->level = true; // start HIGH: immediate visible edge
+            s->nextMs = now + testHalfPeriod(p1);
+            break;
+        case GPLINK_TEST_FN_SWEEP_UP:
+            s->value = 0;
+            s->nextMs = now + testStepInterval(p1);
+            break;
+        case GPLINK_TEST_FN_SWEEP_DOWN:
+            s->value = COMPANION_ADC_MAX;
+            s->nextMs = now + testStepInterval(p1);
+            break;
+        case GPLINK_TEST_FN_TRIANGLE:
+            s->value = 0;
+            s->nextMs = now + testStepInterval(p1);
+            break;
+        case GPLINK_TEST_FN_DRIVE_LOW:
+        case GPLINK_TEST_FN_DRIVE_HIGH:
+            s->level = (fn == GPLINK_TEST_FN_DRIVE_HIGH);
+            s_dir[pin] = 1; // driven; session only, never persisted
+            applyPinMode(pin);
+            digitalWrite(pin, s->level ? HIGH : LOW);
+            break;
+        case GPLINK_TEST_FN_DRIVE_CYCLE:
+            s->level = true;
+            s->nextMs = now + testHalfPeriod(p1);
+            s_dir[pin] = 1; // driven; session only, never persisted
+            applyPinMode(pin);
+            digitalWrite(pin, HIGH);
+            break;
+        case GPLINK_TEST_FN_DRIVE_PWM: {
+            s_dir[pin] = 1; // driven; session only, never persisted
+            applyPinMode(pin);
+            uint8_t idx = (uint8_t)(s - s_tests); // LEDC channel = slot index
+            testPwmStart(s, idx, micros());
+            break;
+        }
+        default:
+            break; // unreachable: validated above
+    }
+    sendTestResult(testId, GPLINK_TEST_STATUS_RUNNING, testSlotValue(s), 0, now);
+    Serial.printf("%lu GPLink: test id %u pin %u fn %02X p1=%u p2=%u\n",
+                  (unsigned long)now, testId, pin, fn, p1, p2);
+}
+
+// Radio byte for FEATURE_ACK identity: bit0 = WiFi active (STA connected or
+// soft-AP mode on; getMode/status are non-blocking state reads only),
+// bit1 = BT (M2 owns it; always 0 here).
+static uint8_t testRadioByte() {
+    uint8_t radio = 0;
+    wifi_mode_t mode = WiFi.getMode();
+    if (mode & WIFI_MODE_AP) {
+        radio |= 0x01;
+    } else if ((mode & WIFI_MODE_STA) && WiFi.status() == WL_CONNECTED) {
+        radio |= 0x01;
+    }
+    if (s_btActive) radio |= 0x02;
+    return radio;
+}
+
+static void handleFeatureReq(const gplink_frame *frame, uint32_t now) {
+    if (frame->len != 1) return;
+    if (frame->payload[0] != GPLINK_FEATURE_IDENTITY) return; // unknown: ignore silently
+    const char *ver = COMPANION_FW_VERSION;
+    size_t vl = strlen(ver);
+    if (vl > GPLINK_TEST_VER_MAX) vl = GPLINK_TEST_VER_MAX;
+    uint8_t payload[1 + 1 + GPLINK_TEST_VER_MAX + 1];
+    payload[0] = GPLINK_FEATURE_IDENTITY;
+    payload[1] = (uint8_t)vl;
+    memcpy(&payload[2], ver, vl);
+    payload[2 + vl] = testRadioByte();
+    sendFrame(GPLINK_TYPE_FEATURE_ACK, payload, 2 + vl + 1);
+    Serial.printf("%lu GPLink: FEATURE_ACK identity ver %s radio %u\n",
+                  (unsigned long)now, ver, payload[2 + vl]);
+}
+
+// Analog sweep one-step: returns true on a repeat boundary (top for up,
+// bottom for down, return-to-zero for triangle).
+static bool testSweepStep(GplinkTestSlot *s) {
+    int v = (int)s->value;
+    if (s->function == GPLINK_TEST_FN_SWEEP_UP) {
+        v += GPLINK_TEST_SWEEP_STEP;
+        if (v >= (int)COMPANION_ADC_MAX) {
+            s->value = COMPANION_ADC_MAX;
+            return true;
+        }
+        s->value = (uint16_t)v;
+        return false;
+    }
+    if (s->function == GPLINK_TEST_FN_SWEEP_DOWN) {
+        v -= GPLINK_TEST_SWEEP_STEP;
+        if (v <= 0) {
+            s->value = 0;
+            return true;
+        }
+        s->value = (uint16_t)v;
+        return false;
+    }
+    v += GPLINK_TEST_SWEEP_STEP * (int)s->dir;
+    if (v >= (int)COMPANION_ADC_MAX) {
+        v = COMPANION_ADC_MAX;
+        s->dir = -1;
+    } else if (v <= 0) {
+        v = 0;
+        s->dir = 1;
+        s->value = 0;
+        return true;
+    }
+    s->value = (uint16_t)v;
+    return false;
+}
+
+// Native-unit peek for pumpAnalog: per-pin test wins over global synth/known
+// for that pin only (checked first at the top of the per-pin section).
+static bool testAnalogPeek(uint8_t pin, uint16_t *rawOut) {
+    for (uint8_t i = 0; i < GPLINK_TEST_MAX_SLOTS; i++) {
+        if (!s_tests[i].active || s_tests[i].pin != pin) continue;
+        uint8_t fn = s_tests[i].function;
+        if (fn >= GPLINK_TEST_FN_SWEEP_UP && fn <= GPLINK_TEST_FN_TRIANGLE) {
+            *rawOut = s_tests[i].value;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Digital simulate override, applied to the sampled mask AFTER
+// sampleConfiguredInputs() (and the console self-test) in the 2 ms block.
+// Drive pins never synthesize: they read s_dir=OUTPUT so the sampler skips
+// them and this override only knows the 0x00-0x02 family.
+static uint64_t testDigitalOverride(uint64_t mask) {
+    for (uint8_t i = 0; i < GPLINK_TEST_MAX_SLOTS; i++) {
+        if (!s_tests[i].active || s_tests[i].pin >= 64) continue;
+        if (s_tests[i].function > GPLINK_TEST_FN_TOGGLE) continue;
+        if (s_tests[i].level) mask |= (1ULL << s_tests[i].pin);
+        else mask &= ~(1ULL << s_tests[i].pin);
+    }
+    return mask;
+}
+
+// Non-blocking slot evolution (millis pattern, never delay): toggle/cycle
+// flips, sweep steps, PWM bit-bang ticks. Holds do nothing. Finite tests
+// complete here with a single status-1 RESULT (gated on link, like all
+// RESULTs); infinite ones run until stopped or the link drops.
+static void pumpTests(uint32_t now) {
+    for (uint8_t i = 0; i < GPLINK_TEST_MAX_SLOTS; i++) {
+        GplinkTestSlot *s = &s_tests[i];
+        if (!s->active) continue;
+        switch (s->function) {
+            case GPLINK_TEST_FN_TOGGLE:
+            case GPLINK_TEST_FN_DRIVE_CYCLE: {
+                if ((int32_t)(now - s->nextMs) < 0) break;
+                s->nextMs = now + testHalfPeriod(s->param1);
+                s->level = !s->level;
+                if (s->function == GPLINK_TEST_FN_DRIVE_CYCLE) {
+                    digitalWrite(s->pin, s->level ? HIGH : LOW);
+                }
+                // A full cycle closes on return to the start level (HIGH).
+                if (s->level) {
+                    s->done++;
+                    if (s->param2 > 0 && s->done >= s->param2) {
+                        uint8_t id = s->testId;
+                        uint16_t v = testSlotValue(s);
+                        uint16_t c = s->done;
+                        testReleaseSilent(s);
+                        sendTestResult(id, GPLINK_TEST_STATUS_DONE, v, c, now);
+                        Serial.printf("%lu GPLink: test id %u done value %u count %u\n",
+                                      (unsigned long)now, id, v, c);
+                    }
+                }
+                break;
+            }
+            case GPLINK_TEST_FN_SWEEP_UP:
+            case GPLINK_TEST_FN_SWEEP_DOWN:
+            case GPLINK_TEST_FN_TRIANGLE: {
+                if ((int32_t)(now - s->nextMs) < 0) break;
+                s->nextMs = now + testStepInterval(s->param1);
+                if (!testSweepStep(s)) break;
+                s->done++;
+                if (s->param2 > 0 && s->done >= s->param2) {
+                    uint8_t id = s->testId;
+                    uint16_t v = testSlotValue(s);
+                    uint16_t c = s->done;
+                    testReleaseSilent(s);
+                    sendTestResult(id, GPLINK_TEST_STATUS_DONE, v, c, now);
+                    Serial.printf("%lu GPLink: test id %u done value %u count %u\n",
+                                  (unsigned long)now, id, v, c);
+                } else if (s->function == GPLINK_TEST_FN_SWEEP_UP) {
+                    s->value = 0; // wrap for the next repeat
+                } else if (s->function == GPLINK_TEST_FN_SWEEP_DOWN) {
+                    s->value = COMPANION_ADC_MAX;
+                }
+                break;
+            }
+            case GPLINK_TEST_FN_DRIVE_PWM:
+                if (!kTestPwmUseLedc) testPwmBitbangTick(s, micros());
+                break;
+            default:
+                break; // holds: level set once at accept
+        }
+    }
+}
 
 // DAC sweep test aid: triangular 0-255 on GPIO25 (~2.5 s period) for the
 // ADC loopback check (jumper GPIO25 to an ADC pin mapped to a stick).
@@ -287,9 +823,16 @@ static void pumpAnalog(uint32_t now) {
     uint16_t values[8];
     uint8_t count = 0;
     for (uint8_t pin = 0; pin < 64 && count < 8; pin++) {
-        if (!s_analog[pin]) continue;
+        // Per-pin test stimulus wins here (before known/synth/ADC): the same
+        // EMA/deadband/normalization below still shapes it, and only pins
+        // with a sweep test join without ANALOG_CONFIG.
+        uint16_t testRaw = 0;
+        bool inTest = testAnalogPeek(pin, &testRaw);
+        if (!s_analog[pin] && !inTest) continue;
         uint16_t raw;
-        if (s_analogKnown) {
+        if (inTest) {
+            raw = testRaw;
+        } else if (s_analogKnown) {
             raw = COMPANION_KNOWN_RAW;
         } else if (s_analogSynth) {
             raw = s_synthRaw;
@@ -330,6 +873,7 @@ static void handleGpioWrite(uint8_t devid, uint64_t mask) {
     (void)devid; // single virtual device in M1; devid carried for future use
     for (uint8_t pin = 0; pin < 64; pin++) {
         if (s_dir[pin] != 1) continue;
+        if (testDriveActive(pin)) continue; // test-owned: GPIO_WRITE must not stomp it
         bool level = (mask & (1ULL << pin)) != 0;
         if (s_invert[pin]) level = !level;
         digitalWrite(pin, level ? HIGH : LOW);
@@ -394,6 +938,12 @@ static void pumpLink() {
                 }
                 break;
             }
+            case GPLINK_TYPE_TEST_CONFIGURE:
+                handleTestConfigure(&frame, now);
+                break;
+            case GPLINK_TYPE_FEATURE_REQ:
+                handleFeatureReq(&frame, now);
+                break;
             case GPLINK_TYPE_PLAYER_LED_SET: {
                 uint8_t devid, mask;
                 if (gplink_unpack_player_led(&frame, &devid, &mask)) {
@@ -500,9 +1050,29 @@ void loop() {
                 s_txSeq++;
                 s_lastTxMs = millis();
             }
+        } else if (c == 'x' || c == 'X') {
+            uint8_t n = 0;
+            for (uint8_t i = 0; i < GPLINK_TEST_MAX_SLOTS; i++) {
+                if (s_tests[i].active) n++;
+            }
+            Serial.printf("GPLink: tests %u active\n", n);
+            for (uint8_t i = 0; i < GPLINK_TEST_MAX_SLOTS; i++) {
+                const GplinkTestSlot *s = &s_tests[i];
+                if (!s->active) continue;
+                Serial.printf("  id %u pin %u fn %02X p1=%u p2=%u lvl=%u val=%u done=%u\n",
+                              s->testId, s->pin, s->function, s->param1, s->param2,
+                              s->level ? 1 : 0, s->value, s->done);
+            }
+            if (s_testHaveLast) {
+                Serial.printf("GPLink: last RESULT id %u status %u value %u count %u\n",
+                              s_testLastId, s_testLastStatus, s_testLastValue, s_testLastCount);
+            } else {
+                Serial.println("GPLink: no RESULT yet");
+            }
         }
     }
     pumpLink();
+    pumpTests(now); // advance slots first: fresh sweep levels feed pumpAnalog below
     pumpAnalog(now);
     pumpDacSweep(now);
     if (now - s_lastSampleMs >= COMPANION_SAMPLE_MS) {
@@ -524,6 +1094,10 @@ void loop() {
                           (unsigned long long)sampleConfiguredInputs(),
                           (unsigned long long)s_lastMask, s_dir[2]);
         }
+        // Simulate family (0x00-0x02) overrides AFTER sampling (and the
+        // console self-test above) so tests take precedence; drive pins are
+        // s_dir=OUTPUT and never reach this mask except through a test.
+        mask = testDigitalOverride(mask);
         if (mask != s_lastMask) {
             s_lastMask = mask;
             uint8_t payload[16];
@@ -541,6 +1115,16 @@ void loop() {
     static uint32_t lastLinkPrintMs = 0;
     static uint32_t linkFlaps = 0;
     if (alive != s_linkWasAlive && s_link.have_seq) {
+        if (!alive) {
+            // Link-down abort: drop every test silently (slots cleared, LEDC
+            // detached, driven pins back to INPUT). No RESULT may be queued
+            // while down, so this console line is the only trace.
+            uint8_t dropped = testAbortAll();
+            if (dropped > 0) {
+                Serial.printf("%lu GPLink: tests aborted (link DOWN, %u)\n",
+                              (unsigned long)now, dropped);
+            }
+        }
         s_linkWasAlive = alive;
         if ((now - lastLinkPrintMs) >= 10000) {
             lastLinkPrintMs = now;
@@ -551,5 +1135,20 @@ void loop() {
         } else {
             linkFlaps++;
         }
+    }
+    // Radio-change HELLO: the peer re-pushes configs on HELLO, so this
+    // propagates WiFi/AP changes for free. One extra HELLO per 5 s max.
+    static bool s_radioInit = false;
+    static uint8_t s_lastRadioSent = 0;
+    static uint32_t s_lastExtraHelloMs = 0;
+    uint8_t radioNow = testRadioByte();
+    if (!s_radioInit) {
+        s_radioInit = true;
+        s_lastRadioSent = radioNow;
+    } else if (radioNow != s_lastRadioSent && (now - s_lastExtraHelloMs) >= 5000) {
+        s_lastExtraHelloMs = now;
+        s_lastRadioSent = radioNow;
+        sendHello();
+        Serial.printf("%lu GPLink: HELLO re-push (radio %u)\n", (unsigned long)now, radioNow);
     }
 }
