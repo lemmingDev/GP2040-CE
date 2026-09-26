@@ -104,6 +104,8 @@ public:
     uint16_t getAnalogPinValue(uint8_t pin);
     // Completed shaping passes (diagnostic: proves applyAnalogAxes runs).
     uint32_t getShapedRuns() { return shapedRuns; }
+    // Gamepad pointer seen by shaping (diagnostic: identity vs endpoint's).
+    uintptr_t getLastPadSeen() { return lastPadSeen; }
 
 private:
     void sendHello();
@@ -141,6 +143,7 @@ private:
     uint16_t analogValues[64];  // last ANALOG_READ values by companion pin
     float analogEma[4] = {};  // EMA history per axis (official inits 0.0f)
     uint32_t shapedRuns = 0;  // completed applyAnalogAxes passes
+    uintptr_t lastPadSeen = 0; // GetGamepad() value seen by shaping
     uint8_t lastLedMask;        // last PLAYER_LED_SET mask sent
     uint8_t lastWeak;           // last RUMBLE_SET weak intensity sent
     uint8_t lastStrong;         // last RUMBLE_SET strong intensity sent
