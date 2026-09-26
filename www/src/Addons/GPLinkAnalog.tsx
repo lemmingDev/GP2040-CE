@@ -514,9 +514,18 @@ const GPLinkAnalog = ({
 	return (
 		<Section title={t('AddonsConfig:gplink-analog-header-text')}>
 			<div id="GPLinkAnalogOptions" hidden={!values.GPLinkAnalogEnabled}>
-				{/* Stick-oriented banner; the triggers tab brings its own, so
-				this swaps out rather than stacking. */}
-				{activeTab !== 'triggers' && (
+				{/* One banner slot above the tabs, swapped per tab so the
+				stick and trigger guidance never stack. */}
+				{activeTab === 'triggers' ? (
+					<>
+						<div className="alert alert-info" role="alert">
+							{t('AddonsConfig:gplink-analog-triggers-sub-header-text')}
+						</div>
+						<p className="text-muted">
+							{t('AddonsConfig:gplink-analog-triggers-help-text')}
+						</p>
+					</>
+				) : (
 					<div className="alert alert-info" role="alert">
 						{t('AddonsConfig:gplink-analog-sub-header-text')}
 					</div>
@@ -818,16 +827,6 @@ const GPLinkAnalog = ({
 						</Tab>
 					))}
 					<Tab eventKey="triggers" title={t('AddonsConfig:gplink-analog-triggers')}>
-						<Row className="mb-3">
-							<div className="col-sm-12">
-								<div className="alert alert-info" role="alert">
-									{t('AddonsConfig:gplink-analog-triggers-sub-header-text')}
-								</div>
-								<p className="text-muted">
-									{t('AddonsConfig:gplink-analog-triggers-help-text')}
-								</p>
-							</div>
-						</Row>
 						{TRIGGERS.map((trigger) => (
 							<Row className="mb-3" key={trigger.key}>
 								<FormControl
