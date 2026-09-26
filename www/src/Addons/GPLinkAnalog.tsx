@@ -508,14 +508,16 @@ const GPLinkAnalog = ({
 							title={t(stick.titleKey)}
 						>
 							<Row className="mb-3">
-								<FormControl
-									type="number"
-									label={t(
-										`AddonsConfig:gplink-analog-${stick.key === 'stick1' ? 'lx' : 'rx'}-pin-label`,
-									)}
+								<div className="col-sm-7">
+									<Row className="mb-3">
+										<FormControl
+											type="number"
+											label={t(
+												`AddonsConfig:gplink-analog-${stick.key === 'stick1' ? 'lx' : 'rx'}-pin-label`,
+											)}
 									name={stick.xPin}
 									className="form-control-sm"
-									groupClassName="col-sm-3 mb-3"
+									groupClassName="col-sm-6 mb-3"
 									value={values[stick.xPin]}
 									error={errors[stick.xPin]}
 									isInvalid={Boolean(errors[stick.xPin])}
@@ -530,114 +532,13 @@ const GPLinkAnalog = ({
 									)}
 									name={stick.yPin}
 									className="form-control-sm"
-									groupClassName="col-sm-3 mb-3"
+									groupClassName="col-sm-6 mb-3"
 									value={values[stick.yPin]}
 									error={errors[stick.yPin]}
 									isInvalid={Boolean(errors[stick.yPin])}
 									onChange={handleChange}
 									min={-1}
 									max={63}
-								/>
-							</Row>
-							<Row className="mb-3">
-								<FormControl
-									type="number"
-									label={t(
-										'AddonsConfig:gplink-analog-axis-inner-deadzone-label',
-										{ axis: stick.key === 'stick1' ? 'LX' : 'RX' },
-									)}
-									name={`gplinkAnalogAxis${stick.xAxis}InnerDeadzone`}
-									className="form-control-sm"
-									groupClassName="col-sm-3 mb-3"
-									value={values[`gplinkAnalogAxis${stick.xAxis}InnerDeadzone`]}
-									error={errors[`gplinkAnalogAxis${stick.xAxis}InnerDeadzone`]}
-									isInvalid={Boolean(
-										errors[`gplinkAnalogAxis${stick.xAxis}InnerDeadzone`],
-									)}
-									onChange={handleChange}
-									min={0}
-									max={100}
-								/>
-								<FormControl
-									type="number"
-									label={t(
-										'AddonsConfig:gplink-analog-axis-inner-deadzone-label',
-										{ axis: stick.key === 'stick1' ? 'LY' : 'RY' },
-									)}
-									name={`gplinkAnalogAxis${stick.yAxis}InnerDeadzone`}
-									className="form-control-sm"
-									groupClassName="col-sm-3 mb-3"
-									value={values[`gplinkAnalogAxis${stick.yAxis}InnerDeadzone`]}
-									error={errors[`gplinkAnalogAxis${stick.yAxis}InnerDeadzone`]}
-									isInvalid={Boolean(
-										errors[`gplinkAnalogAxis${stick.yAxis}InnerDeadzone`],
-									)}
-									onChange={handleChange}
-									min={0}
-									max={100}
-								/>
-								<FormControl
-									type="number"
-									label={t(
-										'AddonsConfig:gplink-analog-axis-outer-deadzone-label',
-										{ axis: stick.key === 'stick1' ? 'LX' : 'RX' },
-									)}
-									name={`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`}
-									className="form-control-sm"
-									groupClassName="col-sm-3 mb-3"
-									value={values[`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`]}
-									error={errors[`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`]}
-									isInvalid={Boolean(
-										errors[`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`],
-									)}
-									onChange={handleChange}
-									min={0}
-									max={100}
-								/>
-								<FormControl
-									type="number"
-									label={t(
-										'AddonsConfig:gplink-analog-axis-outer-deadzone-label',
-										{ axis: stick.key === 'stick1' ? 'LY' : 'RY' },
-									)}
-									name={`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`}
-									className="form-control-sm"
-									groupClassName="col-sm-3 mb-3"
-									value={values[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`]}
-									error={errors[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`]}
-									isInvalid={Boolean(
-										errors[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`],
-									)}
-									onChange={handleChange}
-									min={0}
-									max={100}
-								/>
-							</Row>
-							<Row className="mb-3">
-								<FormCheck
-									label={t(stick.deadzoneEnabledLabel)}
-									type="switch"
-									id={`GPLinkAnalog${stick.key}Deadzone`}
-									className="col-sm-3 ms-3"
-									isInvalid={false}
-									checked={Boolean(values[stick.deadzoneEnabled])}
-									onChange={(e) => {
-										handleCheckbox(stick.deadzoneEnabled);
-										handleChange(e);
-									}}
-								/>
-								<FormControl
-									type="number"
-									label={t(stick.deadzoneLabel)}
-									name={stick.deadzone}
-									className="form-control-sm"
-									groupClassName="col-sm-3 mb-3"
-									value={values[stick.deadzone]}
-									error={errors[stick.deadzone]}
-									isInvalid={Boolean(errors[stick.deadzone])}
-									onChange={handleChange}
-									min={0}
-									max={100}
 								/>
 							</Row>
 							<Row className="mb-3">
@@ -655,7 +556,7 @@ const GPLinkAnalog = ({
 											)}
 											type="switch"
 											id={`GPLinkAnalog${stick.key}Invert${axis}`}
-											className="col-sm-3 ms-3"
+											className="col-sm-6"
 											isInvalid={false}
 											checked={Boolean(values.gplinkAnalogInvertEnabled & bit)}
 											onChange={() =>
@@ -715,7 +616,7 @@ const GPLinkAnalog = ({
 									label={t('AddonsConfig:analog-smoothing')}
 									type="switch"
 									id={`GPLinkAnalog${stick.key}Smoothing`}
-									className="col-sm-3 ms-3"
+									className="col-sm-6"
 									isInvalid={false}
 									checked={Boolean(values[stick.smoothingEnabled])}
 									onChange={(e) => {
@@ -729,7 +630,7 @@ const GPLinkAnalog = ({
 									label={t('AddonsConfig:smoothing-factor')}
 									name={stick.smoothingFactor}
 									className="form-control-sm"
-									groupClassName="col-sm-3 mb-3"
+									groupClassName="col-sm-6 mb-3"
 									value={values[stick.smoothingFactor]}
 									error={errors[stick.smoothingFactor]}
 									isInvalid={Boolean(errors[stick.smoothingFactor])}
@@ -743,7 +644,7 @@ const GPLinkAnalog = ({
 									label={t('AddonsConfig:analog-force-circularity')}
 									type="switch"
 									id={`GPLinkAnalog${stick.key}Circularity`}
-									className="col-sm-3 ms-3"
+									className="col-sm-6"
 									isInvalid={false}
 									checked={Boolean(values[stick.forcedCircularity])}
 									onChange={(e) => {
@@ -752,6 +653,108 @@ const GPLinkAnalog = ({
 									}}
 								/>
 							</Row>
+							</div>
+							<div className="col-sm-5">
+								<h6>{t('AddonsConfig:gplink-analog-deadzone-header-text')}</h6>
+								<FormControl
+									type="number"
+									label={t(
+										'gplink-analog-axis-inner-deadzone-label',
+										{ axis: stick.key === 'stick1' ? 'LX' : 'RX' },
+									)}
+									name={`gplinkAnalogAxis${stick.xAxis}InnerDeadzone`}
+									className="form-control-sm"
+									groupClassName="mb-3"
+									value={values[`gplinkAnalogAxis${stick.xAxis}InnerDeadzone`]}
+									error={errors[`gplinkAnalogAxis${stick.xAxis}InnerDeadzone`]}
+									isInvalid={Boolean(
+										errors[`gplinkAnalogAxis${stick.xAxis}InnerDeadzone`],
+									)}
+									onChange={handleChange}
+									min={0}
+									max={100}
+								/>
+								<FormControl
+									type="number"
+									label={t(
+										'gplink-analog-axis-inner-deadzone-label',
+										{ axis: stick.key === 'stick1' ? 'LY' : 'RY' },
+									)}
+									name={`gplinkAnalogAxis${stick.yAxis}InnerDeadzone`}
+									className="form-control-sm"
+									groupClassName="mb-3"
+									value={values[`gplinkAnalogAxis${stick.yAxis}InnerDeadzone`]}
+									error={errors[`gplinkAnalogAxis${stick.yAxis}InnerDeadzone`]}
+									isInvalid={Boolean(
+										errors[`gplinkAnalogAxis${stick.yAxis}InnerDeadzone`],
+									)}
+									onChange={handleChange}
+									min={0}
+									max={100}
+								/>
+								<FormControl
+									type="number"
+									label={t(
+										'gplink-analog-axis-outer-deadzone-label',
+										{ axis: stick.key === 'stick1' ? 'LX' : 'RX' },
+									)}
+									name={`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`}
+									className="form-control-sm"
+									groupClassName="mb-3"
+									value={values[`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`]}
+									error={errors[`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`]}
+									isInvalid={Boolean(
+										errors[`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`],
+									)}
+									onChange={handleChange}
+									min={0}
+									max={100}
+								/>
+								<FormControl
+									type="number"
+									label={t(
+										'gplink-analog-axis-outer-deadzone-label',
+										{ axis: stick.key === 'stick1' ? 'LY' : 'RY' },
+									)}
+									name={`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`}
+									className="form-control-sm"
+									groupClassName="mb-3"
+									value={values[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`]}
+									error={errors[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`]}
+									isInvalid={Boolean(
+										errors[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`],
+									)}
+									onChange={handleChange}
+									min={0}
+									max={100}
+								/>
+								<FormCheck
+									label={t(stick.deadzoneEnabledLabel)}
+									type="switch"
+									id={`GPLinkAnalog${stick.key}Deadzone`}
+									className="mb-2"
+									isInvalid={false}
+									checked={Boolean(values[stick.deadzoneEnabled])}
+									onChange={(e) => {
+										handleCheckbox(stick.deadzoneEnabled);
+										handleChange(e);
+									}}
+								/>
+								<FormControl
+									type="number"
+									label={t(stick.deadzoneLabel)}
+									name={stick.deadzone}
+									className="form-control-sm"
+									groupClassName="mb-3"
+									value={values[stick.deadzone]}
+									error={errors[stick.deadzone]}
+									isInvalid={Boolean(errors[stick.deadzone])}
+									onChange={handleChange}
+									min={0}
+									max={100}
+								/>
+							</div>
+						</Row>
 						</Tab>
 					))}
 					<Tab eventKey="triggers" title={t('AddonsConfig:gplink-analog-triggers')}>
@@ -772,7 +775,7 @@ const GPLinkAnalog = ({
 									label={t(trigger.pinLabel)}
 									name={trigger.pin}
 									className="form-control-sm"
-									groupClassName="col-sm-2 mb-3"
+									groupClassName="col-sm-3 mb-3"
 									value={values[trigger.pin]}
 									error={errors[trigger.pin]}
 									isInvalid={Boolean(errors[trigger.pin])}
@@ -810,7 +813,7 @@ const GPLinkAnalog = ({
 									min={0}
 									max={65535}
 								/>
-								<div className="col-sm-6">
+								<div className="col-sm-5">
 									<FormCheck
 										label={t('AddonsConfig:gplink-analog-axis-invert-label', {
 											axis: trigger.name,

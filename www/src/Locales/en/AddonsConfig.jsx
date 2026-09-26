@@ -133,6 +133,7 @@ export default {
 	'gplink-analog-axis-invert-label': 'Invert {{axis}}',
 	'gplink-analog-stick-1': 'Stick 1 (Left)',
 	'gplink-analog-stick-2': 'Stick 2 (Right)',
+	'gplink-analog-deadzone-header-text': 'Deadzone',
 	'gplink-analog-calibrate-label': 'Calibrate Center',
 	'gplink-analog-center-text': 'Center: X={{x}} Y={{y}}',
 	'gplink-analog-calibrate-help-text': 'Leave sticks untouched, capture, then Save.',
