@@ -75,7 +75,8 @@ import HETrigger, {
 	HETriggerScheme,
 	HETriggerState,
 } from '../Addons/HETrigger';
-import GPLink, { gplinkScheme, gplinkState } from '../Addons/GPLink';
+	import GPLink, { gplinkScheme, gplinkState } from '../Addons/GPLink';
+	import GPLinkTester from '../Addons/GPLinkTester';
 import GPLinkAnalog, {
 	gplinkAnalogScheme,
 	gplinkAnalogState,
@@ -170,9 +171,10 @@ const ADDONS = [
 	DRV8833Rumble,
 	ReactiveLED,
 	HETrigger,
-	GPLink,
-	GPLinkAnalog,
-];
+		GPLink,
+		GPLinkAnalog,
+		GPLinkTester,
+	];
 
 const FormContext = ({ setStoredData }) => {
 	const { values, setValues } = useFormikContext();

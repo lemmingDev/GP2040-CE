@@ -64,6 +64,17 @@
 // GPLink Module Name
 #define GPLinkName "GPLink"
 
+// Stored companion test lifecycle report (TEST_RESULT), newest-first when
+// served. Ring overwrites oldest; UI derives activeness (latest per testId
+// with status running).
+struct GPLinkTestResult {
+    uint8_t testId;
+    uint8_t status;
+    uint16_t value;
+    uint16_t count;
+};
+#define GPLINK_TEST_RESULTS 8
+
 // Snapshot of addon runtime state for the webconfig status readout.
 struct GPLinkStatus {
     bool started;           // UART init succeeded and link is running
@@ -96,6 +107,10 @@ public:
     // Queue a PIN_CAPS_REQ discovery round (RSP arrives via pumpRx in gamepad
     // mode; the /api/testGPLink handler drains synchronously in config mode).
     bool requestCaps();
+    // Queue a TEST_CONFIGURE frame (run/stop a companion self-test).
+    bool sendTestConfigure(uint8_t testId, uint8_t pin, uint8_t fn, uint16_t p1, uint16_t p2);
+    // Copy stored test results newest-first into out (up to max); returns count.
+    uint8_t copyTestResults(GPLinkTestResult *out, uint8_t max);
     // Config-mode drain: the core0 loop skips all addons in webconfig mode,
     // so without this inbound frames pile up unread and analogValues (read
     // by /api/getGPLinkAnalogValues) stays at init forever. Drains RX and
@@ -161,6 +176,9 @@ private:
     uint32_t lastActMs;         // last actuation send (5 s backstop)
     char compFw[32];            // companion fw string (FEATURE identity, session)
     uint8_t compRadio;          // companion radio flags (bit0 WiFi, bit1 BT)
+    GPLinkTestResult testResults[GPLINK_TEST_RESULTS]; // TEST_RESULT ring
+    uint8_t testResultHead = 0; // next write index into the ring
+    uint8_t testResultNum = 0;  // valid entries (saturates at ring size)
 };
 
 GPLinkAddon *GPLink_GetAddon(); // null until the addon is constructed

@@ -73,6 +73,24 @@ bool GPLinkAddon::requestCaps() {
     return sendFrame(GPLINK_TYPE_PIN_CAPS_REQ, payload, len);
 }
 
+bool GPLinkAddon::sendTestConfigure(uint8_t testId, uint8_t pin, uint8_t fn, uint16_t p1, uint16_t p2) {
+    if (!started) return false;
+    uint8_t payload[8];
+    size_t len = gplink_pack_test_configure(testId, pin, fn, p1, p2, payload);
+    if (len == 0) return false;
+    return sendFrame(GPLINK_TYPE_TEST_CONFIGURE, payload, len);
+}
+
+uint8_t GPLinkAddon::copyTestResults(GPLinkTestResult *out, uint8_t max) {
+    if (!out || max == 0) return 0;
+    uint8_t n = testResultNum < max ? testResultNum : max;
+    for (uint8_t i = 0; i < n; i++) {
+        uint8_t idx = (uint8_t)((testResultHead + GPLINK_TEST_RESULTS - 1 - i) % GPLINK_TEST_RESULTS);
+        out[i] = testResults[idx];
+    }
+    return n;
+}
+
 uint16_t GPLinkAddon::getAnalogPinValue(uint8_t pin) {
     if (pin >= GPLINK_PIN_COUNT) return GAMEPAD_JOYSTICK_MID;
     return analogValues[pin];
@@ -586,6 +604,24 @@ void GPLinkAddon::pumpRx(uint32_t now) {
                     strncpy(compFw, ver, sizeof(compFw) - 1);
                     compFw[sizeof(compFw) - 1] = '\0';
                     compRadio = radio;
+                    handledFrames++;
+                } else {
+                    ignoredFrames++;
+                }
+                break;
+            }
+            case GPLINK_TYPE_TEST_RESULT: {
+                // Companion test lifecycle reports: store into the ring for
+                // the results endpoint; malformed frames are ignored.
+                uint8_t testId = 0, status = 0;
+                uint16_t value = 0, count = 0;
+                if (gplink_unpack_test_result(&frame, &testId, &status, &value, &count)) {
+                    testResults[testResultHead].testId = testId;
+                    testResults[testResultHead].status = status;
+                    testResults[testResultHead].value = value;
+                    testResults[testResultHead].count = count;
+                    testResultHead = (uint8_t)((testResultHead + 1) % GPLINK_TEST_RESULTS);
+                    if (testResultNum < GPLINK_TEST_RESULTS) testResultNum++;
                     handledFrames++;
                 } else {
                     ignoredFrames++;

@@ -490,6 +490,50 @@ std::string getGPLinkAnalogValues()
     return serialize_json(doc);
 }
 
+// Queue a companion self-test (TEST_CONFIGURE). Session-only; completion
+// and errors arrive as TEST_RESULT frames served below.
+std::string runGPLinkTest()
+{
+    const size_t capacity = JSON_OBJECT_SIZE(2);
+    DynamicJsonDocument doc(capacity);
+    DynamicJsonDocument postDoc = get_post_data();
+    uint32_t testId = postDoc["testId"];
+    uint32_t pin = postDoc["pin"];
+    uint32_t fn = postDoc["function"];
+    uint32_t p1 = postDoc["param1"];
+    uint32_t p2 = postDoc["param2"];
+    bool sent = false;
+    if (GPLinkAddon *addon = GPLink_GetAddon()) {
+        sent = addon->sendTestConfigure((uint8_t)testId, (uint8_t)pin, (uint8_t)fn,
+                                        (uint16_t)p1, (uint16_t)p2);
+    }
+    writeDoc(doc, "sent", sent);
+    return serialize_json(doc);
+}
+
+// Stored companion test results, newest first (see GPLinkTestResult).
+std::string getGPLinkTestResults()
+{
+    // 8 entries of 4 scalars; sized with headroom (see above).
+    const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_ARRAY_SIZE(8)
+                          + 8 * JSON_OBJECT_SIZE(4) + 32;
+    DynamicJsonDocument doc(capacity);
+    GPLinkTestResult results[8];
+    uint8_t count = 0;
+    if (GPLinkAddon *addon = GPLink_GetAddon()) {
+        count = addon->copyTestResults(results, 8);
+    }
+    JsonArray arr = doc.createNestedArray("results");
+    for (uint8_t i = 0; i < count; i++) {
+        JsonObject entry = arr.createNestedObject();
+        entry["testId"] = results[i].testId;
+        entry["status"] = results[i].status;
+        entry["value"] = results[i].value;
+        entry["count"] = results[i].count;
+    }
+    return serialize_json(doc);
+}
+
 std::string getGPLinkStatus()
 {
     // Pool must fit scalars plus the companion version string; same
@@ -3614,6 +3658,8 @@ static const std::pair<const char*, HandlerFuncPtr> handlerFuncs[] =
     { "/api/getGPLinkStatus", getGPLinkStatus },
     { "/api/testGPLink", testGPLink },
     { "/api/getGPLinkAnalogValues", getGPLinkAnalogValues },
+    { "/api/runGPLinkTest", runGPLinkTest },
+    { "/api/getGPLinkTestResults", getGPLinkTestResults },
     { "/api/getConfig", getConfig },
     { "/api/getJoystickCenter", getJoystickCenter },
     { "/api/getJoystickCenter2", getJoystickCenter2 },

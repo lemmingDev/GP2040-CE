@@ -630,6 +630,30 @@ async function getGPLinkAnalogValues() {
 		console.error(error);
 	}
 }
+
+async function runGPLinkTest(testId, pin, testFunction, param1, param2) {
+	try {
+		const response = await Http.post(`${baseUrl}/api/runGPLinkTest`, {
+			testId,
+			pin,
+			function: testFunction,
+			param1,
+			param2,
+		});
+		return response.data;
+	} catch (error) {
+		console.error(error);
+	}
+}
+
+async function getGPLinkTestResults() {
+	try {
+		const response = await Http.get(`${baseUrl}/api/getGPLinkTestResults`);
+		return response.data;
+	} catch (error) {
+		console.error(error);
+	}
+}
 async function setLightsDataOptions(options) {
 	return Http.post(`${baseUrl}/api/setLightsDataOptions`, options);
 }
@@ -793,6 +817,8 @@ export default {
 	getGPLinkStatus,
 	testGPLink,
 	getGPLinkAnalogValues,
+	runGPLinkTest,
+	getGPLinkTestResults,
 	getHETriggerVoltage,
 	setHETriggerCalibrations,
 	getHETriggerCalibrations,
