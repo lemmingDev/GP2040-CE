@@ -96,7 +96,8 @@ public:
     bool requestCaps();
     // Config-mode drain: the core0 loop skips all addons in webconfig mode,
     // so without this inbound frames pile up unread and analogValues (read
-    // by /api/getGPLinkAnalogValues) stays at init forever. Drains RX only;
+    // by /api/getGPLinkAnalogValues) stays at init forever. Drains RX and
+    // runs the analog shaping pipeline so raw + shaped monitors stay live;
     // no INPUT_STATE TX, no output mirror, no actuation.
     void pollConfigMode();
     // Raw stored value for a companion pin (MID if never received).

@@ -526,6 +526,10 @@ static bool gplinkStateChanged(const GamepadState &a, const GamepadState &b) {
 void GPLinkAddon::pollConfigMode() {
     if (!started) return;
     pumpRx(getMillis());
+    // Run the shaping pipeline too so the shaped-value endpoint mirrors
+    // gamepad mode exactly (same code path, not a reimplementation).
+    // Writes gamepad state the config driver ignores; harmless here.
+    applyAnalogAxes();
 }
 
 void GPLinkAddon::process() {

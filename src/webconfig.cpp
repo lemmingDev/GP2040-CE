@@ -434,7 +434,9 @@ std::string getUsedPins()
 
 // Live companion analog values for calibration (raw mapped values,
 // pre-deadzone, so the true center/rest is visible). Sticks read MID and
-// triggers 0 when unmapped or nothing received.
+// triggers 0 when unmapped or nothing received. The *S keys carry the shaped
+// post-pipeline gamepad state (centers, EMA, deadzones, min/max, invert) so
+// the UI can show raw vs modified side by side.
 //
 // NOTE: keys must be string literals, not const char* variables. ArduinoJson
 // stores literal keys by pointer (zero-copy) but duplicates pointer keys
@@ -442,7 +444,7 @@ std::string getUsedPins()
 // serializes to {} (frozen UI with no error).
 std::string getGPLinkAnalogValues()
 {
-    const size_t capacity = JSON_OBJECT_SIZE(6);
+    const size_t capacity = JSON_OBJECT_SIZE(12);
     DynamicJsonDocument doc(capacity);
     const GPLinkAnalogOptions& options = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
     GPLinkAddon *addon = GPLink_GetAddon();
@@ -463,6 +465,13 @@ std::string getGPLinkAnalogValues()
     writeDoc(doc, "ry", values[3]);
     writeDoc(doc, "lt", values[4]);
     writeDoc(doc, "rt", values[5]);
+    const GamepadState &shaped = Storage::getInstance().GetGamepad()->state;
+    writeDoc(doc, "lxS", shaped.lx);
+    writeDoc(doc, "lyS", shaped.ly);
+    writeDoc(doc, "rxS", shaped.rx);
+    writeDoc(doc, "ryS", shaped.ry);
+    writeDoc(doc, "ltS", shaped.lt);
+    writeDoc(doc, "rtS", shaped.rt);
     return serialize_json(doc);
 }
 

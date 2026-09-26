@@ -327,14 +327,17 @@ const StickPad = ({ x, y }: { x: number; y: number }) => {
 	);
 };
 
-// Trigger level bar: shaded [min, max] window with a marker at the live raw
-// value. Decorative (aria-hidden); the adjacent live text carries the value.
+// Trigger level bar: shaded [min, max] window with a primary marker at the
+// live raw value and a success marker at the shaped output (0-255). Decorative
+// (aria-hidden); the adjacent live text carries the values.
 const TriggerBar = ({
 	v,
+	s,
 	min,
 	max,
 }: {
 	v: number;
+	s: number;
 	min: number;
 	max: number;
 }) => {
@@ -373,6 +376,16 @@ const TriggerBar = ({
 					background: 'var(--bs-primary)',
 				}}
 			/>
+			<div
+				style={{
+					position: 'absolute',
+					left: `calc(${Math.min(100, Math.max(0, (s / 255) * 100))}% - 1px)`,
+					top: 0,
+					bottom: 0,
+					width: 2,
+					background: 'var(--bs-success)',
+				}}
+			/>
 		</div>
 	);
 };
@@ -395,6 +408,12 @@ const GPLinkAnalog = ({
 		ry: 32767,
 		lt: 0,
 		rt: 0,
+		lxS: 32767,
+		lyS: 32767,
+		rxS: 32767,
+		ryS: 32767,
+		ltS: 0,
+		rtS: 0,
 	});
 	const [activeTab, setActiveTab] = useState(gplinkAnalogActiveTab);
 	// False when the live feed errors: surfaces poll failures in the UI
@@ -416,7 +435,20 @@ const GPLinkAnalog = ({
 				setLiveOk(true);
 				setLiveValues((prev) => {
 					const next = { ...prev };
-					for (const k of ['lx', 'ly', 'rx', 'ry', 'lt', 'rt'] as const) {
+					for (const k of [
+						'lx',
+						'ly',
+						'rx',
+						'ry',
+						'lt',
+						'rt',
+						'lxS',
+						'lyS',
+						'rxS',
+						'ryS',
+						'ltS',
+						'rtS',
+					] as const) {
 						if (typeof data[k] === 'number') next[k] = data[k];
 					}
 					return next;
@@ -556,7 +588,7 @@ const GPLinkAnalog = ({
 											)}
 											type="switch"
 											id={`GPLinkAnalog${stick.key}Invert${axis}`}
-											className="col-sm-6"
+											className="col-sm-6 ps-3"
 											isInvalid={false}
 											checked={Boolean(values.gplinkAnalogInvertEnabled & bit)}
 											onChange={() =>
@@ -587,10 +619,28 @@ const GPLinkAnalog = ({
 							</Row>
 							<Row className="mb-3">
 								<div className="col-sm-12 d-flex align-items-center gap-3">
-									<StickPad
-										x={liveValues[stick.valueX]}
-										y={liveValues[stick.valueY]}
-									/>
+									<div>
+										<StickPad
+											x={liveValues[stick.valueX]}
+											y={liveValues[stick.valueY]}
+										/>
+										<div>
+											<small className="text-muted">
+												{t('AddonsConfig:gplink-analog-raw-label')}
+											</small>
+										</div>
+									</div>
+									<div>
+										<StickPad
+											x={liveValues[`${stick.valueX}S`]}
+											y={liveValues[`${stick.valueY}S`]}
+										/>
+										<div>
+											<small className="text-muted">
+												{t('AddonsConfig:gplink-analog-shaped-label')}
+											</small>
+										</div>
+									</div>
 									<div>
 										<span
 											className="text-muted"
@@ -600,6 +650,16 @@ const GPLinkAnalog = ({
 											{t('AddonsConfig:gplink-analog-live-text', {
 												x: liveValues[stick.valueX],
 												y: liveValues[stick.valueY],
+											})}
+										</span>
+										<br />
+										<span
+											className="text-muted"
+											style={{ fontVariantNumeric: 'tabular-nums' }}
+										>
+											{t('AddonsConfig:gplink-analog-shaped-text', {
+												x: liveValues[`${stick.valueX}S`],
+												y: liveValues[`${stick.valueY}S`],
 											})}
 										</span>
 										{!liveOk && (
@@ -616,7 +676,7 @@ const GPLinkAnalog = ({
 									label={t('AddonsConfig:analog-smoothing')}
 									type="switch"
 									id={`GPLinkAnalog${stick.key}Smoothing`}
-									className="col-sm-6"
+									className="col-sm-6 ps-3"
 									isInvalid={false}
 									checked={Boolean(values[stick.smoothingEnabled])}
 									onChange={(e) => {
@@ -644,7 +704,7 @@ const GPLinkAnalog = ({
 									label={t('AddonsConfig:analog-force-circularity')}
 									type="switch"
 									id={`GPLinkAnalog${stick.key}Circularity`}
-									className="col-sm-6"
+									className="col-sm-6 ps-3"
 									isInvalid={false}
 									checked={Boolean(values[stick.forcedCircularity])}
 									onChange={(e) => {
@@ -659,7 +719,7 @@ const GPLinkAnalog = ({
 								<FormControl
 									type="number"
 									label={t(
-										'gplink-analog-axis-inner-deadzone-label',
+										'AddonsConfig:gplink-analog-axis-inner-deadzone-label',
 										{ axis: stick.key === 'stick1' ? 'LX' : 'RX' },
 									)}
 									name={`gplinkAnalogAxis${stick.xAxis}InnerDeadzone`}
@@ -677,7 +737,7 @@ const GPLinkAnalog = ({
 								<FormControl
 									type="number"
 									label={t(
-										'gplink-analog-axis-inner-deadzone-label',
+										'AddonsConfig:gplink-analog-axis-inner-deadzone-label',
 										{ axis: stick.key === 'stick1' ? 'LY' : 'RY' },
 									)}
 									name={`gplinkAnalogAxis${stick.yAxis}InnerDeadzone`}
@@ -695,7 +755,7 @@ const GPLinkAnalog = ({
 								<FormControl
 									type="number"
 									label={t(
-										'gplink-analog-axis-outer-deadzone-label',
+										'AddonsConfig:gplink-analog-axis-outer-deadzone-label',
 										{ axis: stick.key === 'stick1' ? 'LX' : 'RX' },
 									)}
 									name={`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`}
@@ -713,7 +773,7 @@ const GPLinkAnalog = ({
 								<FormControl
 									type="number"
 									label={t(
-										'gplink-analog-axis-outer-deadzone-label',
+										'AddonsConfig:gplink-analog-axis-outer-deadzone-label',
 										{ axis: stick.key === 'stick1' ? 'LY' : 'RY' },
 									)}
 									name={`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`}
@@ -732,7 +792,7 @@ const GPLinkAnalog = ({
 									label={t(stick.deadzoneEnabledLabel)}
 									type="switch"
 									id={`GPLinkAnalog${stick.key}Deadzone`}
-									className="mb-2"
+									className="mb-2 ps-3"
 									isInvalid={false}
 									checked={Boolean(values[stick.deadzoneEnabled])}
 									onChange={(e) => {
@@ -873,6 +933,7 @@ const GPLinkAnalog = ({
 									)}
 									<TriggerBar
 										v={liveValues[trigger.key]}
+										s={liveValues[`${trigger.key}S`]}
 										min={values[trigger.min]}
 										max={values[trigger.max]}
 									/>
