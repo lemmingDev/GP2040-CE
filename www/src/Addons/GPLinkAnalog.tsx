@@ -291,7 +291,9 @@ const TRIGGERS = [
 let gplinkAnalogActiveTab = 'stick1';
 
 // 2-D stick position pad: dot at the live raw value over a center crosshair.
-// Decorative (aria-hidden); the adjacent live text carries the values.
+// Decorative (aria-hidden); the adjacent live text carries the values. The
+// dot uses translate(-50%,-50%) and the hairlines are offset by half their
+// thickness so all three share the exact same center reference.
 const StickPad = ({ x, y }: { x: number; y: number }) => {
 	const px = Math.min(100, Math.max(0, (x / 65535) * 100));
 	const py = Math.min(100, Math.max(0, (y / 65535) * 100));
@@ -310,7 +312,7 @@ const StickPad = ({ x, y }: { x: number; y: number }) => {
 			<div
 				style={{
 					position: 'absolute',
-					left: '50%',
+					left: 'calc(50% - 0.5px)',
 					top: 0,
 					bottom: 0,
 					width: 1,
@@ -320,7 +322,7 @@ const StickPad = ({ x, y }: { x: number; y: number }) => {
 			<div
 				style={{
 					position: 'absolute',
-					top: '50%',
+					top: 'calc(50% - 0.5px)',
 					left: 0,
 					right: 0,
 					height: 1,
@@ -330,8 +332,9 @@ const StickPad = ({ x, y }: { x: number; y: number }) => {
 			<div
 				style={{
 					position: 'absolute',
-					left: `calc(${px}% - 4px)`,
-					top: `calc(${py}% - 4px)`,
+					left: `${px}%`,
+					top: `${py}%`,
+					transform: 'translate(-50%, -50%)',
 					width: 8,
 					height: 8,
 					borderRadius: '50%',
@@ -549,6 +552,8 @@ const GPLinkAnalog = ({
 									min={-1}
 									max={63}
 								/>
+							</Row>
+							<Row className="mb-3">
 								<FormControl
 									type="number"
 									label={t(
@@ -585,8 +590,6 @@ const GPLinkAnalog = ({
 									min={0}
 									max={100}
 								/>
-							</Row>
-							<Row className="mb-3">
 								<FormControl
 									type="number"
 									label={t(
