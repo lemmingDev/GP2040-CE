@@ -154,6 +154,10 @@ export const gplinkAnalogScheme = {
 		.number()
 		.label('GPLink Right Trigger Max')
 		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 65535),
+	gplinkAnalogTriggerInvert: yup
+		.number()
+		.label('GPLink Trigger Invert')
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 3),
 };
 
 export const gplinkAnalogState = {
@@ -194,6 +198,7 @@ export const gplinkAnalogState = {
 	gplinkAnalogLtMax: 65535,
 	gplinkAnalogRtMin: 0,
 	gplinkAnalogRtMax: 65535,
+	gplinkAnalogTriggerInvert: 0,
 };
 
 // Stick tabs mirror the core Analog page: pins + deadzones + one-click
@@ -247,6 +252,7 @@ const TRIGGERS = [
 	{
 		key: 'lt',
 		name: 'LT',
+		bit: 1,
 		pin: 'gplinkAnalogLtPin',
 		min: 'gplinkAnalogLtMin',
 		max: 'gplinkAnalogLtMax',
@@ -255,6 +261,7 @@ const TRIGGERS = [
 	{
 		key: 'rt',
 		name: 'RT',
+		bit: 2,
 		pin: 'gplinkAnalogRtPin',
 		min: 'gplinkAnalogRtMin',
 		max: 'gplinkAnalogRtMax',
@@ -525,6 +532,34 @@ const GPLinkAnalog = ({
 								/>
 							</Row>
 							<Row className="mb-3">
+								{[stick.xAxis, stick.yAxis].map((axis) => {
+									const bit = 8 >> axis;
+									const label = (
+										axis === stick.xAxis ? stick.valueX : stick.valueY
+									).toUpperCase();
+									return (
+										<FormCheck
+											key={`${stick.key}-invert-${axis}`}
+											label={t(
+												'AddonsConfig:gplink-analog-axis-invert-label',
+												{ axis: label },
+											)}
+											type="switch"
+											id={`GPLinkAnalog${stick.key}Invert${axis}`}
+											className="col-sm-3 ms-3"
+											isInvalid={false}
+											checked={Boolean(values.gplinkAnalogInvertEnabled & bit)}
+											onChange={() =>
+												setFieldValue(
+													'gplinkAnalogInvertEnabled',
+													values.gplinkAnalogInvertEnabled ^ bit,
+												)
+											}
+										/>
+									);
+								})}
+							</Row>
+							<Row className="mb-3">
 								<div className="col-sm-12">
 									<Button size="sm" onClick={() => calibrateStick(stick)}>
 										{t('AddonsConfig:gplink-analog-calibrate-label')}
@@ -647,6 +682,22 @@ const GPLinkAnalog = ({
 									max={65535}
 								/>
 								<div className="col-sm-6">
+									<FormCheck
+										label={t('AddonsConfig:gplink-analog-axis-invert-label', {
+											axis: trigger.name,
+										})}
+										type="switch"
+										id={`GPLinkAnalog${trigger.key}Invert`}
+										className="mb-2"
+										isInvalid={false}
+										checked={Boolean(values.gplinkAnalogTriggerInvert & trigger.bit)}
+										onChange={() =>
+											setFieldValue(
+												'gplinkAnalogTriggerInvert',
+												values.gplinkAnalogTriggerInvert ^ trigger.bit,
+											)
+										}
+									/>
 									<Button
 										size="sm"
 										onClick={() =>
