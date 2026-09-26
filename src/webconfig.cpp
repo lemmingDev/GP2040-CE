@@ -447,7 +447,7 @@ std::string getUsedPins()
 // with no error — exactly what happened to the shaped keys).
 std::string getGPLinkAnalogValues()
 {
-    const size_t capacity = JSON_OBJECT_SIZE(12) + 64;
+    const size_t capacity = JSON_OBJECT_SIZE(16) + 96;
     DynamicJsonDocument doc(capacity);
     const GPLinkAnalogOptions& options = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
     GPLinkAddon *addon = GPLink_GetAddon();
@@ -475,6 +475,16 @@ std::string getGPLinkAnalogValues()
     writeDoc(doc, "ryS", shaped.ry);
     writeDoc(doc, "ltS", shaped.lt);
     writeDoc(doc, "rtS", shaped.rt);
+    // Diagnostics: shaping-pass counter, link started flag, process calls,
+    // and firmware build hash (proves which build serves this page).
+    GPLinkStatus linkStatus = {};
+    if (addon != nullptr) {
+        addon->getStatus(linkStatus);
+        writeDoc(doc, "runs", addon->getShapedRuns());
+    }
+    writeDoc(doc, "started", linkStatus.started);
+    writeDoc(doc, "calls", linkStatus.processCalls);
+    writeDoc(doc, "fw", GP2040BUILD);
     return serialize_json(doc);
 }
 

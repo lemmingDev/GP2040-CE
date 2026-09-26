@@ -282,6 +282,7 @@ void GPLinkAddon::applyAnalogAxes() {
         anyTrigger = true;
     }
     if (anyTrigger) gamepad->hasAnalogTriggers = true;
+    shapedRuns++;
 }
 
 // Tell the companion which of its pins we use (inputs and outputs), with

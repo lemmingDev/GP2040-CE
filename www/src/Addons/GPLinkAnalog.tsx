@@ -419,6 +419,8 @@ const GPLinkAnalog = ({
 	// False when the live feed errors: surfaces poll failures in the UI
 	// instead of leaving silently frozen numbers.
 	const [liveOk, setLiveOk] = useState(true);
+	// Firmware build hash serving this page (proves which build is flashed).
+	const [fw, setFw] = useState('');
 	useEffect(() => {
 		let alive = true;
 		let id: ReturnType<typeof setInterval> | null = null;
@@ -433,7 +435,13 @@ const GPLinkAnalog = ({
 					return;
 				}
 				setLiveOk(true);
+				setFw((prev) =>
+					typeof data.fw === 'string' && data.fw !== '' ? data.fw : prev,
+				);
 				setLiveValues((prev) => {
+					// Bail out (same reference, no re-render) when nothing moved:
+					// the companion only pushes on change, so most polls repeat.
+					let changed = false;
 					const next = { ...prev };
 					for (const k of [
 						'lx',
@@ -449,9 +457,12 @@ const GPLinkAnalog = ({
 						'ltS',
 						'rtS',
 					] as const) {
-						if (typeof data[k] === 'number') next[k] = data[k];
+						if (typeof data[k] === 'number' && data[k] !== prev[k]) {
+							next[k] = data[k];
+							changed = true;
+						}
 					}
-					return next;
+					return changed ? next : prev;
 				});
 			} catch {
 				if (alive) setLiveOk(false);
@@ -459,7 +470,10 @@ const GPLinkAnalog = ({
 		};
 		const start = () => {
 			fetchLive();
-			if (id === null) id = setInterval(fetchLive, 500);
+			// 10 Hz: the companion pushes on change, so this is display latency
+			// only. Re-renders are skipped when values repeat (see above), so
+			// idle cost is one small GET per tick on core1's HTTP server.
+			if (id === null) id = setInterval(fetchLive, 100);
 		};
 		const stop = () => {
 			if (id !== null) {
@@ -592,7 +606,7 @@ const GPLinkAnalog = ({
 											)}
 											type="switch"
 											id={`GPLinkAnalog${stick.key}Invert${axis}`}
-											className="col-sm-6 ps-3"
+											className="col-sm-5 ms-3"
 											isInvalid={false}
 											checked={Boolean(values.gplinkAnalogInvertEnabled & bit)}
 											onChange={() =>
@@ -680,7 +694,7 @@ const GPLinkAnalog = ({
 									label={t('AddonsConfig:analog-smoothing')}
 									type="switch"
 									id={`GPLinkAnalog${stick.key}Smoothing`}
-									className="col-sm-6 ps-3"
+									className="col-sm-5 ms-3"
 									isInvalid={false}
 									checked={Boolean(values[stick.smoothingEnabled])}
 									onChange={(e) => {
@@ -708,7 +722,7 @@ const GPLinkAnalog = ({
 									label={t('AddonsConfig:analog-force-circularity')}
 									type="switch"
 									id={`GPLinkAnalog${stick.key}Circularity`}
-									className="col-sm-6 ps-3"
+									className="col-sm-6 ms-3"
 									isInvalid={false}
 									checked={Boolean(values[stick.forcedCircularity])}
 									onChange={(e) => {
@@ -796,7 +810,7 @@ const GPLinkAnalog = ({
 									label={t(stick.deadzoneEnabledLabel)}
 									type="switch"
 									id={`GPLinkAnalog${stick.key}Deadzone`}
-									className="mb-2 ps-3"
+									className="mb-2 ms-3"
 									isInvalid={false}
 									checked={Boolean(values[stick.deadzoneEnabled])}
 									onChange={(e) => {
@@ -822,7 +836,10 @@ const GPLinkAnalog = ({
 						</Tab>
 					))}
 					<Tab eventKey="triggers" title={t('AddonsConfig:gplink-analog-triggers')}>
-						{TRIGGERS.map((trigger) => (
+						{/* Floor the tab height so the card doesn't shrink vs the
+						taller stick tabs (grows past this if content needs it). */}
+						<div style={{ minHeight: 470 }}>
+							{TRIGGERS.map((trigger) => (
 							<Row className="mb-3" key={trigger.key}>
 								<FormControl
 									type="number"
@@ -874,7 +891,7 @@ const GPLinkAnalog = ({
 										})}
 										type="switch"
 										id={`GPLinkAnalog${trigger.key}Invert`}
-										className="mb-2"
+										className="mb-2 ms-3"
 										isInvalid={false}
 										checked={Boolean(values.gplinkAnalogTriggerInvert & trigger.bit)}
 										onChange={() =>
@@ -934,14 +951,20 @@ const GPLinkAnalog = ({
 								</div>
 							</Row>
 						))}
+						</div>
 					</Tab>
 				</Tabs>
 			</div>
 			<Row className="mt-2 align-items-center">
-				<div className="col-sm-6">
+				<div className="col-sm-6 d-flex align-items-center">
 					<Button type="submit">
 						{t('AddonsConfig:gplink-analog-save-label')}
 					</Button>
+					{fw !== '' && (
+						<span className="text-muted ms-3">
+							<small>FW {fw}</small>
+						</span>
+					)}
 				</div>
 				<div className="col-sm-6 d-flex flex-column align-items-end gap-2">
 					{activeTab === 'triggers' && (
