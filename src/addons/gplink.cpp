@@ -208,10 +208,12 @@ void GPLinkAddon::applyAnalogAxes() {
         int32_t offset = (int32_t)axis[i] - GAMEPAD_JOYSTICK_MID;
         uint32_t inner = innerDz[i] * (1 << 16) / 100;
         uint32_t outer = outerDz[i] * (1 << 16) / 100;
-        if (options.innerDeadzoneEnabled & (GPLINK_ANALOG_AXIS_FLAG_START >> i)) {
+        // Per-axis windows are self-arming: a nonzero percent enables that
+        // axis (0 = off). The inner/outerDeadzoneEnabled bitmasks are unused.
+        if (inner > 0) {
             if (abs(offset) < (int32_t)inner) axis[i] = GAMEPAD_JOYSTICK_MID;
         }
-        if (options.outerDeadzoneEnabled & (GPLINK_ANALOG_AXIS_FLAG_START >> i)) {
+        if (outer > 0) {
             if (offset > (int32_t)outer) axis[i] = GAMEPAD_JOYSTICK_MAX;
             else if (offset < -(int32_t)outer) axis[i] = 0;
         }
