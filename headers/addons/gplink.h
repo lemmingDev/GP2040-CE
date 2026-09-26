@@ -104,10 +104,11 @@ public:
     uint16_t getAnalogPinValue(uint8_t pin);
     // Completed shaping passes (diagnostic: proves applyAnalogAxes runs).
     uint32_t getShapedRuns() { return shapedRuns; }
-    // Gamepad pointer seen by shaping (diagnostic: identity vs endpoint's).
-    uintptr_t getLastPadSeen() { return lastPadSeen; }
-    // Computed axis[0] snapshot (diagnostic: compute-side vs store-side).
-    uint16_t getDbgAxis0() { return dbgAxis0; }
+    // Shaped output mirror (diagnostic + monitor source). The live gamepad
+    // state is reset by gamepad->read() every poll, and the web endpoint is
+    // served from a loop phase that observes pre-shaping state — so monitors
+    // must read this stable snapshot, never the volatile state.
+    uint16_t getShaped(uint8_t ch) { return ch < 6 ? shapedState[ch] : 0; }
 
 private:
     void sendHello();
@@ -145,8 +146,10 @@ private:
     uint16_t analogValues[64];  // last ANALOG_READ values by companion pin
     float analogEma[4] = {};  // EMA history per axis (official inits 0.0f)
     uint32_t shapedRuns = 0;  // completed applyAnalogAxes passes
-    uintptr_t lastPadSeen = 0; // GetGamepad() value seen by shaping
-    uint16_t dbgAxis0 = 0;    // computed axis[0] snapshot (write-side probe)
+    // Post-pipeline output snapshot (lx,ly,rx,ry,lt,rt). Written every pass;
+    // the monitor endpoint serves this, not the volatile gamepad state.
+    uint16_t shapedState[6] = {GAMEPAD_JOYSTICK_MID, GAMEPAD_JOYSTICK_MID,
+                               GAMEPAD_JOYSTICK_MID, GAMEPAD_JOYSTICK_MID, 0, 0};
     uint8_t lastLedMask;        // last PLAYER_LED_SET mask sent
     uint8_t lastWeak;           // last RUMBLE_SET weak intensity sent
     uint8_t lastStrong;         // last RUMBLE_SET strong intensity sent
