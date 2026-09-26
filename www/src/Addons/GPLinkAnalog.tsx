@@ -287,12 +287,21 @@ const GPLinkAnalog = ({
 		rt: 0,
 	});
 	const [activeTab, setActiveTab] = useState(gplinkAnalogActiveTab);
+	// False when the live feed errors: surfaces poll failures in the UI
+	// instead of leaving silently frozen numbers.
+	const [liveOk, setLiveOk] = useState(true);
 	useEffect(() => {
 		let alive = true;
 		let id: ReturnType<typeof setInterval> | null = null;
 		const fetchLive = async () => {
-			const data = await WebApi.getGPLinkAnalogValues();
-			if (alive && data) {
+			try {
+				const data = await WebApi.getGPLinkAnalogValues();
+				if (!alive) return;
+				if (!data) {
+					setLiveOk(false);
+					return;
+				}
+				setLiveOk(true);
 				setLiveValues((prev) => {
 					const next = { ...prev };
 					for (const k of ['lx', 'ly', 'rx', 'ry', 'lt', 'rt'] as const) {
@@ -300,6 +309,8 @@ const GPLinkAnalog = ({
 					}
 					return next;
 				});
+			} catch {
+				if (alive) setLiveOk(false);
 			}
 		};
 		const start = () => {
@@ -528,6 +539,12 @@ const GPLinkAnalog = ({
 											y: liveValues[stick.valueY],
 										})}
 									</span>
+									{!liveOk && (
+										<span className="text-danger">
+											{' '}
+											{t('AddonsConfig:gplink-analog-live-error-text')}
+										</span>
+									)}
 								</div>
 							</Row>
 							<Row className="mb-3">
@@ -659,6 +676,12 @@ const GPLinkAnalog = ({
 											v: liveValues[trigger.key],
 										})}
 									</span>
+									{!liveOk && (
+										<span className="text-danger">
+											{' '}
+											{t('AddonsConfig:gplink-analog-live-error-text')}
+										</span>
+									)}
 								</div>
 							</Row>
 						))}
