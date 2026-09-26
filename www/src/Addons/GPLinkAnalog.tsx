@@ -61,19 +61,19 @@ export const gplinkAnalogScheme = {
 	gplinkAnalogAxis0OuterDeadzone: yup
 		.number()
 		.label('GPLink Axis 0 Outer Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 80, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
 	gplinkAnalogAxis1OuterDeadzone: yup
 		.number()
 		.label('GPLink Axis 1 Outer Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 80, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
 	gplinkAnalogAxis2OuterDeadzone: yup
 		.number()
 		.label('GPLink Axis 2 Outer Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 80, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
 	gplinkAnalogAxis3OuterDeadzone: yup
 		.number()
 		.label('GPLink Axis 3 Outer Deadzone')
-		.validateRangeWhenValue('GPLinkAnalogEnabled', 80, 100),
+		.validateRangeWhenValue('GPLinkAnalogEnabled', 0, 100),
 	gplinkAnalogLeftStickDeadzone: yup
 		.number()
 		.label('GPLink Left Stick Deadzone')
@@ -870,7 +870,7 @@ const GPLinkAnalog = ({
 									)}
 									name={`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`}
 									groupClassName="mb-3"
-									min={80}
+									min={0}
 									max={100}
 									value={values[`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`]}
 									error={errors[`gplinkAnalogAxis${stick.xAxis}OuterDeadzone`]}
@@ -886,7 +886,7 @@ const GPLinkAnalog = ({
 									)}
 									name={`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`}
 									groupClassName="mb-3"
-									min={80}
+									min={0}
 									max={100}
 									value={values[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`]}
 									error={errors[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`]}
