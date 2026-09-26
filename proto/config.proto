@@ -1036,6 +1036,18 @@ message GPLinkAnalogOptions
     // min/max window. No other addon inverts triggers; sticks use the
     // invertEnabled axis bitmask above.
     optional uint32 triggerInvert = 39;
+    // Per-axis calibration in raw companion units, mirroring the official
+    // Analog readPin model: a valid window (min < center < max) maps each
+    // side asymmetrically to full range; otherwise centers-only applies.
+    // Defaults are identity.
+    optional uint32 lxMin = 40;
+    optional uint32 lxMax = 41;
+    optional uint32 lyMin = 42;
+    optional uint32 lyMax = 43;
+    optional uint32 rxMin = 44;
+    optional uint32 rxMax = 45;
+    optional uint32 ryMin = 46;
+    optional uint32 ryMax = 47;
 }
 
 message AddonOptions
