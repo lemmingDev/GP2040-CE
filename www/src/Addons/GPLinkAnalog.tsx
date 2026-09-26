@@ -291,57 +291,39 @@ const TRIGGERS = [
 let gplinkAnalogActiveTab = 'stick1';
 
 // 2-D stick position pad: dot at the live raw value over a center crosshair.
-// Decorative (aria-hidden); the adjacent live text carries the values. The
-// dot uses translate(-50%,-50%) and the hairlines are offset by half their
-// thickness so all three share the exact same center reference.
+// Decorative (aria-hidden); the adjacent live text carries the values. Drawn
+// as inline SVG so dot and crosshair share one coordinate system and coincide
+// exactly (separate CSS-positioned divs can round apart by a pixel).
 const StickPad = ({ x, y }: { x: number; y: number }) => {
-	const px = Math.min(100, Math.max(0, (x / 65535) * 100));
-	const py = Math.min(100, Math.max(0, (y / 65535) * 100));
+	const cx = 4 + Math.min(1, Math.max(0, x / 65535)) * 88;
+	const cy = 4 + Math.min(1, Math.max(0, y / 65535)) * 88;
 	return (
-		<div
+		<svg
+			width={96}
+			height={96}
 			aria-hidden="true"
 			style={{
-				position: 'relative',
-				width: 96,
-				height: 96,
 				flexShrink: 0,
 				border: '1px solid var(--bs-border-color)',
 				borderRadius: 4,
 			}}
 		>
-			<div
-				style={{
-					position: 'absolute',
-					left: 'calc(50% - 0.5px)',
-					top: 0,
-					bottom: 0,
-					width: 1,
-					background: 'var(--bs-border-color)',
-				}}
+			<line
+				x1={48}
+				y1={6}
+				x2={48}
+				y2={90}
+				style={{ stroke: 'var(--bs-border-color)', strokeWidth: 1 }}
 			/>
-			<div
-				style={{
-					position: 'absolute',
-					top: 'calc(50% - 0.5px)',
-					left: 0,
-					right: 0,
-					height: 1,
-					background: 'var(--bs-border-color)',
-				}}
+			<line
+				x1={6}
+				y1={48}
+				x2={90}
+				y2={48}
+				style={{ stroke: 'var(--bs-border-color)', strokeWidth: 1 }}
 			/>
-			<div
-				style={{
-					position: 'absolute',
-					left: `${px}%`,
-					top: `${py}%`,
-					transform: 'translate(-50%, -50%)',
-					width: 8,
-					height: 8,
-					borderRadius: '50%',
-					background: 'var(--bs-primary)',
-				}}
-			/>
-		</div>
+			<circle cx={cx} cy={cy} r={4} style={{ fill: 'var(--bs-primary)' }} />
+		</svg>
 	);
 };
 
@@ -500,9 +482,13 @@ const GPLinkAnalog = ({
 	return (
 		<Section title={t('AddonsConfig:gplink-analog-header-text')}>
 			<div id="GPLinkAnalogOptions" hidden={!values.GPLinkAnalogEnabled}>
-				<div className="alert alert-info" role="alert">
-					{t('AddonsConfig:gplink-analog-sub-header-text')}
-				</div>
+				{/* Stick-oriented banner; the triggers tab brings its own, so
+				this swaps out rather than stacking. */}
+				{activeTab !== 'triggers' && (
+					<div className="alert alert-info" role="alert">
+						{t('AddonsConfig:gplink-analog-sub-header-text')}
+					</div>
+				)}
 				<Tabs
 					activeKey={activeTab}
 					onSelect={(k) => {
