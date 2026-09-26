@@ -160,8 +160,6 @@ private:
     uint8_t lastStrong;         // last RUMBLE_SET strong intensity sent
     uint32_t lastActMs;         // last actuation send (5 s backstop)
     char compFw[32];            // companion fw string (FEATURE identity, session)
-    uint8_t compRadio;          // companion radio byte (session)
-    char compFw[32];            // companion fw string (FEATURE identity, session)
     uint8_t compRadio;          // companion radio flags (bit0 WiFi, bit1 BT)
 };
 
