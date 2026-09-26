@@ -970,7 +970,9 @@ message GPLinkAnalogOptions
     // Deadzone/shaping model mirrors AnalogADS1115Options: per-axis inner
     // and outer deadzones (percent), radial per-stick deadzones, per-axis
     // invert and auto-calibrate bitmasks (axis order lx,ly,rx,ry with
-    // 0b1000 >> index, same as ADS1115_CHANNEL_FLAG_START).
+    // 0b1000 >> index, same as ADS1115_CHANNEL_FLAG_START). The per-axis
+    // deadzone windows are self-arming (nonzero percent = on); the
+    // inner/outerDeadzoneEnabled bitmasks below are unused (kept for compat).
     optional uint32 innerDeadzoneEnabled = 6;
     optional uint32 outerDeadzoneEnabled = 7;
     optional bool leftStickDeadzoneEnabled = 8;

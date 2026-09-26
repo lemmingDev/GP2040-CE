@@ -726,6 +726,34 @@ const GPLinkAnalog = ({
 									}}
 								/>
 							</Row>
+							<Row className="mb-3">
+								<FormCheck
+									label={t(stick.deadzoneEnabledLabel)}
+									type="switch"
+									id={`GPLinkAnalog${stick.key}Deadzone`}
+									className="col-sm-5 ms-3"
+									isInvalid={false}
+									checked={Boolean(values[stick.deadzoneEnabled])}
+									onChange={(e) => {
+										handleCheckbox(stick.deadzoneEnabled);
+										handleChange(e);
+									}}
+								/>
+								<FormControl
+									hidden={!values[stick.deadzoneEnabled]}
+									type="number"
+									label={t(stick.deadzoneLabel)}
+									name={stick.deadzone}
+									className="form-control-sm"
+									groupClassName="col-sm-6 mb-3"
+									value={values[stick.deadzone]}
+									error={errors[stick.deadzone]}
+									isInvalid={Boolean(errors[stick.deadzone])}
+									onChange={handleChange}
+									min={0}
+									max={100}
+								/>
+							</Row>
 							</div>
 							<div className="col-sm-5">
 								<h6>{t('AddonsConfig:gplink-analog-deadzone-header-text')}</h6>
@@ -797,31 +825,6 @@ const GPLinkAnalog = ({
 									isInvalid={Boolean(
 										errors[`gplinkAnalogAxis${stick.yAxis}OuterDeadzone`],
 									)}
-									onChange={handleChange}
-									min={0}
-									max={100}
-								/>
-								<FormCheck
-									label={t(stick.deadzoneEnabledLabel)}
-									type="switch"
-									id={`GPLinkAnalog${stick.key}Deadzone`}
-									className="mb-2 ms-3"
-									isInvalid={false}
-									checked={Boolean(values[stick.deadzoneEnabled])}
-									onChange={(e) => {
-										handleCheckbox(stick.deadzoneEnabled);
-										handleChange(e);
-									}}
-								/>
-								<FormControl
-									type="number"
-									label={t(stick.deadzoneLabel)}
-									name={stick.deadzone}
-									className="form-control-sm"
-									groupClassName="mb-3"
-									value={values[stick.deadzone]}
-									error={errors[stick.deadzone]}
-									isInvalid={Boolean(errors[stick.deadzone])}
 									onChange={handleChange}
 									min={0}
 									max={100}
