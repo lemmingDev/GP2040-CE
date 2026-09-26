@@ -86,7 +86,7 @@ public:
     virtual bool available();
     virtual void setup();
     virtual void reinit();
-    virtual void preprocess() {}
+    virtual void preprocess();
     virtual void process();
     virtual void postprocess(bool sent) {}
     virtual std::string name() { return GPLinkName; }

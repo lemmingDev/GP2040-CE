@@ -411,10 +411,22 @@ void GPLinkAddon::applyGpioMask(uint64_t mask) {
         // it back out (a set-only mask would stick buttons on forever).
         bool pressed = (mask & (1ULL << i)) != 0;
         switch (options.gplinkPins[i].action) {
-            case GpioAction::BUTTON_PRESS_UP:    pressed ? gamepad->state.dpad |= GAMEPAD_MASK_UP     : gamepad->state.dpad &= ~GAMEPAD_MASK_UP; break;
-            case GpioAction::BUTTON_PRESS_DOWN:  pressed ? gamepad->state.dpad |= GAMEPAD_MASK_DOWN   : gamepad->state.dpad &= ~GAMEPAD_MASK_DOWN; break;
-            case GpioAction::BUTTON_PRESS_LEFT:  pressed ? gamepad->state.dpad |= GAMEPAD_MASK_LEFT   : gamepad->state.dpad &= ~GAMEPAD_MASK_LEFT; break;
-            case GpioAction::BUTTON_PRESS_RIGHT: pressed ? gamepad->state.dpad |= GAMEPAD_MASK_RIGHT  : gamepad->state.dpad &= ~GAMEPAD_MASK_RIGHT; break;
+            case GpioAction::BUTTON_PRESS_UP:
+                if (pressed) { gamepad->state.dpad |= GAMEPAD_MASK_UP; gamepad->state.dpadOriginal |= GAMEPAD_MASK_UP; }
+                else { gamepad->state.dpad &= ~GAMEPAD_MASK_UP; gamepad->state.dpadOriginal &= ~GAMEPAD_MASK_UP; }
+                break;
+            case GpioAction::BUTTON_PRESS_DOWN:
+                if (pressed) { gamepad->state.dpad |= GAMEPAD_MASK_DOWN; gamepad->state.dpadOriginal |= GAMEPAD_MASK_DOWN; }
+                else { gamepad->state.dpad &= ~GAMEPAD_MASK_DOWN; gamepad->state.dpadOriginal &= ~GAMEPAD_MASK_DOWN; }
+                break;
+            case GpioAction::BUTTON_PRESS_LEFT:
+                if (pressed) { gamepad->state.dpad |= GAMEPAD_MASK_LEFT; gamepad->state.dpadOriginal |= GAMEPAD_MASK_LEFT; }
+                else { gamepad->state.dpad &= ~GAMEPAD_MASK_LEFT; gamepad->state.dpadOriginal &= ~GAMEPAD_MASK_LEFT; }
+                break;
+            case GpioAction::BUTTON_PRESS_RIGHT:
+                if (pressed) { gamepad->state.dpad |= GAMEPAD_MASK_RIGHT; gamepad->state.dpadOriginal |= GAMEPAD_MASK_RIGHT; }
+                else { gamepad->state.dpad &= ~GAMEPAD_MASK_RIGHT; gamepad->state.dpadOriginal &= ~GAMEPAD_MASK_RIGHT; }
+                break;
             case GpioAction::BUTTON_PRESS_B1:    pressed ? gamepad->state.buttons |= GAMEPAD_MASK_B1  : gamepad->state.buttons &= ~GAMEPAD_MASK_B1; break;
             case GpioAction::BUTTON_PRESS_B2:    pressed ? gamepad->state.buttons |= GAMEPAD_MASK_B2  : gamepad->state.buttons &= ~GAMEPAD_MASK_B2; break;
             case GpioAction::BUTTON_PRESS_B3:    pressed ? gamepad->state.buttons |= GAMEPAD_MASK_B3  : gamepad->state.buttons &= ~GAMEPAD_MASK_B3; break;
@@ -582,11 +594,24 @@ void GPLinkAddon::pollConfigMode() {
     applyAnalogAxes();
 }
 
+// Input application lives here (pre-MPGS) so companion dpad gets SOCD /
+// invert / 4-way / dpad-mode treatment like USB and keyboard pads, and
+// companion buttons participate in turbo and macro detection downstream.
+// Output mirror, INPUT_STATE TX and actuation stay in process(), where the
+// final post-pipeline state exists (we load last).
+void GPLinkAddon::preprocess() {
+    if (!started) return;
+    pumpRx(getMillis());
+    // Sticky re-apply every poll: gamepad->read() rebuilds state from
+    // physical pins each iteration (same rationale as before; only moved).
+    applyGpioMask(lastMask);
+    applyAnalogAxes();
+}
+
 void GPLinkAddon::process() {
     if (!started) return;
     processCalls++;
     uint32_t now = getMillis();
-    pumpRx(now);
 
     bool alive = gplink_link_alive(&link, now);
     if ((alive && !wasAlive) || (now - lastConfigMs) >= GPLINK_CONFIG_REFRESH_MS) {
@@ -599,12 +624,11 @@ void GPLinkAddon::process() {
     // Final state: we load last, so GetGamepad already reflects every addon.
     // (Injected companion inputs above land in the same object.)
     Gamepad *gamepad = Storage::getInstance().GetGamepad();
-    // Re-assert the sticky companion mask every poll: the core pipeline
-    // rebuilds button state from physical pins each iteration, which would
-    // otherwise wipe injected inputs ~1 poll after they arrive (PCF8575
-    // survives this by re-reading its expander every call; we re-apply).
-    applyGpioMask(lastMask);
-    // Same sticky treatment for analog axes (shaped through deadzones).
+    // Re-assert analog axes here as well as in preprocess(): MPGS dpad-mode
+    // conversion (LS/RS) overwrites sticks after preprocess, so without this
+    // companion analog sticks would die in those modes. Idempotent pure
+    // function of stored channel values; the dpad half stays preprocess-only
+    // (re-asserting it here would undo SOCD cleaning).
     applyAnalogAxes();
     const GamepadState &state = gamepad->state;
     // Mirror mapped output pins to the companion (change-driven + 5 s
