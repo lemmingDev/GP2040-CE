@@ -647,7 +647,7 @@ const GPLinkAnalog = ({
 											)}
 											type="switch"
 											id={`GPLinkAnalog${stick.key}Invert${axis}`}
-											className="col-sm-6"
+											className="col-sm-6 ps-3"
 											isInvalid={false}
 											checked={Boolean(values.gplinkAnalogInvertEnabled & bit)}
 											onChange={() =>
@@ -732,7 +732,19 @@ const GPLinkAnalog = ({
 							</Row>
 							<Row className="mb-3">
 								<FormCheck
-									label={t('AddonsConfig:analog-smoothing')}
+									label={
+										<>
+											{t('AddonsConfig:analog-smoothing')}{' '}
+											<span
+												className="text-muted"
+												style={{ fontVariantNumeric: 'tabular-nums' }}
+											>
+												{t('AddonsConfig:gplink-analog-smoothing-factor-text', {
+													v: values[stick.smoothingFactor],
+												})}
+											</span>
+										</>
+									}
 									type="switch"
 									id={`GPLinkAnalog${stick.key}Smoothing`}
 									className="col-sm-5 ms-3"
@@ -743,24 +755,37 @@ const GPLinkAnalog = ({
 										handleChange(e);
 									}}
 								/>
-								<FormControl
-									hidden={!values[stick.smoothingEnabled]}
-									type="number"
-									label={t('AddonsConfig:smoothing-factor')}
-									name={stick.smoothingFactor}
-									className="form-control-sm"
-									groupClassName="col-sm-6 mb-3"
-									value={values[stick.smoothingFactor]}
-									error={errors[stick.smoothingFactor]}
-									isInvalid={Boolean(errors[stick.smoothingFactor])}
-									onChange={handleChange}
-									min={0}
-									max={100}
-								/>
+								<div className="col-sm-6 mb-3">
+									<Form.Range
+										id={stick.smoothingFactor}
+										name={stick.smoothingFactor}
+										aria-label={t('AddonsConfig:smoothing-factor')}
+										value={values[stick.smoothingFactor]}
+										onChange={handleChange}
+										min={0}
+										max={100}
+										step={1}
+									/>
+									{Boolean(errors[stick.smoothingFactor]) && (
+										<div className="text-danger">
+											<small>{errors[stick.smoothingFactor]}</small>
+										</div>
+									)}
+								</div>
 							</Row>
 							<Row className="mb-3">
 								<FormCheck
-									label={t(stick.deadzoneEnabledLabel)}
+									label={
+										<>
+											{t(stick.deadzoneEnabledLabel)}{' '}
+											<span
+												className="text-muted"
+												style={{ fontVariantNumeric: 'tabular-nums' }}
+											>
+												({values[stick.deadzone]}%)
+											</span>
+										</>
+									}
 									type="switch"
 									id={`GPLinkAnalog${stick.key}Deadzone`}
 									className="col-sm-5 ms-3"
@@ -771,16 +796,23 @@ const GPLinkAnalog = ({
 										handleChange(e);
 									}}
 								/>
-								<DeadzoneSlider
-									hidden={!values[stick.deadzoneEnabled]}
-									label={t(stick.deadzoneLabel)}
-									name={stick.deadzone}
-									groupClassName="col-sm-6 mb-3"
-									value={values[stick.deadzone]}
-									error={errors[stick.deadzone]}
-									isInvalid={Boolean(errors[stick.deadzone])}
-									onChange={handleChange}
-								/>
+								<div className="col-sm-6 mb-3">
+									<Form.Range
+										id={stick.deadzone}
+										name={stick.deadzone}
+										aria-label={t(stick.deadzoneLabel)}
+										value={values[stick.deadzone]}
+										onChange={handleChange}
+										min={0}
+										max={20}
+										step={1}
+									/>
+									{Boolean(errors[stick.deadzone]) && (
+										<div className="text-danger">
+											<small>{errors[stick.deadzone]}</small>
+										</div>
+									)}
+								</div>
 							</Row>
 							<Row className="mb-3">
 								<FormCheck
