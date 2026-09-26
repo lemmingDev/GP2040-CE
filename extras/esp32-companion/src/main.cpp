@@ -270,7 +270,10 @@ static void handleAnalogConfig(uint8_t devid, uint8_t pin, uint8_t enable) {
 #define GPLINK_TEST_STATUS_BUSY 5
 #define GPLINK_FEATURE_IDENTITY 0x01
 #define GPLINK_TEST_VER_MAX 24
-#define GPLINK_TEST_MAX_SLOTS 8
+#define GPLINK_TEST_MAX_SLOTS 64
+// ~2 KB of slot state: fine on ESP32-class parts. A future AVR port (2 KB
+// total SRAM) should size this down (8) — per-pin exclusivity still bounds
+// real usage, the pool just stops scaling.
 // Sweep step in native ADC units: max(1, ADC_MAX/256) == max(1, 4095/256).
 #define GPLINK_TEST_SWEEP_STEP 15
 // Bit-bang PWM ceiling for future non-LEDC ports; the ESP32 serves PWM via
@@ -293,8 +296,26 @@ struct GplinkTestSlot {
     uint32_t pwmNextUs;
     uint32_t pwmOnUs;
     uint32_t pwmOffUs;
+    int8_t ledcCh;       // allocated LEDC channel, -1 = none
 };
 static GplinkTestSlot s_tests[GPLINK_TEST_MAX_SLOTS];
+// ESP32 LEDC has 16 channels shared by every PWM test; allocated per test,
+// freed on release. (Slot index no longer doubles as channel.)
+static bool s_ledcUsed[16] = {false};
+
+static int ledcAlloc() {
+    for (uint8_t c = 0; c < 16; c++) {
+        if (!s_ledcUsed[c]) {
+            s_ledcUsed[c] = true;
+            return c;
+        }
+    }
+    return -1;
+}
+
+static void ledcFree(int ch) {
+    if (ch >= 0 && ch < 16) s_ledcUsed[(uint8_t)ch] = false;
+}
 // Last RESULT sent (any status), for the 'x' console dump.
 static bool s_testHaveLast = false;
 static uint8_t s_testLastId = 0, s_testLastStatus = 0;
@@ -425,10 +446,11 @@ static void testReleaseSilent(GplinkTestSlot *s) {
     uint8_t pin = s->pin;
     uint8_t fn = s->function;
     if (pin < 64) {
-        if (fn == GPLINK_TEST_FN_DRIVE_PWM && kTestPwmUseLedc) {
-            uint8_t idx = (uint8_t)(s - s_tests);
-            ledcWrite(idx, 0);
+        if (fn == GPLINK_TEST_FN_DRIVE_PWM && kTestPwmUseLedc && s->ledcCh >= 0) {
+            ledcWrite((uint8_t)s->ledcCh, 0);
             ledcDetachPin(pin);
+            ledcFree(s->ledcCh);
+            s->ledcCh = -1;
         }
         if (fn >= GPLINK_TEST_FN_DRIVE_LOW && fn <= GPLINK_TEST_FN_DRIVE_PWM &&
                 pin != COMPANION_PLAYER_LED_PIN) {
@@ -554,6 +576,7 @@ static void handleTestConfigure(const gplink_frame *frame, uint32_t now) {
     s->pwmNextUs = 0;
     s->pwmOnUs = 0;
     s->pwmOffUs = 0;
+    s->ledcCh = -1;
     switch (fn) {
         case GPLINK_TEST_FN_HOLD_LOW:
             s->level = false;
@@ -592,10 +615,21 @@ static void handleTestConfigure(const gplink_frame *frame, uint32_t now) {
             digitalWrite(pin, HIGH);
             break;
         case GPLINK_TEST_FN_DRIVE_PWM: {
+            // LEDC has 16 channels shared by every PWM test: allocate first
+            // so a refusal leaves the pin untouched, and report busy (not
+            // unsupported) when exhausted.
+            int ch = kTestPwmUseLedc ? ledcAlloc() : -2;
+            if (kTestPwmUseLedc && ch < 0) {
+                s->active = false;
+                sendTestResult(testId, GPLINK_TEST_STATUS_BUSY, 0, 0, now);
+                Serial.printf("%lu GPLink: test id %u reject pwm-ch busy status 5\n",
+                              (unsigned long)now, testId);
+                return;
+            }
+            s->ledcCh = (int8_t)ch;
             s_dir[pin] = 1; // driven; session only, never persisted
             applyPinMode(pin);
-            uint8_t idx = (uint8_t)(s - s_tests); // LEDC channel = slot index
-            testPwmStart(s, idx, micros());
+            testPwmStart(s, ch >= 0 ? (uint8_t)ch : 0, micros());
             break;
         }
         default:

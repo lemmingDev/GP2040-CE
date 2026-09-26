@@ -1238,9 +1238,11 @@ const GPLinkAnalog = ({
 			</div>
 			<Row className="mt-2 align-items-center">
 				<div className="col-sm-6 d-flex align-items-center">
-					<Button type="submit">
-						{t('AddonsConfig:gplink-analog-save-label')}
-					</Button>
+					{values.GPLinkAnalogEnabled !== 0 && (
+						<Button type="submit">
+							{t('AddonsConfig:gplink-analog-save-label')}
+						</Button>
+					)}
 				</div>
 				<div className="col-sm-6 d-flex flex-column align-items-end gap-2">
 					<FormCheck
