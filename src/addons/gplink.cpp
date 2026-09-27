@@ -653,11 +653,16 @@ static bool gplinkStateChanged(const GamepadState &a, const GamepadState &b) {
 
 void GPLinkAddon::pollConfigMode() {
     if (!started) return;
-    pumpRx(getMillis());
+    uint32_t now = getMillis();
+    pumpRx(now);
     // Run the shaping pipeline too so the shaped-value endpoint mirrors
     // gamepad mode exactly (same code path, not a reimplementation).
     // Writes gamepad state the config driver ignores; harmless here.
     applyAnalogAxes();
+    // Heartbeat here too: nothing else transmits in config mode, and
+    // without inbound traffic the companion declares the link DOWN after
+    // 2 s — aborting running tests and dropping their RESULTs.
+    if (gplink_link_heartbeat_due(&link, now)) sendHeartbeat();
 }
 
 // Input application lives here (pre-MPGS) so companion dpad gets SOCD /

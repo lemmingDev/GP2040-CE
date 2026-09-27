@@ -120,13 +120,17 @@ const GPLinkTester = ({ values }: AddonPropTypes) => {
 		);
 		if (data && data.sent) {
 			setSendFailed(false);
-			setLaunched((prev) =>
-				[
-					{ testId, pin: testPin, fn: testFn, p1: testP1, p2: testP2 },
-					...prev,
-				].slice(0, 32),
-			);
-			setNextId((prev) => (prev % 254) + 1);
+			// Stops aren't launches: leave the history entry intact so the
+			// row keeps its original pin/function while status updates.
+			if (testFn !== 255) {
+				setLaunched((prev) =>
+					[
+						{ testId, pin: testPin, fn: testFn, p1: testP1, p2: testP2 },
+						...prev,
+					].slice(0, 32),
+				);
+				setNextId((prev) => (prev % 254) + 1);
+			}
 		} else {
 			setSendFailed(true);
 		}
