@@ -44,6 +44,12 @@ void gplink_link_on_tx(gplink_link *l, uint32_t now_ms) {
 }
 
 bool gplink_link_alive(const gplink_link *l, uint32_t now_ms) {
+    // A caller passing a timestamp captured BEFORE last_rx_ms was stamped
+    // (stale `now` on a slow loop) makes now_ms < last_rx_ms; the unsigned
+    // subtraction below would underflow to ~4e9 and fake a link-DOWN (which
+    // aborts companion tests). Time running backward is a clock artifact,
+    // never a timeout, so report alive.
+    if (now_ms < l->last_rx_ms) return true;
     return (now_ms - l->last_rx_ms) <= GPLINK_LINK_TIMEOUT_MS;
 }
 

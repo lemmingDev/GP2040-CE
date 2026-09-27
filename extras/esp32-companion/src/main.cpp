@@ -498,7 +498,11 @@ static void handleTestConfigure(const gplink_frame *frame, uint32_t now) {
         }
         GplinkTestSlot *s = testFindId(testId);
         if (!s) {
-            Serial.printf("%lu GPLink: test stop id %u ignored (idle)\n", (unsigned long)now, testId);
+            // Idempotent stop: the test is already gone (finished, replaced,
+            // or silently dropped on an older firmware). Still emit ABORTED
+            // so a stale UI row resolves instead of showing Running forever.
+            sendTestResult(testId, GPLINK_TEST_STATUS_ABORTED, 0, 0, now);
+            Serial.printf("%lu GPLink: test stop id %u idle -> aborted\n", (unsigned long)now, testId);
             return;
         }
         uint16_t v = testSlotValue(s);
@@ -1140,7 +1144,13 @@ void loop() {
         }
     }
     if (now - s_lastTxMs >= COMPANION_HEARTBEAT_MS) sendHeartbeat();
-    bool alive = gplink_link_alive(&s_link, now);
+    // Re-read the clock here: pumpLink() above stamps last_rx with fresh
+    // millis(), so the iteration-start `now` can be OLDER than last_rx on
+    // slow iterations (USB console blocking, ADC bursts). The unsigned
+    // subtraction in gplink_link_alive() would then underflow to ~4e9,
+    // fake a link-DOWN, and abort every running test. Fresh time closes it.
+    uint32_t linkNow = millis();
+    bool alive = gplink_link_alive(&s_link, linkNow);
     // Gate transitions on seen traffic: link_init stamps last_rx=now, which
     // would otherwise print a spurious UP at every boot. Transitions are
     // also rate-limited: a flapping link must not flood the console (which
@@ -1156,13 +1166,13 @@ void loop() {
             uint8_t dropped = testAbortAll();
             if (dropped > 0) {
                 Serial.printf("%lu GPLink: tests aborted (link DOWN, %u)\n",
-                              (unsigned long)now, dropped);
+                              (unsigned long)linkNow, dropped);
             }
         }
         s_linkWasAlive = alive;
-        if ((now - lastLinkPrintMs) >= 10000) {
-            lastLinkPrintMs = now;
-            Serial.printf("%lu GPLink: link %s", (unsigned long)now, alive ? "UP" : "DOWN");
+        if ((linkNow - lastLinkPrintMs) >= 10000) {
+            lastLinkPrintMs = linkNow;
+            Serial.printf("%lu GPLink: link %s", (unsigned long)linkNow, alive ? "UP" : "DOWN");
             if (linkFlaps > 0) Serial.printf(" (%lu flaps suppressed)", (unsigned long)linkFlaps);
             Serial.printf("\n");
             linkFlaps = 0;
