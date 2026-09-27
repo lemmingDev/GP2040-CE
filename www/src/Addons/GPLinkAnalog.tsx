@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from 'react';
+﻿import { ChangeEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, FormCheck, Row, Tab, Tabs } from 'react-bootstrap';
 import * as yup from 'yup';
@@ -626,7 +626,7 @@ const GPLinkAnalog = ({
 		}
 	};
 
-	// Capture a trigger window edge from the live value with a ±1% margin so
+	// Capture a trigger window edge from the live value with a Â±1% margin so
 	// noise can't peek over the edges. Cross-clamped to keep min < max.
 	const captureTrigger = async (
 		valueKey: 'lt' | 'rt',
@@ -646,7 +646,7 @@ const GPLinkAnalog = ({
 	};
 
 	// Capture a stick axis window edge from the live raw value (exact sample,
-	// no margin — mirrors official readCalibrationSample averaging intent;
+	// no margin â€” mirrors official readCalibrationSample averaging intent;
 	// the user trims with the fields).
 	const captureAxis = async (
 		valueKey: 'lx' | 'ly' | 'rx' | 'ry',
@@ -822,126 +822,6 @@ const GPLinkAnalog = ({
 								</div>
 							</Row>
 							<Row className="mb-3">
-								<FormControl
-									type="number"
-									label={t('AddonsConfig:gplink-analog-axis-min-label', {
-										axis: stick.key === 'stick1' ? 'LX' : 'RX',
-									})}
-									name={stick.minX}
-									className="form-control-sm"
-									groupClassName="col-sm-6 mb-3"
-									value={values[stick.minX]}
-									error={errors[stick.minX]}
-									isInvalid={Boolean(errors[stick.minX])}
-									onChange={handleChange}
-									min={0}
-									max={65535}
-								/>
-								<FormControl
-									type="number"
-									label={t('AddonsConfig:gplink-analog-axis-max-label', {
-										axis: stick.key === 'stick1' ? 'LX' : 'RX',
-									})}
-									name={stick.maxX}
-									className="form-control-sm"
-									groupClassName="col-sm-6 mb-3"
-									value={values[stick.maxX]}
-									error={errors[stick.maxX]}
-									isInvalid={Boolean(errors[stick.maxX])}
-									onChange={handleChange}
-									min={0}
-									max={65535}
-								/>
-							</Row>
-							<Row className="mb-3">
-								<FormControl
-									type="number"
-									label={t('AddonsConfig:gplink-analog-axis-min-label', {
-										axis: stick.key === 'stick1' ? 'LY' : 'RY',
-									})}
-									name={stick.minY}
-									className="form-control-sm"
-									groupClassName="col-sm-6 mb-3"
-									value={values[stick.minY]}
-									error={errors[stick.minY]}
-									isInvalid={Boolean(errors[stick.minY])}
-									onChange={handleChange}
-									min={0}
-									max={65535}
-								/>
-								<FormControl
-									type="number"
-									label={t('AddonsConfig:gplink-analog-axis-max-label', {
-										axis: stick.key === 'stick1' ? 'LY' : 'RY',
-									})}
-									name={stick.maxY}
-									className="form-control-sm"
-									groupClassName="col-sm-6 mb-3"
-									value={values[stick.maxY]}
-									error={errors[stick.maxY]}
-									isInvalid={Boolean(errors[stick.maxY])}
-									onChange={handleChange}
-									min={0}
-									max={65535}
-								/>
-							</Row>
-							<Row className="mb-3">
-								<div className="col-sm-12">
-									<Button
-										size="sm"
-										onClick={() =>
-											captureAxis(
-												stick.valueX as 'lx' | 'ly' | 'rx' | 'ry',
-												stick.minX,
-											)
-										}
-									>
-										{t('AddonsConfig:gplink-analog-set-min-label', {
-											axis: stick.key === 'stick1' ? 'LX' : 'RX',
-										})}
-									</Button>{' '}
-									<Button
-										size="sm"
-										onClick={() =>
-											captureAxis(
-												stick.valueX as 'lx' | 'ly' | 'rx' | 'ry',
-												stick.maxX,
-											)
-										}
-									>
-										{t('AddonsConfig:gplink-analog-set-max-label', {
-											axis: stick.key === 'stick1' ? 'LX' : 'RX',
-										})}
-									</Button>{' '}
-									<Button
-										size="sm"
-										onClick={() =>
-											captureAxis(
-												stick.valueY as 'lx' | 'ly' | 'rx' | 'ry',
-												stick.minY,
-											)
-										}
-									>
-										{t('AddonsConfig:gplink-analog-set-min-label', {
-											axis: stick.key === 'stick1' ? 'LY' : 'RY',
-										})}
-									</Button>{' '}
-									<Button
-										size="sm"
-										onClick={() =>
-											captureAxis(
-												stick.valueY as 'lx' | 'ly' | 'rx' | 'ry',
-												stick.maxY,
-											)
-										}
-									>
-										{t('AddonsConfig:gplink-analog-set-max-label', {
-											axis: stick.key === 'stick1' ? 'LY' : 'RY',
-										})}
-									</Button>
-								</div>
-							</Row>
-							<Row className="mb-3">
 								<FormCheck
 									label={
 										<>
@@ -1104,6 +984,126 @@ const GPLinkAnalog = ({
 									)}
 									onChange={handleChange}
 								/>
+							<Row className="mb-3">
+								<FormControl
+									type="number"
+									label={t('AddonsConfig:gplink-analog-axis-min-label', {
+										axis: stick.key === 'stick1' ? 'LX' : 'RX',
+									})}
+									name={stick.minX}
+									className="form-control-sm"
+									groupClassName="col-sm-6 mb-3"
+									value={values[stick.minX]}
+									error={errors[stick.minX]}
+									isInvalid={Boolean(errors[stick.minX])}
+									onChange={handleChange}
+									min={0}
+									max={65535}
+								/>
+								<FormControl
+									type="number"
+									label={t('AddonsConfig:gplink-analog-axis-max-label', {
+										axis: stick.key === 'stick1' ? 'LX' : 'RX',
+									})}
+									name={stick.maxX}
+									className="form-control-sm"
+									groupClassName="col-sm-6 mb-3"
+									value={values[stick.maxX]}
+									error={errors[stick.maxX]}
+									isInvalid={Boolean(errors[stick.maxX])}
+									onChange={handleChange}
+									min={0}
+									max={65535}
+								/>
+							</Row>
+							<Row className="mb-3">
+								<FormControl
+									type="number"
+									label={t('AddonsConfig:gplink-analog-axis-min-label', {
+										axis: stick.key === 'stick1' ? 'LY' : 'RY',
+									})}
+									name={stick.minY}
+									className="form-control-sm"
+									groupClassName="col-sm-6 mb-3"
+									value={values[stick.minY]}
+									error={errors[stick.minY]}
+									isInvalid={Boolean(errors[stick.minY])}
+									onChange={handleChange}
+									min={0}
+									max={65535}
+								/>
+								<FormControl
+									type="number"
+									label={t('AddonsConfig:gplink-analog-axis-max-label', {
+										axis: stick.key === 'stick1' ? 'LY' : 'RY',
+									})}
+									name={stick.maxY}
+									className="form-control-sm"
+									groupClassName="col-sm-6 mb-3"
+									value={values[stick.maxY]}
+									error={errors[stick.maxY]}
+									isInvalid={Boolean(errors[stick.maxY])}
+									onChange={handleChange}
+									min={0}
+									max={65535}
+								/>
+							</Row>
+							<Row className="mb-3">
+								<div className="col-sm-12">
+									<Button
+										size="sm"
+										onClick={() =>
+											captureAxis(
+												stick.valueX as 'lx' | 'ly' | 'rx' | 'ry',
+												stick.minX,
+											)
+										}
+									>
+										{t('AddonsConfig:gplink-analog-set-min-label', {
+											axis: stick.key === 'stick1' ? 'LX' : 'RX',
+										})}
+									</Button>{' '}
+									<Button
+										size="sm"
+										onClick={() =>
+											captureAxis(
+												stick.valueX as 'lx' | 'ly' | 'rx' | 'ry',
+												stick.maxX,
+											)
+										}
+									>
+										{t('AddonsConfig:gplink-analog-set-max-label', {
+											axis: stick.key === 'stick1' ? 'LX' : 'RX',
+										})}
+									</Button>{' '}
+									<Button
+										size="sm"
+										onClick={() =>
+											captureAxis(
+												stick.valueY as 'lx' | 'ly' | 'rx' | 'ry',
+												stick.minY,
+											)
+										}
+									>
+										{t('AddonsConfig:gplink-analog-set-min-label', {
+											axis: stick.key === 'stick1' ? 'LY' : 'RY',
+										})}
+									</Button>{' '}
+									<Button
+										size="sm"
+										onClick={() =>
+											captureAxis(
+												stick.valueY as 'lx' | 'ly' | 'rx' | 'ry',
+												stick.maxY,
+											)
+										}
+									>
+										{t('AddonsConfig:gplink-analog-set-max-label', {
+											axis: stick.key === 'stick1' ? 'LY' : 'RY',
+										})}
+									</Button>
+								</div>
+							</Row>
 							</div>
 						</Row>
 						</Tab>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Row, Table } from 'react-bootstrap';
+import { Button, FormCheck, Row, Table } from 'react-bootstrap';
 
 import Section from '../Components/Section';
 import FormControl from '../Components/FormControl';
@@ -20,6 +20,152 @@ const TEST_FUNCTIONS = [
 	{ value: 12, labelKey: 'AddonsConfig:gplink-test-fn-drive-cycle' },
 	{ value: 13, labelKey: 'AddonsConfig:gplink-test-fn-drive-pwm' },
 	{ value: 255, labelKey: 'AddonsConfig:gplink-test-fn-stop' },
+];
+
+// The companion link-UART pins can never be test targets (the companion
+// rejects them with Bad pin); block them client-side with a hint instead
+// of a doomed round trip.
+const UART_PINS = [16, 17];
+
+type ParamMeta = {
+	p1LabelKey: string;
+	p1Default: number;
+	p1Max: number;
+	p2LabelKey: string;
+	p2Default: number;
+	p2Max: number;
+	ignored: boolean;
+	helpKey: string;
+};
+
+// Per-function form metadata: what p1/p2 mean, sane defaults, and the
+// help line. Semantics mirror the companion slot docs (param1: toggle
+// full-cycle period ms / sweep step ms / PWM Hz; param2: count/repeats
+// with 0 = forever / duty %).
+const TEST_FORM_META: Record<number, ParamMeta> = {
+	0: {
+		p1LabelKey: 'AddonsConfig:gplink-test-params-ignored',
+		p1Default: 0,
+		p1Max: 65535,
+		p2LabelKey: 'AddonsConfig:gplink-test-params-ignored',
+		p2Default: 0,
+		p2Max: 65535,
+		ignored: true,
+		helpKey: 'AddonsConfig:gplink-test-help-hold',
+	},
+	1: {
+		p1LabelKey: 'AddonsConfig:gplink-test-params-ignored',
+		p1Default: 0,
+		p1Max: 65535,
+		p2LabelKey: 'AddonsConfig:gplink-test-params-ignored',
+		p2Default: 0,
+		p2Max: 65535,
+		ignored: true,
+		helpKey: 'AddonsConfig:gplink-test-help-hold',
+	},
+	2: {
+		p1LabelKey: 'AddonsConfig:gplink-test-p1-period',
+		p1Default: 1000,
+		p1Max: 65535,
+		p2LabelKey: 'AddonsConfig:gplink-test-p2-count',
+		p2Default: 5,
+		p2Max: 65535,
+		ignored: false,
+		helpKey: 'AddonsConfig:gplink-test-help-toggle',
+	},
+	3: {
+		p1LabelKey: 'AddonsConfig:gplink-test-p1-step',
+		p1Default: 2,
+		p1Max: 65535,
+		p2LabelKey: 'AddonsConfig:gplink-test-p2-repeats',
+		p2Default: 0,
+		p2Max: 65535,
+		ignored: false,
+		helpKey: 'AddonsConfig:gplink-test-help-sweep',
+	},
+	4: {
+		p1LabelKey: 'AddonsConfig:gplink-test-p1-step',
+		p1Default: 2,
+		p1Max: 65535,
+		p2LabelKey: 'AddonsConfig:gplink-test-p2-repeats',
+		p2Default: 0,
+		p2Max: 65535,
+		ignored: false,
+		helpKey: 'AddonsConfig:gplink-test-help-sweep',
+	},
+	5: {
+		p1LabelKey: 'AddonsConfig:gplink-test-p1-step',
+		p1Default: 2,
+		p1Max: 65535,
+		p2LabelKey: 'AddonsConfig:gplink-test-p2-repeats',
+		p2Default: 0,
+		p2Max: 65535,
+		ignored: false,
+		helpKey: 'AddonsConfig:gplink-test-help-sweep',
+	},
+	10: {
+		p1LabelKey: 'AddonsConfig:gplink-test-params-ignored',
+		p1Default: 0,
+		p1Max: 65535,
+		p2LabelKey: 'AddonsConfig:gplink-test-params-ignored',
+		p2Default: 0,
+		p2Max: 65535,
+		ignored: true,
+		helpKey: 'AddonsConfig:gplink-test-help-hold',
+	},
+	11: {
+		p1LabelKey: 'AddonsConfig:gplink-test-params-ignored',
+		p1Default: 0,
+		p1Max: 65535,
+		p2LabelKey: 'AddonsConfig:gplink-test-params-ignored',
+		p2Default: 0,
+		p2Max: 65535,
+		ignored: true,
+		helpKey: 'AddonsConfig:gplink-test-help-hold',
+	},
+	12: {
+		p1LabelKey: 'AddonsConfig:gplink-test-p1-period',
+		p1Default: 1000,
+		p1Max: 65535,
+		p2LabelKey: 'AddonsConfig:gplink-test-p2-count',
+		p2Default: 5,
+		p2Max: 65535,
+		ignored: false,
+		helpKey: 'AddonsConfig:gplink-test-help-toggle',
+	},
+	13: {
+		p1LabelKey: 'AddonsConfig:gplink-test-p1-frequency',
+		p1Default: 1000,
+		p1Max: 65535,
+		p2LabelKey: 'AddonsConfig:gplink-test-p2-duty',
+		p2Default: 50,
+		p2Max: 100,
+		ignored: false,
+		helpKey: 'AddonsConfig:gplink-test-help-pwm',
+	},
+};
+
+// Presets fill function + params only; the pin always stays a deliberate
+// user choice.
+const TEST_PRESETS = [
+	{
+		labelKey: 'AddonsConfig:gplink-tester-preset-sweep',
+		fn: 5,
+		p1: 2,
+		p2: 0,
+	},
+	{
+		labelKey: 'AddonsConfig:gplink-tester-preset-toggle',
+		fn: 2,
+		p1: 200,
+		p2: 10,
+	},
+	{
+		labelKey: 'AddonsConfig:gplink-tester-preset-pwm',
+		fn: 13,
+		p1: 1000,
+		p2: 50,
+	},
 ];
 
 const TEST_STATUSES = [
@@ -51,7 +197,10 @@ const fnLabel = (fn: number, t: (k: string) => string) => {
 	return entry ? t(entry.labelKey) : `fn ${fn}`;
 };
 
-const GPLinkTester = ({ values }: AddonPropTypes) => {
+const metaFor = (fn: number): ParamMeta =>
+	TEST_FORM_META[fn] ?? TEST_FORM_META[2];
+
+const GPLinkTester = ({ values, handleChange, handleCheckbox }: AddonPropTypes) => {
 	const { t } = useTranslation();
 
 	const [pin, setPin] = useState(-1);
@@ -62,6 +211,11 @@ const GPLinkTester = ({ values }: AddonPropTypes) => {
 	const [launched, setLaunched] = useState<LaunchedTest[]>([]);
 	const [results, setResults] = useState<TestResult[]>([]);
 	const [sendFailed, setSendFailed] = useState(false);
+
+	const meta = metaFor(fn);
+	const pinInvalid = !Number.isInteger(pin) || pin < 0 || pin > 63;
+	const pinReserved = UART_PINS.includes(pin);
+	const runBlocked = pinInvalid || pinReserved;
 
 	useEffect(() => {
 		let alive = true;
@@ -95,6 +249,19 @@ const GPLinkTester = ({ values }: AddonPropTypes) => {
 			document.removeEventListener('visibilitychange', onVisibility);
 		};
 	}, []);
+
+	const applyFunction = (newFn: number) => {
+		const next = metaFor(newFn);
+		setFn(newFn);
+		setP1(next.p1Default);
+		setP2(next.p2Default);
+	};
+
+	const applyPreset = (preset: { fn: number; p1: number; p2: number }) => {
+		setFn(preset.fn);
+		setP1(preset.p1);
+		setP2(preset.p2);
+	};
 
 	const runTest = async (
 		testId: number,
@@ -136,6 +303,11 @@ const GPLinkTester = ({ values }: AddonPropTypes) => {
 		}
 	};
 
+	const clearResults = async () => {
+		await WebApi.clearGPLinkTestResults();
+		setResults([]);
+	};
+
 	// Latest result per testId (server sends newest-first).
 	const latestById = new Map<number, TestResult>();
 	for (const r of results) {
@@ -146,11 +318,14 @@ const GPLinkTester = ({ values }: AddonPropTypes) => {
 		<Section title={t('AddonsConfig:gplink-tester-header-text')}>
 			<div
 				id="GPLinkTesterOptions"
-				hidden={!values.GPLinkEnabled && !values.GPLinkAnalogEnabled}
+				hidden={!values.GPLinkTesterEnabled}
 			>
 				<div className="alert alert-info" role="alert">
 					{t('AddonsConfig:gplink-tester-sub-header-text')}
 				</div>
+				<p className="text-muted">
+					<small>{t('AddonsConfig:gplink-tester-persist-text')}</small>
+				</p>
 				<Row className="mb-3">
 					<FormControl
 						type="number"
@@ -169,7 +344,7 @@ const GPLinkTester = ({ values }: AddonPropTypes) => {
 						className="form-select-sm"
 						groupClassName="col-sm-3 mb-3"
 						value={fn}
-						onChange={(e) => setFn(parseInt(e.target.value, 10))}
+						onChange={(e) => applyFunction(parseInt(e.target.value, 10))}
 					>
 						{TEST_FUNCTIONS.map((o) => (
 							<option key={`gplink-test-fn-${o.value}`} value={o.value}>
@@ -179,28 +354,34 @@ const GPLinkTester = ({ values }: AddonPropTypes) => {
 					</FormSelect>
 					<FormControl
 						type="number"
-						label={t('AddonsConfig:gplink-tester-param1-label')}
+						label={t(meta.p1LabelKey)}
 						name="gplinkTestParam1"
 						className="form-control-sm"
 						groupClassName="col-sm-2 mb-3"
 						value={p1}
 						onChange={(e) => setP1(parseInt(e.target.value, 10))}
 						min={0}
-						max={65535}
+						max={meta.p1Max}
+						disabled={meta.ignored}
 					/>
 					<FormControl
 						type="number"
-						label={t('AddonsConfig:gplink-tester-param2-label')}
+						label={t(meta.p2LabelKey)}
 						name="gplinkTestParam2"
 						className="form-control-sm"
 						groupClassName="col-sm-2 mb-3"
 						value={p2}
 						onChange={(e) => setP2(parseInt(e.target.value, 10))}
 						min={0}
-						max={65535}
+						max={meta.p2Max}
+						disabled={meta.ignored}
 					/>
 					<div className="col-sm-3 mb-3 d-flex align-items-end gap-2">
-						<Button size="sm" onClick={() => runTest(nextId, pin, fn, p1, p2)}>
+						<Button
+							size="sm"
+							disabled={runBlocked}
+							onClick={() => runTest(nextId, pin, fn, p1, p2)}
+						>
 							{t('AddonsConfig:gplink-tester-run-label')}
 						</Button>
 						<Button
@@ -210,15 +391,44 @@ const GPLinkTester = ({ values }: AddonPropTypes) => {
 						>
 							{t('AddonsConfig:gplink-tester-stop-all-label')}
 						</Button>
+						<Button size="sm" variant="outline-secondary" onClick={clearResults}>
+							{t('AddonsConfig:gplink-tester-clear-label')}
+						</Button>
+					</div>
+				</Row>
+				<Row className="mb-3">
+					<div className="col-sm-12 d-flex align-items-center gap-2 flex-wrap">
+						<span className="text-muted">
+							<small>{t('AddonsConfig:gplink-tester-presets-label')}:</small>
+						</span>
+						{TEST_PRESETS.map((preset) => (
+							<Button
+								key={preset.labelKey}
+								size="sm"
+								variant="outline-secondary"
+								onClick={() => applyPreset(preset)}
+							>
+								{t(preset.labelKey)}
+							</Button>
+						))}
 					</div>
 				</Row>
 				<Row className="mb-3">
 					<div className="col-sm-12">
 						<p className="text-muted">
-							<small>
-								{t('AddonsConfig:gplink-tester-params-help-text')}
-							</small>
+							<small>{t(meta.helpKey)}</small>
 						</p>
+						{runBlocked && (
+							<p className="text-muted">
+								<small>
+									{t(
+										pinReserved
+											? 'AddonsConfig:gplink-tester-pin-reserved-hint'
+											: 'AddonsConfig:gplink-tester-pin-hint',
+									)}
+								</small>
+							</p>
+						)}
 						{sendFailed && (
 							<div className="alert alert-warning" role="alert">
 								{t('AddonsConfig:gplink-tester-send-failed-text')}
@@ -289,6 +499,23 @@ const GPLinkTester = ({ values }: AddonPropTypes) => {
 					</Row>
 				)}
 			</div>
+			<Row className="mt-2 align-items-center">
+				<div className="col-sm-6 d-flex align-items-center" />
+				<div className="col-sm-6 d-flex flex-column align-items-end gap-2">
+					<FormCheck
+						label={t('Common:switch-enabled')}
+						type="switch"
+						id="GPLinkTesterButton"
+						reverse
+						isInvalid={false}
+						checked={Boolean(values.GPLinkTesterEnabled)}
+						onChange={(e) => {
+							handleCheckbox('GPLinkTesterEnabled');
+							handleChange(e);
+						}}
+					/>
+				</div>
+			</Row>
 		</Section>
 	);
 };

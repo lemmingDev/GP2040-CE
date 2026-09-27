@@ -815,6 +815,7 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions, txPin, GPLINK_TX_PIN);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions, rxPin, GPLINK_RX_PIN);
     INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions, baudRate, GPLINK_BAUD_RATE);
+    INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions, testerEnabled, false);
     for (uint16_t pin = 0; pin < GPLINK_PIN_COUNT; pin++) {
         INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions.gplinkPins[pin], action, GpioAction::NONE);
         INIT_UNSET_PROPERTY(config.addonOptions.gplinkOptions.gplinkPins[pin], direction, GpioDirection::GPIO_DIRECTION_INPUT);

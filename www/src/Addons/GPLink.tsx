@@ -86,6 +86,7 @@ export const gplinkScheme = {
 		.number()
 		.label('GPLink Baud Rate')
 		.validateRangeWhenValue('GPLinkEnabled', 9600, 2000000),
+	GPLinkTesterEnabled: yup.number().required().label('GPLink Tester Enabled'),
 };
 
 export const gplinkState = {
@@ -94,6 +95,7 @@ export const gplinkState = {
 	gplinkTxPin: 8,
 	gplinkRxPin: 9,
 	gplinkBaudRate: 2000000,
+	GPLinkTesterEnabled: 0,
 };
 
 const pinOptions = (

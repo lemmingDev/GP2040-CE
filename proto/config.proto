@@ -976,6 +976,11 @@ message GPLinkOptions
     optional int32 rxPin = 4;
     optional uint32 baudRate = 5;
     repeated GpioMappingInfo gplinkPins = 6 [(nanopb).max_count = 64];
+    // Companion self-test UI (Tester tab) enable. Gates new TEST_CONFIGURE
+    // runs (stops are always allowed so a running test can never be trapped
+    // behind a disabled switch). UX + safety switch only; the link itself
+    // is unaffected.
+    optional bool testerEnabled = 7;
 }
 
 message GPLinkAnalogOptions

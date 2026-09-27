@@ -91,6 +91,11 @@ uint8_t GPLinkAddon::copyTestResults(GPLinkTestResult *out, uint8_t max) {
     return n;
 }
 
+void GPLinkAddon::clearTestResults() {
+    testResultNum = 0;
+    testResultHead = 0;
+}
+
 uint16_t GPLinkAddon::getAnalogPinValue(uint8_t pin) {
     if (pin >= GPLINK_PIN_COUNT) return GAMEPAD_JOYSTICK_MID;
     return analogValues[pin];
@@ -690,6 +695,36 @@ void GPLinkAddon::process() {
         sendGpioConfigs();
         sendAnalogConfigs();
     }
+    if (!alive && wasAlive) {
+        // Link-down failsafe: the companion drops its tests on its side,
+        // but our last-applied inputs would stick forever (held buttons,
+        // parked sticks, pressed triggers). Release everything back to
+        // rest: buttons released, sticks centered, triggers at their
+        // calibrated rest (released = 0 — *not* MID, which reads
+        // half-pressed through the trigger window). Fresh frames re-assert
+        // on reconnect, and the 2 s link timeout means only a sustained
+        // outage trips this.
+        lastMask = 0;
+        applyGpioMask(0);
+        for (uint8_t i = 0; i < GPLINK_PIN_COUNT; i++) analogValues[i] = GAMEPAD_JOYSTICK_MID;
+        const GPLinkAnalogOptions& analogOptions = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
+        // Stick pins win over trigger rest: a pin mapped as a stick axis
+        // centers (MID); trigger rest applies only to trigger-only pins.
+        // Otherwise a shared pin (e.g. lxPin == ltPin) would show the
+        // trigger rest value on the stick instead of centering.
+        const int32_t stickPins[4] = {analogOptions.lxPin, analogOptions.lyPin,
+                                      analogOptions.rxPin, analogOptions.ryPin};
+        auto isStickPin = [&](int32_t p) {
+            for (uint8_t i = 0; i < 4; i++) if (stickPins[i] == p) return true;
+            return false;
+        };
+        if (analogOptions.ltPin >= 0 && analogOptions.ltPin < GPLINK_PIN_COUNT &&
+                !isStickPin(analogOptions.ltPin))
+            analogValues[(uint8_t)analogOptions.ltPin] = (uint16_t)analogOptions.ltMin;
+        if (analogOptions.rtPin >= 0 && analogOptions.rtPin < GPLINK_PIN_COUNT &&
+                !isStickPin(analogOptions.rtPin))
+            analogValues[(uint8_t)analogOptions.rtPin] = (uint16_t)analogOptions.rtMin;
+    }
     wasAlive = alive;
 
     // Final state: we load last, so GetGamepad already reflects every addon.
@@ -701,6 +736,21 @@ void GPLinkAddon::process() {
     // function of stored channel values; the dpad half stays preprocess-only
     // (re-asserting it here would undo SOCD cleaning).
     applyAnalogAxes();
+    // While the link is down, pin the outputs to neutral every tick. The
+    // transition reset above keeps the monitors coherent, but no single raw
+    // value can satisfy a pin shared between a stick and a trigger
+    // (centering one releases-or-presses the other) — so force the finals
+    // directly: sticks MID, triggers 0. Buttons/dpad stay released via
+    // lastMask; fresh frames resume everything on reconnect.
+    if (!alive) {
+        GamepadState &neutral = gamepad->state;
+        neutral.lx = GAMEPAD_JOYSTICK_MID;
+        neutral.ly = GAMEPAD_JOYSTICK_MID;
+        neutral.rx = GAMEPAD_JOYSTICK_MID;
+        neutral.ry = GAMEPAD_JOYSTICK_MID;
+        neutral.lt = 0;
+        neutral.rt = 0;
+    }
     const GamepadState &state = gamepad->state;
     // Mirror mapped output pins to the companion (change-driven + 5 s
     // backstop so a lost frame can't stick an LED).

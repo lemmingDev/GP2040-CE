@@ -654,6 +654,18 @@ async function getGPLinkTestResults() {
 		console.error(error);
 	}
 }
+
+async function clearGPLinkTestResults() {
+	try {
+		// Send an explicit empty JSON body: the webserver stalls POSTs that
+		// declare neither a body nor a length, so a bodiless post (like the
+		// other Http.post calls) would hang here instead of clearing.
+		const response = await Http.post(`${baseUrl}/api/clearGPLinkTestResults`, {});
+		return response.data;
+	} catch (error) {
+		console.error(error);
+	}
+}
 async function setLightsDataOptions(options) {
 	return Http.post(`${baseUrl}/api/setLightsDataOptions`, options);
 }
@@ -819,6 +831,7 @@ export default {
 	getGPLinkAnalogValues,
 	runGPLinkTest,
 	getGPLinkTestResults,
+	clearGPLinkTestResults,
 	getHETriggerVoltage,
 	setHETriggerCalibrations,
 	getHETriggerCalibrations,

@@ -503,9 +503,15 @@ std::string runGPLinkTest()
     uint32_t p1 = postDoc["param1"];
     uint32_t p2 = postDoc["param2"];
     bool sent = false;
-    if (GPLinkAddon *addon = GPLink_GetAddon()) {
-        sent = addon->sendTestConfigure((uint8_t)testId, (uint8_t)pin, (uint8_t)fn,
-                                        (uint16_t)p1, (uint16_t)p2);
+    // New runs need the Tester switch on; stops (fn 255) always go through
+    // so a running test can never be trapped behind a disabled switch.
+    bool allowed = (fn == 255) ||
+                   Storage::getInstance().getAddonOptions().gplinkOptions.testerEnabled;
+    if (allowed) {
+        if (GPLinkAddon *addon = GPLink_GetAddon()) {
+            sent = addon->sendTestConfigure((uint8_t)testId, (uint8_t)pin, (uint8_t)fn,
+                                            (uint16_t)p1, (uint16_t)p2);
+        }
     }
     writeDoc(doc, "sent", sent);
     return serialize_json(doc);
@@ -531,6 +537,19 @@ std::string getGPLinkTestResults()
         entry["value"] = results[i].value;
         entry["count"] = results[i].count;
     }
+    return serialize_json(doc);
+}
+
+// Drop stored companion test reports (tester Clear button). Running
+// companion tests are untouched; only this board's history is forgotten.
+std::string clearGPLinkTestResults()
+{
+    const size_t capacity = JSON_OBJECT_SIZE(1);
+    DynamicJsonDocument doc(capacity);
+    if (GPLinkAddon *addon = GPLink_GetAddon()) {
+        addon->clearTestResults();
+    }
+    writeDoc(doc, "cleared", true);
     return serialize_json(doc);
 }
 
@@ -2477,6 +2496,7 @@ std::string setAddonOptions()
     docToPin(gplinkOptions.txPin, doc, "gplinkTxPin");
     docToPin(gplinkOptions.rxPin, doc, "gplinkRxPin");
     docToValue(gplinkOptions.baudRate, doc, "gplinkBaudRate");
+    docToValue(gplinkOptions.testerEnabled, doc, "GPLinkTesterEnabled");
 
     GPLinkAnalogOptions& gplinkAnalogOptions = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
     docToValue(gplinkAnalogOptions.enabled, doc, "GPLinkAnalogEnabled");
@@ -3055,6 +3075,7 @@ std::string getAddonOptions()
     writeDoc(doc, "gplinkTxPin", cleanPin(gplinkOptions.txPin));
     writeDoc(doc, "gplinkRxPin", cleanPin(gplinkOptions.rxPin));
     writeDoc(doc, "gplinkBaudRate", gplinkOptions.baudRate);
+    writeDoc(doc, "GPLinkTesterEnabled", gplinkOptions.testerEnabled);
 
     const GPLinkAnalogOptions& gplinkAnalogOptions = Storage::getInstance().getAddonOptions().gplinkAnalogOptions;
     writeDoc(doc, "GPLinkAnalogEnabled", gplinkAnalogOptions.enabled);
@@ -3660,6 +3681,7 @@ static const std::pair<const char*, HandlerFuncPtr> handlerFuncs[] =
     { "/api/getGPLinkAnalogValues", getGPLinkAnalogValues },
     { "/api/runGPLinkTest", runGPLinkTest },
     { "/api/getGPLinkTestResults", getGPLinkTestResults },
+    { "/api/clearGPLinkTestResults", clearGPLinkTestResults },
     { "/api/getConfig", getConfig },
     { "/api/getJoystickCenter", getJoystickCenter },
     { "/api/getJoystickCenter2", getJoystickCenter2 },

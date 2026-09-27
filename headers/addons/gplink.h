@@ -111,6 +111,9 @@ public:
     bool sendTestConfigure(uint8_t testId, uint8_t pin, uint8_t fn, uint16_t p1, uint16_t p2);
     // Copy stored test results newest-first into out (up to max); returns count.
     uint8_t copyTestResults(GPLinkTestResult *out, uint8_t max);
+    // Drop all stored test results (tester Clear button). Running companion
+    // tests are untouched; only this board's report history is forgotten.
+    void clearTestResults();
     // Config-mode drain: the core0 loop skips all addons in webconfig mode,
     // so without this inbound frames pile up unread and analogValues (read
     // by /api/getGPLinkAnalogValues) stays at init forever. Drains RX and
